@@ -15,12 +15,15 @@ import time
 
 class SourceSelector(object):
 
+	UWdb = "UWdb"
+	LocalDb = "LocalDb"
+
 	def __init__(self, dbType, cameraType, cameraMJD=59580.0):
 
-		if (dbType == "UWdb"):
+		if (dbType == self.UWdb):
 			self.db = BrightStarDatabase()
 			self.tableName = "bright_stars"
-		elif (dbType == "LocalDb"):
+		elif (dbType == self.LocalDb):
 			self.db = LocalDatabase()
 			self.tableName = "BrightStarCatalog"
 		else:
@@ -90,10 +93,10 @@ class SourceSelector(object):
 		RA, Dec = pointing
 
 	    # Regenerate the tablen name for local database
-		if (self.name == "LocalDb"):
+		if (self.name == self.LocalDb):
 		   	tableName = self.tableName + self.filter.getFilter().upper()
 	    # Keep the same table name for remote database
-		elif (self.name == "UWdb"):
+		elif (self.name == self.UWdb):
 		    tableName = self.tableName
 	    
 	    # Setup the boundary of magnitude based on the filter
@@ -112,7 +115,10 @@ class SourceSelector(object):
 		    if orientation in ("corner", "center", "all"):
 		        wavefrontSensors = self.camera.getSensor(obs, orientation)
 		elif (self.camera.name == self.camera.LSST):
-		    wavefrontSensors = self.camera.getWavefrontSensor(obs)
+			if (orientation == "corner"):
+			    wavefrontSensors = self.camera.getWavefrontSensor(obs)
+			elif (orientation == "all"):
+				wavefrontSensors = self.camera.getScineceSensor(obs)
 
 		if not (wavefrontSensors):
 		    print("No wavefront sensor is allocated.")
@@ -174,7 +180,7 @@ class SourceSelector(object):
 		"""
 		
 		# Check the database is the local database or not
-		if (self.name != "LocalDb"):
+		if (self.name != self.LocalDb):
 			raise ValueError("Can not insert data into '%s'." % self.name)
 
 		# Insert the data 
@@ -195,7 +201,7 @@ class SourceSelector(object):
 		"""
 
 		# Check the database is the UW database or not
-		if (self.name != "UWdb"):
+		if (self.name != self.UWdb):
 			raise ValueError("Can not generate BSC from '%s'." % self.name)
 
 		# Check the camera is comcam or not
@@ -218,24 +224,63 @@ class SourceSelector(object):
 			for Dec in DecArray:
 				# Do the query
 				neighborStarMap, starMap, wavefrontSensors = self.getTargetStar((RA, Dec), cameraRotation, 
-																	orientation="center", offset=self.maxDistance)
+																				orientation="center", 
+																				offset=self.maxDistance)
 
 				# Write data into the local database
 				localDb.insertToBSC(neighborStarMap)
 
-	def updateBSC(self):
-		# Update the bright star catalog.
-		pass
+	def searchRaDecl(self, ra, decl):
+		"""
+		
+		Search the star id based on ra, decl.
+		
+		Arguments:
+			ra {[float]} -- ra in degree (0 deg - 360 deg).
+			decl {[float]} -- decl in degree (-90 deg - 90 deg).
+		
+		Returns:
+			[int] -- Star ID in database. It is noted that the id will be "simobjid" if the database is 
+					 the remote UW database.
+		"""
 
-	def analyzeDis(self):
-		# Analyze the distribution of target stars.
-		pass
+		starID = []
 
-	def selectWfs(self):
-		# Select the wavefront sensors for generating master images.
-		pass
+		# Get the star id from the database
+		if (self.name == self.UWdb):
+			starID = self.db.searchRaDecl(self.tableName, ra, decl)
 
-	def configSelect(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
+			# Change the data type from decimal to int to keep the same data type as local database
+			# This might be removed when the local database switchs to mssql.
+			starID.append((int(starID.pop()[0]),))
+
+		elif (self.name == self.LocalDb):
+			starID = self.db.searchRaDecl(self.filter.getFilter(), ra, decl)
+			
+		return starID
+
+	def updateBSC(self, listID, listOfItemToChange, listOfNewValue):
+		"""
+		
+		Update data based on the id.
+		
+		Arguments:
+			listID {[int]} -- ID list to change.
+			listOfItemToChange {[string]} -- Item list (simobjid, ra, decl, mag, bright_star) to change.
+			listOfNewValue {[valueType]} -- New value list.
+		
+		Raises:
+			ValueError -- Not local database.
+		"""
+
+		# Check the database is the local database or not
+		if (self.name != self.LocalDb):
+			raise ValueError("Can not update BSC in '%s'." % self.name)
+
+		# Update the bright star catalog
+		self.db.updateData(self.filter.getFilter(), listID, listOfItemToChange, listOfNewValue)
+
+	def config(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
 		"""
 		
 		Set the configuration to decide the scientific target.
@@ -286,8 +331,21 @@ class SourceSelector(object):
 
 		return self.db.stddevSplit
 
+	def analyzeEntory(self):
+		# Analyze the entropy of target stars in (ra, decl) level.
+		# No consideration of penalty of neighboring star
+		pass
+
+	def selectWfs(self, maxWfsNum):
+		# Select the wavefront sensors for generating master images.
+		pass
+
 	def subscribeFilter(self):
-		# Subscribe the filter type from telemetry by SAL
+		# Subscribe the filter type from telemetry by SAL.
+		pass
+
+	def trimMargin(self, neighborStarMap):
+		# Trim the stars that are in the margin.
 		pass
 
 if __name__ == "__main__":
@@ -313,7 +371,7 @@ if __name__ == "__main__":
     localDb.connect(dbAdress)
 
     # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-    pointing = (0.0, 30.0)
+    pointing = (20.0, 30.0)
 
     # Camera rotation
     cameraRotation = 0.0
@@ -325,24 +383,33 @@ if __name__ == "__main__":
     starRadiusInPixel = 63
 
 	# Set the configuration to select the scientific target
-    remoteDb.configSelect(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
-    localDb.configSelect(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
+    remoteDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
+    localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
 
 	# Set the active filter
-    remoteDb.setFilter("y")
-    localDb.setFilter("y")
+    remoteDb.setFilter("u")
+    localDb.setFilter("u")
 
     # Camera orientation for ComCam ("center" or "corner" or "all")
-    orientation = "all"
+    # Camera orientation for LSSTcam ("corner" or "all")
+    orientation = "center"
 
     # Do the query
     t0 = time.time()
 
-    # neighborStarMap, starMap, wavefrontSensors = remoteDb.getTargetStar(pointing, cameraRotation, orientation=orientation)    
+    neighborStarMap, starMap, wavefrontSensors = remoteDb.getTargetStar(pointing, cameraRotation, orientation=orientation)    
     # neighborStarMap, starMap, wavefrontSensors = localDb.getTargetStar(pointing, cameraRotation, orientation=orientation)
 
-    remoteDb.generateBSC(localDb)
+    # Trim the margin to make sure the target stars and related neighboring stars are in the margin
+    
+
+    # remoteDb.generateBSC(localDb)
     # localDb.insertToBSC(neighborStarMap)
+
+    # starRemote = remoteDb.searchRaDecl(359.432736, -80.315527)
+    # starIDLocal = localDb.searchRaDecl(359.432736, -80.315527)
+
+    # localDb.updateBSC([1746], ["mag"], [11.17897]) # 11.17897
     
     t1 = time.time()
     print (t1-t0)

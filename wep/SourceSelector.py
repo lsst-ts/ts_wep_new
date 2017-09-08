@@ -331,6 +331,68 @@ class SourceSelector(object):
 
 		return self.db.stddevSplit
 
+	def trimMargin(self, neighborStarMap, trimMarginInPixel):
+		"""
+		
+		Trim the candidate stars if they or related neighboring stars are outside of boundary. 
+		
+		Arguments:
+	        neighborStarMap{[list]} -- Information of neighboring stars and candidate stars with 
+	                                   the name of sensor as a list.
+			trimMarginInPixel {[float]} -- Trimed boundary in pixel. if the ccd dimension is (d1, d2), only stars 
+										   inside (trimMarginInPixel < x1 < d1-trimMarginInPixel) and 
+										   (trimMarginInPixel < x2 < d2-trimMarginInPixel) will be left.
+		
+		Raises:
+			ValueError -- trimMarginInPixel is less than 0.
+			ValueError -- trimMarginInPixel is bigger than the half of CCD dimension.
+		"""
+
+		# Check the boundary of trimMarginInPixel
+		if (trimMarginInPixel<0):
+			raise ValueError("The trimmed boudary pixel < 0.")
+
+		# Trim the stars that are in the margin.
+		for detector, neighborStar in neighborStarMap.items():
+
+			trimmedCandidateStarNum = 0
+
+			# Detector dimension
+			dim1, dim2 = self.camera.getCcdDim(detector)
+
+			# Check the boundary of trimMarginInPixel
+			if (trimMarginInPixel > min(dim1, dim2)/2):
+				raise ValueError("trimMarginInPixel ('%f') >= half of CCD's dimension." % trimMarginInPixel)
+
+			# Use the candidate star as the unit to check stars are inside the boundary or not
+			for candidateStar, neighboringStars in neighborStar.SimobjID.items():
+
+				# Get all stars (candidateStar: string + neighboringStars: list) in this item
+				# Use the List[:] to get the copy of list
+				allStars = neighboringStars[:]
+				allStars.append(candidateStar)
+
+				needToTrim = False
+				# Check the coordinate for each star
+				for star in allStars:
+					coord1, coord2 = neighborStar.RaDeclInPixel[star]
+
+					# Check the star inside the boundary or not
+					if (coord1 <= trimMarginInPixel or coord1 >= dim1-trimMarginInPixel or 
+						coord2 <= trimMarginInPixel or coord2 >= dim2-trimMarginInPixel):
+						needToTrim = True
+						break
+				
+				# The candidate/ neighboring stars are outside of tbe boundary
+				if (needToTrim):
+					trimmedCandidateStarNum += 1
+
+					# Add "None" to avoid the raised error that there is the unfound key
+					neighborStar.SimobjID.pop(candidateStar, None)
+
+			if (trimmedCandidateStarNum != 0):
+				print("Trimmed candidate stars on %s: %d" % (detector, trimmedCandidateStarNum))
+
 	def analyzeEntory(self):
 		# Analyze the entropy of target stars in (ra, decl) level.
 		# No consideration of penalty of neighboring star
@@ -342,10 +404,6 @@ class SourceSelector(object):
 
 	def subscribeFilter(self):
 		# Subscribe the filter type from telemetry by SAL.
-		pass
-
-	def trimMargin(self, neighborStarMap):
-		# Trim the stars that are in the margin.
 		pass
 
 if __name__ == "__main__":
@@ -392,16 +450,17 @@ if __name__ == "__main__":
 
     # Camera orientation for ComCam ("center" or "corner" or "all")
     # Camera orientation for LSSTcam ("corner" or "all")
-    orientation = "center"
+    orientation = "all"
 
     # Do the query
     t0 = time.time()
 
-    neighborStarMap, starMap, wavefrontSensors = remoteDb.getTargetStar(pointing, cameraRotation, orientation=orientation)    
-    # neighborStarMap, starMap, wavefrontSensors = localDb.getTargetStar(pointing, cameraRotation, orientation=orientation)
+    # neighborStarMap, starMap, wavefrontSensors = remoteDb.getTargetStar(pointing, cameraRotation, orientation=orientation)    
+    neighborStarMap, starMap, wavefrontSensors = localDb.getTargetStar(pointing, cameraRotation, orientation=orientation)
 
     # Trim the margin to make sure the target stars and related neighboring stars are in the margin
-    
+    # remoteDb.trimMargin(neighborStarMap, 200)
+    localDb.trimMargin(neighborStarMap, 200)
 
     # remoteDb.generateBSC(localDb)
     # localDb.insertToBSC(neighborStarMap)
@@ -420,6 +479,9 @@ if __name__ == "__main__":
 
     # Plot the star map in (ra, dec)
     plotRaDecl(wavefrontSensors, starMap, neighborStarMap, localDb.getStddevSplit())
+
+    # sensor = "R:0,0 S:2,2,A"
+    # plotPixel(starMap[sensor], neighborStarMap[sensor])
 
 
 

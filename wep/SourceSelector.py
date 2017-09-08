@@ -89,9 +89,6 @@ class SourceSelector(object):
 	    # Filter type
 		cameraFilter = self.filter.getFilter()
 
-	    # Get Ra, Decl
-		RA, Dec = pointing
-
 	    # Regenerate the tablen name for local database
 		if (self.name == self.LocalDb):
 		   	tableName = self.tableName + self.filter.getFilter().upper()
@@ -103,11 +100,7 @@ class SourceSelector(object):
 		lowMagnitude, highMagnitude = self.filter.getMagBoundary()
 
 	    # Get corners of wavefront sensors for this observation field
-		obs = []
-		obs = ObservationMetaData(pointingRA = RA, pointingDec = Dec, 
-	                              rotSkyPos = cameraRotation, mjd = self.cameraMJD)
-		if not (obs):
-		    print("No observation metadata.")
+		obs = self.__getObs(pointing, cameraRotation, self.cameraMJD)
 
 	    # Assign the wavefront sensors 
 		wavefrontSensors = []
@@ -123,7 +116,7 @@ class SourceSelector(object):
 		if not (wavefrontSensors):
 		    print("No wavefront sensor is allocated.")
 
-		print("Boresight: (RA, Decl) = (%f, %f) " % (RA, Dec))
+		print("Boresight: (RA, Decl) = (%f, %f) " % (pointing[0], pointing[1]))
 
 	    # Query the star database
 		starMap = {}
@@ -166,6 +159,32 @@ class SourceSelector(object):
 		    print("\t\tAvailable candidate stars: %d" % len(neighborStar.SimobjID))
 
 		return neighborStarMap, starMap, wavefrontSensors
+
+	def __getObs(self, pointing, cameraRotation, mjd):
+		"""
+		
+		Get the observation metadata.
+		
+		Arguments:
+			pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
+			cameraRotation {[float]} -- Camera rotation angle in degree.
+			mjd {[float]} -- Camera mjd.
+		
+		Returns:
+			[metadata] -- The observation meta data (found in the lsst-sims stack) that defines 
+                          the pointing.
+		"""
+
+	    # Get Ra, Decl
+		RA, Dec = pointing
+
+		obs = []
+		obs = ObservationMetaData(pointingRA = RA, pointingDec = Dec, 
+	                              rotSkyPos = cameraRotation, mjd = mjd)
+		if (not obs):
+		    print("No observation metadata.")
+
+		return obs
 
 	def insertToBSC(self, neighborStarMap):
 		"""
@@ -393,15 +412,6 @@ class SourceSelector(object):
 			if (trimmedCandidateStarNum != 0):
 				print("Trimmed candidate stars on %s: %d" % (detector, trimmedCandidateStarNum))
 
-	def analyzeEntory(self):
-		# Analyze the entropy of target stars in (ra, decl) level.
-		# No consideration of penalty of neighboring star
-		pass
-
-	def selectWfs(self, maxWfsNum):
-		# Select the wavefront sensors for generating master images.
-		pass
-
 	def subscribeFilter(self):
 		# Subscribe the filter type from telemetry by SAL.
 		pass
@@ -458,10 +468,6 @@ if __name__ == "__main__":
     # neighborStarMap, starMap, wavefrontSensors = remoteDb.getTargetStar(pointing, cameraRotation, orientation=orientation)    
     neighborStarMap, starMap, wavefrontSensors = localDb.getTargetStar(pointing, cameraRotation, orientation=orientation)
 
-    # Trim the margin to make sure the target stars and related neighboring stars are in the margin
-    # remoteDb.trimMargin(neighborStarMap, 200)
-    localDb.trimMargin(neighborStarMap, 200)
-
     # remoteDb.generateBSC(localDb)
     # localDb.insertToBSC(neighborStarMap)
 
@@ -469,7 +475,11 @@ if __name__ == "__main__":
     # starIDLocal = localDb.searchRaDecl(359.432736, -80.315527)
 
     # localDb.updateBSC([1746], ["mag"], [11.17897]) # 11.17897
-    
+
+    # Trim the margin to make sure the target stars and related neighboring stars are in the margin
+    # remoteDb.trimMargin(neighborStarMap, 200)
+    localDb.trimMargin(neighborStarMap, 200)
+
     t1 = time.time()
     print (t1-t0)
 

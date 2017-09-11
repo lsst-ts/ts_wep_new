@@ -8,7 +8,6 @@ from bsc.CameraData import LsstCamera, ComCam
 from bsc.Filter import Filter
 from bsc.PlotStarFunc import plotPixel, plotRaDecl
 
-from numpy import nan
 import numpy as np
 
 import time
@@ -40,10 +39,12 @@ class SourceSelector(object):
 		self.camera.initializeDetectors()
 		self.cameraMJD = cameraMJD
 
-		self.maxDistance = nan
-		self.maxNeighboringStar = nan
+		self.maxDistance = np.nan
+		self.maxNeighboringStar = np.nan
 
 		self.filter = Filter()
+
+		self.middleware = Middleware()
 
 	def connect(self, *kwargs):
 		"""
@@ -411,10 +412,6 @@ class SourceSelector(object):
 
 			if (trimmedCandidateStarNum != 0):
 				print("Trimmed candidate stars on %s: %d" % (detector, trimmedCandidateStarNum))
-
-	def subscribeFilter(self):
-		# Subscribe the filter type from telemetry by SAL.
-		pass
 
 if __name__ == "__main__":
 

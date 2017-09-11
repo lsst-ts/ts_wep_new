@@ -2,15 +2,12 @@ from lsst.sims.utils import ObservationMetaData
 
 from bsc.BrightStarDatabase import BrightStarDatabase
 from bsc.LocalDatabase import LocalDatabase
-
 from bsc.CameraData import LsstCamera, ComCam 
-
 from bsc.Filter import Filter
-from bsc.PlotStarFunc import plotPixel, plotRaDecl
 
 import numpy as np
 
-import time
+import unittest
 
 class SourceSelector(object):
 
@@ -43,8 +40,6 @@ class SourceSelector(object):
 		self.maxNeighboringStar = np.nan
 
 		self.filter = Filter()
-
-		self.middleware = Middleware()
 
 	def connect(self, *kwargs):
 		"""
@@ -413,7 +408,13 @@ class SourceSelector(object):
 			if (trimmedCandidateStarNum != 0):
 				print("Trimmed candidate stars on %s: %d" % (detector, trimmedCandidateStarNum))
 
-if __name__ == "__main__":
+class SourceSelectorTest(unittest.TestCase):
+    """
+    Test the source selector. 
+    """
+
+    # Address of local database
+    dbAdress = "/Users/Wolf/bsc.db3"
 
     # Remote database setting
     databaseHost = "localhost:51433"
@@ -421,76 +422,110 @@ if __name__ == "__main__":
     databasePassword = "L$$TUser"
     databaseName = "LSSTCATSIM"
 
-    # Local database address
-    dbAdress = "/Users/Wolf/bsc.db3"
-
-	# Instantiate the databases
-    cameraMJD = 59580.0
-    cameraType = "comcam"
-    remoteDb = SourceSelector("UWdb", cameraType)
-    localDb = SourceSelector("LocalDb", cameraType)
-
-    # Connect to database
-    remoteDbInfo = [databaseHost,databaseUser, databasePassword, databaseName]
-    remoteDb.connect(*remoteDbInfo)
-    localDb.connect(dbAdress)
-
     # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
     pointing = (20.0, 30.0)
 
     # Camera rotation
     cameraRotation = 0.0
 
-    # Maximum distance in units of radius one donut must be considered as a neighbor.
-    spacingCoefficient = 2.5
+    # Active filter type
+    aFilterType = "r"
 
-	# For the defocus = 1.5 mm, the star's radius is 63 pixel.
-    starRadiusInPixel = 63
+    # Camera type: "lsst" or "comcam"
+    cameraType = "comcam"
 
-	# Set the configuration to select the scientific target
-    remoteDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
-    localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
-
-	# Set the active filter
-    remoteDb.setFilter("u")
-    localDb.setFilter("u")
+    # Set the camera MJD
+    cameraMJD = 59580.0
 
     # Camera orientation for ComCam ("center" or "corner" or "all")
     # Camera orientation for LSSTcam ("corner" or "all")
-    orientation = "all"
+    orientation = "center"
 
-    # Do the query
-    t0 = time.time()
+    def setUp(self):
+		
+		# Set the database
+		self.remoteDb = SourceSelector("UWdb", self.cameraType)
+		self.localDb = SourceSelector("LocalDb", self.cameraType)
 
-    # neighborStarMap, starMap, wavefrontSensors = remoteDb.getTargetStar(pointing, cameraRotation, orientation=orientation)    
-    neighborStarMap, starMap, wavefrontSensors = localDb.getTargetStar(pointing, cameraRotation, orientation=orientation)
+		# Remote database infomation
+		remoteDbInfo = [self.databaseHost, self.databaseUser, self.databasePassword, self.databaseName]
 
-    # remoteDb.generateBSC(localDb)
-    # localDb.insertToBSC(neighborStarMap)
+		# Connect to database
+		self.remoteDb.connect(*remoteDbInfo)
+		self.localDb.connect(self.dbAdress)
 
-    # starRemote = remoteDb.searchRaDecl(359.432736, -80.315527)
-    # starIDLocal = localDb.searchRaDecl(359.432736, -80.315527)
+    def tearDown(self):
 
-    # localDb.updateBSC([1746], ["mag"], [11.17897]) # 11.17897
+		# Disconnect database
+		self.remoteDb.disconnect()
+		self.localDb.disconnect()
 
-    # Trim the margin to make sure the target stars and related neighboring stars are in the margin
-    # remoteDb.trimMargin(neighborStarMap, 200)
-    localDb.trimMargin(neighborStarMap, 200)
+    def testFunctions(self):
 
-    t1 = time.time()
-    print (t1-t0)
+		# Maximum distance in units of radius one donut must be considered as a neighbor.
+		spacingCoefficient = 2.5
 
-    # Disconnect database
-    remoteDb.disconnect()
-    localDb.disconnect()
+		# For the defocus = 1.5 mm, the star's radius is 63 pixel.
+		starRadiusInPixel = 63
 
-    # Plot the star map in (ra, dec)
-    plotRaDecl(wavefrontSensors, starMap, neighborStarMap, localDb.getStddevSplit())
+		# Set the configuration to select the scientific target
+		self.remoteDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
+		self.localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
 
-    # sensor = "R:0,0 S:2,2,A"
-    # plotPixel(starMap[sensor], neighborStarMap[sensor])
+		# Set the active filter
+		self.remoteDb.setFilter(self.aFilterType)
+		self.localDb.setFilter(self.aFilterType)
 
+		# Test to get the active filter
+		self.assertEqual(self.localDb.getFilter(), "r")
 
+		# Test to get the standard deviation 
+		self.assertEqual(self.localDb.getStddevSplit(), 20.0)
 
+		# Get the scientific target by querying the remote database
+		neighborStarMap, starMap, wavefrontSensors = self.remoteDb.getTargetStar(self.pointing, 
+															self.cameraRotation, orientation=self.orientation)
 
+		# Test to get at least one star
+		allStars = starMap["R:2,2 S:1,1"]
+		self.assertTrue(len(allStars.SimobjID)>=1)
 
+		# Get the scientific target by querying the local database
+		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = self.localDb.getTargetStar(self.pointing, 
+																		self.cameraRotation, orientation=self.orientation)
+
+		# Test the get the empty star map
+		allStarsLocal = starMapLocal["R:2,2 S:1,1"]
+		self.assertEqual(allStarsLocal.SimobjID, [])
+
+		# Insert the neighboring star map into the database
+		self.localDb.insertToBSC(neighborStarMap)
+
+		# Query the local database again
+		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = self.localDb.getTargetStar(self.pointing, 
+																		self.cameraRotation, orientation=self.orientation)
+
+		# Test to get all neighboring stars
+		allNeighborStarLocal = neighborStarMapLocal["R:2,2 S:1,1"]
+		allNeighborStar = neighborStarMap["R:2,2 S:1,1"]
+		self.assertEqual(len(allNeighborStarLocal.SimobjID), len(allNeighborStar.SimobjID))
+
+		# Test to trim the margin
+		self.remoteDb.trimMargin(neighborStarMap, 1000)
+
+		# Test to search the id of star based on (ra, decl)
+		searchStarId = self.localDb.searchRaDecl(20.088157, 29.983533)
+
+		# Test to update the value
+		self.localDb.updateBSC([searchStarId[0][0], searchStarId[0][0]], ["ra", "decl"], [200, 200])
+		newSearchStarId = self.localDb.searchRaDecl(200, 200)
+		self.assertEqual(searchStarId, newSearchStarId)
+
+		# Delete all data in local database
+		allStarList = np.arange(1,len(allNeighborStarLocal.RaDecl)+1)
+		self.localDb.db.deleteData(self.localDb.getFilter(), allStarList.tolist())
+
+if __name__ == "__main__":
+
+	# Do the unit test
+	unittest.main()

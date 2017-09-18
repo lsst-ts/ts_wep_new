@@ -13,14 +13,11 @@ class WFEstimator(object):
 
 	def __init__(self, instruFolder, algoFolderPath):
 
-		self.instruFolder = instruFolder
-		self.algoFolderPath = algoFolderPath
-
-		self.algo = None
-		self.inst = None
+		self.algo = Algorithm(algoFolderPath)
+		self.inst = Instrument(instruFolder)
+		self.ImgIntra = Image()
+		self.ImgExtra = Image()
 		self.opticalModel = None
-		self.ImgIntra = None
-		self.ImgExtra = None
 
 	def config(self, solver="exp", instName="lsst", opticalModel="offAxis", debugLevel=0):
 		"""
@@ -40,6 +37,7 @@ class WFEstimator(object):
 		
 		Raises:
 			ValueError -- Wrong instrument name.
+			ValueError -- No intra-focal image.
 			ValueError -- Wrong Poisson solver name.
 			ValueError -- Wrong optical model.
 		"""
@@ -50,14 +48,15 @@ class WFEstimator(object):
 		if (instName != "lsst"):
 			raise ValueError("Instrument can not be '%s'." % instName)
 		else:
-			# Instrument folder path
-			instruFolderPath = os.path.join(self.instruFolder, instName)
-			self.inst = Instrument(instruFolderPath, instName, self.ImgIntra.sizeinPix)
+			if (not self.ImgIntra.sizeinPix):
+				raise ValueError("The intra-focal image does not be set yet.")
+			else:
+				self.inst.config(instName, self.ImgIntra.sizeinPix)
 
 		if solver not in ("exp", "fft"):
 			raise ValueError("Poisson solver can not be '%s'." % solver)
 		else:
-			self.algo = Algorithm(self.algoFolderPath, solver, self.inst, debugLevel=debugLevel)
+			self.algo.config(solver, self.inst, debugLevel=debugLevel)
 		
 		if opticalModel not in ("paraxial", "onAxis", "offAxis"):
 			raise ValueError("Optical model can not be '%s'." % opticalModel)
@@ -86,14 +85,11 @@ class WFEstimator(object):
 		if defocalType not in (self.INTRA, self.EXTRA):
 			raise ValueError("Defocal type can not be '%s'." % defocalType)
 
-		# Read the image
-		defocalImg = Image(self.algoFolderPath, fieldXY, image=image, imageFile=imageFile, atype=defocalType)
-
-		# Assign the type
+		# Read the image and assign the type
 		if (defocalType == self.INTRA):
-			self.ImgIntra = defocalImg
+			self.ImgIntra.setImg(fieldXY, imageFile=imageFile, atype=defocalType)
 		elif (defocalType == self.EXTRA):
-			self.ImgExtra = defocalImg
+			self.ImgExtra.setImg(fieldXY, imageFile=imageFile, atype=defocalType)
 
 	def calWfsErr(self, tol=1e-3, showZer=False, showPlot=False):
 		"""

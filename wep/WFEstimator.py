@@ -2,21 +2,17 @@ import os, sys
 
 from cwfs.Instrument import Instrument
 from cwfs.Algorithm import Algorithm
-from cwfs.Image import Image
+from cwfs.CompensationImageDecorator import CompensationImageDecorator
 from cwfs.Tool import plotImage
 
 class WFEstimator(object):
-
-	# Constant
-	INTRA = "intra"
-	EXTRA = "extra"
 
 	def __init__(self, instruFolder, algoFolderPath):
 
 		self.algo = Algorithm(algoFolderPath)
 		self.inst = Instrument(instruFolder)
-		self.ImgIntra = Image()
-		self.ImgExtra = Image()
+		self.ImgIntra = CompensationImageDecorator()
+		self.ImgExtra = CompensationImageDecorator()
 		self.opticalModel = None
 
 	def config(self, solver="exp", instName="lsst", opticalModel="offAxis", debugLevel=0):
@@ -82,13 +78,13 @@ class WFEstimator(object):
 		"""
 		
 		# Check the defocal type
-		if defocalType not in (self.INTRA, self.EXTRA):
+		if defocalType not in (self.ImgIntra.INTRA, self.ImgIntra.EXTRA):
 			raise ValueError("Defocal type can not be '%s'." % defocalType)
 
 		# Read the image and assign the type
-		if (defocalType == self.INTRA):
+		if (defocalType == self.ImgIntra.INTRA):
 			self.ImgIntra.setImg(fieldXY, imageFile=imageFile, atype=defocalType)
-		elif (defocalType == self.EXTRA):
+		elif (defocalType == self.ImgIntra.EXTRA):
 			self.ImgExtra.setImg(fieldXY, imageFile=imageFile, atype=defocalType)
 
 	def calWfsErr(self, tol=1e-3, showZer=False, showPlot=False):
@@ -132,23 +128,27 @@ class WFEstimator(object):
 	        fout = sys.stdout
 
 	    # Write the information of image and optical model
-	    if self.ImgIntra is not None:
-		    fout.write("intra image: \t %s \t field in deg =(%6.3f, %6.3f)\n" %
-		               (self.ImgIntra.name, self.ImgIntra.fieldX, self.ImgIntra.fieldY))
+	    if (self.ImgIntra.name is not None):
+		    fout.write("Intra image: \t %s\n" % self.ImgIntra.name)
 
-	    if self.ImgExtra is not None:
-		    fout.write("extra image: \t %s \t field in deg =(%6.3f, %6.3f)\n" %
-		               (self.ImgExtra.name, self.ImgExtra.fieldX, self.ImgExtra.fieldY))
+	    if (self.ImgIntra.fieldX is not None):
+		    fout.write("Intra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgIntra.fieldX, self.ImgIntra.fieldY))
 
-	    if self.opticalModel is not None:
+	    if (self.ImgExtra.name is not None):
+		    fout.write("Extra image: \t %s\n" % self.ImgExtra.name)
+
+	    if (self.ImgExtra.fieldX is not None):
+		    fout.write("Extra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgExtra.fieldX, self.ImgExtra.fieldY))
+
+	    if (self.opticalModel is not None):
 		    fout.write("Using optical model:\t %s\n" % self.opticalModel)
 	    
 	    # Read the instrument file
-	    if self.algo is not None:
+	    if (self.inst.filename is not None):
 		    self.__readConfigFile(fout, self.inst, "instrument")
 
 	    # Read the algorithm file
-	    if self.algo is not None:
+	    if (self.algo.filename is not None):
 		    self.__readConfigFile(fout, self.algo, "algorithm")
 
 	    # Close the file
@@ -220,18 +220,18 @@ if __name__ == "__main__":
     wfsEst.config(solver="exp", debugLevel=0)
 
     # # Evaluate the wavefront error
-    # plotImage(wfsEst.ImgIntra.image, title="intra image")
-    # plotImage(wfsEst.ImgExtra.image, title="extra image")
+    plotImage(wfsEst.ImgIntra.image, title="intra image")
+    plotImage(wfsEst.ImgExtra.image, title="extra image")
 
     # # Evalute the wavefront error
     zer4UpNm = wfsEst.calWfsErr(showZer=True)
 
     # # Show the compensated images
-    # plotImage(wfsEst.ImgIntra.image, title="Compensated intra image")
-    # plotImage(wfsEst.ImgExtra.image, title="Compensated extra image")
+    plotImage(wfsEst.ImgIntra.image, title="Compensated intra image")
+    plotImage(wfsEst.ImgExtra.image, title="Compensated extra image")
 
     # Show the parameters
-    # wfsEst.outParam()
+    wfsEst.outParam()
 
 
 

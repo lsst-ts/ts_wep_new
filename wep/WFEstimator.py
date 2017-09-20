@@ -1,9 +1,11 @@
 import os, sys
+import numpy as np
 
 from cwfs.Instrument import Instrument
 from cwfs.Algorithm import Algorithm
 from cwfs.CompensationImageDecorator import CompensationImageDecorator
-from cwfs.Tool import plotImage
+
+import unittest
 
 class WFEstimator(object):
 
@@ -185,56 +187,84 @@ class WFEstimator(object):
 	    # Close the file
 	    fconfig.close()
 
+class WFEsitmatorTest(unittest.TestCase):
+    """
+    Test functions in WFEstimator.
+    """
+
+    def setUp(self):
+
+        # Define the instrument folder
+        instruFolder = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/instruData"
+
+        # Define the algorithm folder
+        algoFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/algo"
+
+        # Decalre the WFEsitmator
+        self.wfsEst = WFEstimator(instruFolder, algoFolderPath)
+
+    def testFunc(self):
+
+    	# Define the image folder and image names
+    	# Image data -- Don't know the final image format.
+    	# It is noted that image.readFile inuts is based on the txt file.
+    	imageFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/tests/testImages/LSST_NE_SN25"
+    	intra_image_name = "z11_0.25_intra.txt"
+    	extra_image_name = "z11_0.25_extra.txt"
+
+    	# Path to image files
+    	intraImgFile = os.path.join(imageFolderPath, intra_image_name)
+    	extraImgFile = os.path.join(imageFolderPath, extra_image_name)
+
+    	# Field XY position
+    	fieldXY = [1.185, 1.185]
+
+    	# Setup the images
+    	self.wfsEst.setImg(fieldXY, imageFile=intraImgFile, defocalType="intra")
+    	self.wfsEst.setImg(fieldXY, imageFile=extraImgFile, defocalType="extra")
+
+    	# Test the images are set.
+    	self.assertEqual(self.wfsEst.ImgIntra.atype, self.wfsEst.ImgIntra.INTRA)
+    	self.assertEqual(self.wfsEst.ImgExtra.atype, self.wfsEst.ImgExtra.EXTRA)
+
+    	# Setup the configuration
+    	# If the configuration is reset, the images are needed to be set again.
+    	self.wfsEst.config(solver="exp", debugLevel=0)
+
+    	# Test the setting of algorithm and instrument
+    	self.assertEqual(self.wfsEst.inst.instName, "lsst")
+    	self.assertEqual(self.wfsEst.algo.algoName, "exp")
+
+    	# Evaluate the wavefront error
+    	wfsError = [2.593, 14.102, -8.470, 3.676, 1.467, -9.724, 8.207, 
+    				-192.839, 0.978, 1.568, 4.197, -0.391, 1.551, 1.235, 
+    				-1.699, 2.140, -0.296, -2.113, 1.188]
+    	zer4UpNm = self.wfsEst.calWfsErr()
+    	self.assertAlmostEqual(np.sum(np.abs(zer4UpNm-np.array(wfsError))), 0, places=1)
+
+    	# Reset the wavefront images
+    	self.wfsEst.setImg(fieldXY, imageFile=intraImgFile, defocalType="intra")
+    	self.wfsEst.setImg(fieldXY, imageFile=extraImgFile, defocalType="extra")
+
+    	# Change the algorithm to fft
+    	self.wfsEst.config(solver="fft")
+    	self.assertEqual(self.wfsEst.algo.algoName, "fft")
+
+    	# Evaluate the wavefront error
+    	wfsError = [12.484, 10.358, -6.674, -0.043, -1.768, -15.593, 12.511, 
+    				-192.382, 0.195, 4.074, 9.577, -1.930, 3.538, 3.420, 
+    				-3.610, 3.547, -0.679, -2.943, 1.101] 
+    	zer4UpNm = self.wfsEst.calWfsErr()
+    	self.assertAlmostEqual(np.sum(np.abs(zer4UpNm-np.array(wfsError))), 0, places=1)
+
+    	# Test to output the parameters
+    	filename = "outputParameter"
+    	self.wfsEst.outParam(filename=filename)
+    	self.assertTrue(os.path.isfile(filename))
+    	os.remove(filename)
+
 if __name__ == "__main__":
 
-    # Define the instrument folder
-    instruFolder = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/instruData"
-
-    # Define the algorithm folder 
-    algoFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/algo"
-
-    # Define the image folder and image names
-    # Image data -- Don't know the final image format. 
-    # It is noted that image.readFile inuts is based on the txt file  
-    imageFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/tests/testImages/LSST_NE_SN25"
-    intra_image_name = "z11_0.25_intra.txt"
-    extra_image_name = "z11_0.25_extra.txt"
-
-    # Path to image files
-    intraImgFile = os.path.join(imageFolderPath, intra_image_name)
-    extraImgFile = os.path.join(imageFolderPath, extra_image_name)
-
-    # Field XY position
-    fieldXY = [1.185, 1.185]
-
-    # Declare the WFEsitmator
-    wfsEst = WFEstimator(instruFolder, algoFolderPath)
-
-    # Setup the images
-    wfsEst.setImg(fieldXY, imageFile=intraImgFile, defocalType="intra")
-    wfsEst.setImg(fieldXY, imageFile=extraImgFile, defocalType="extra")
-
-    # Setup the configuration
-    # If the configuration is reset, the images are needed to be set again. This bug should
-    # be solved.
-    wfsEst.config(solver="exp", debugLevel=0)
-
-    # # Evaluate the wavefront error
-    plotImage(wfsEst.ImgIntra.image, title="intra image")
-    plotImage(wfsEst.ImgExtra.image, title="extra image")
-
-    # # Evalute the wavefront error
-    zer4UpNm = wfsEst.calWfsErr(showZer=True)
-
-    # # Show the compensated images
-    plotImage(wfsEst.ImgIntra.image, title="Compensated intra image")
-    plotImage(wfsEst.ImgExtra.image, title="Compensated extra image")
-
-    # Show the parameters
-    wfsEst.outParam()
-
-
-
-
-
+	# Do the unit test
+	unittest.main()
 

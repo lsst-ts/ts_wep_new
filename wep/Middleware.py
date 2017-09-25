@@ -5,10 +5,10 @@ from SALPY_m2ms import SAL_m2ms
 
 class Middleware(object):
 	
-	def __init__(self):
+	def __init__(self, moduleName):
 		
-		self.salMiddleware = SAL_m2ms()
-		self.__module = __import__("SALPY_m2ms")
+		self.__module = __import__("SALPY_"+moduleName)
+		self.salMiddleware = getattr(self.__module, "SAL_"+moduleName)()
 		self.retTelData = None
 		
 	def subTelemetry(self, topic, updateTime=1, timeOut=-1):
@@ -92,6 +92,8 @@ class Middleware(object):
 				time.sleep(updateTime)
 
 		# Turn off the SAL
+		# Need to reconsider this part. Maybe need to put the turnOff SAL and while
+		# loop in the higher level class.
 		wepSal.salMiddleware.salShutdown()
 
 	def __getTelemetryData(self, subFuncName, data):
@@ -168,8 +170,11 @@ class Middleware(object):
 
 if __name__ == "__main__":
 
+	# Module name
+	moduleName = "m2ms"
+
 	# Declare the SAL middleware
-	wepSal = Middleware()
+	wepSal = Middleware(moduleName)
 
 	# Publish the data for sepecific topic
 	# topic name

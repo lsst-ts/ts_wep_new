@@ -72,6 +72,9 @@ class Middleware(object):
 		elif (atype == "event"):
 			topic = self.moduleName + "_logevent_" + topic
 			status = self.salMiddleware.salEvent(topic)
+		elif (atype == "command"):
+			topic = self.moduleName + "_command_" + topic
+			status = self.salMiddleware.salProcessor(topic)
 
 		if (status == -1):
 			raise ValueError("There is no '%s' topic in %s." % (topic, atype))
@@ -99,6 +102,8 @@ class Middleware(object):
 			subFuncName = "getNextSample_" + topic.split("_")[-1]
 		elif (atype == "event"):
 			subFuncName = "getEvent_" + topic.split("_")[-1]
+		elif (atype == "command"):
+			subFuncName = "acceptCommand_" + topic.split("_")[-1]
 
 		# Get the retrieval data status
 		retStatus = self.__getInfo(subFuncName, data)
@@ -122,6 +127,8 @@ class Middleware(object):
 
 		# Get the retrieval data status
 		retStatus = getattr(self.salMiddleware, subFuncName)(data)
+
+		# Need to consider the condition of command
 		if (retStatus == 0):
 
 			# Get the telemetry data
@@ -166,6 +173,9 @@ class Middleware(object):
 		if (atype == "event"):
 			topic = self.moduleName + "_logevent_" + topic
 			status = self.salMiddleware.salEvent(topic)
+		if (atype == "command"):
+			topic = self.moduleName + "_command_" + topic
+			status = self.salMiddleware.salCommand(topic)
 
 		if (status == -1):
 			raise ValueError("There is no '%s' topic in %s." % (topic, atype))
@@ -196,6 +206,18 @@ class Middleware(object):
 			pubFuncName = "logEvent_" + topic.split("_")[-1]
 			# Put the "0" here because there is an required interge for input in SAL.
 			getattr(self.salMiddleware, pubFuncName)(data, 0)
+		elif (atype == "command"):
+			pubFuncName = "issueCommand_" + topic.split("_")[-1]
+			cmdId = getattr(self.salMiddleware, pubFuncName)(data)
+
+			# Wait for the command to complete, otherwise to abort
+			waitFuncName = "waitForCompletion_" + topic.split("_")[-1]
+			if (self.timeOut >0):
+				getattr(self.salMiddleware, waitFuncName)(cmdId, self.timeOut)
+			else:
+				# Set the default timeOut as 5 sec
+				getattr(self.salMiddleware, waitFuncName)(cmdId, 5)
+
 
 if __name__ == "__main__":
 
@@ -249,9 +271,15 @@ if __name__ == "__main__":
 	# Event data
 	SummaryStateValue = 2
 	priority = 1
-
 	eventData = {"SummaryStateValue": SummaryStateValue,
 				 "priority": priority}
+
+	# Command topic name
+	commandTopic = "abort"
+
+	# Command data
+	state = 2
+	commandData = {"state": state}
 
 	# SAL Loop
 	sleepTime = 1
@@ -264,13 +292,22 @@ if __name__ == "__main__":
 	# 	time.sleep(sleepTime)
 	# 	print time.time()-startTime
 
-	for ii in range(10):
-		wepSal.pubInfo("event", eventTopic, eventData)
+	# for ii in range(10):
+	# 	wepSal.pubInfo("event", eventTopic, eventData)
+	# 	time.sleep(sleepTime)
+	# 	print time.time()-startTime
+	# 	wepSal.subInfo("event", eventTopic)
+	# 	time.sleep(sleepTime)
+	# 	print time.time()-startTime
+
+	for ii in range(3):
+		wepSal.pubInfo("command", commandTopic, commandData)
 		time.sleep(sleepTime)
 		print time.time()-startTime
-		wepSal.subInfo("event", eventTopic)
-		time.sleep(sleepTime)
-		print time.time()-startTime
+		# wepSal.subInfo("command", commandTopic)
+		# time.sleep(sleepTime)
+		# print time.time()-startTime
+
 
 	# Turn off the SAL
 	wepSal.shutDownSal()

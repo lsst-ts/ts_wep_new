@@ -2,16 +2,18 @@ import time, re
 from collections import Iterable
 
 from SALPY_m2ms import SAL_m2ms
+from SALPY_tcsWEP import SAL_tcsWEP
 
 class Middleware(object):
-	
+
 	def __init__(self, moduleName):
-		
+
+		self.moduleName = moduleName		
 		self.__module = __import__("SALPY_"+moduleName)
 		self.salMiddleware = getattr(self.__module, "SAL_"+moduleName)()
-		self.retTelData = None
 
-		self.moduleName = moduleName
+		self.retData = None
+		self.status = None
 
 		self.timeOut = -1
 		self.timeStart = None
@@ -34,25 +36,246 @@ class Middleware(object):
 		"""
 
 		self.timeOut = timeout
-		
-	def subInfo(self, atype, topic):
+
+	def getEvent(self, topic):
 		"""
 		
-		Subscribe the information of specific topic.
+		Get the event for specific topic.
 		
 		Arguments:
-			atype {[str]} -- Type of subscription. This can be "event", "command", or "telemetry".
 			topic {[str]} -- Topic name.
 		
 		Raises:
-			ValueError -- No type found.
-			Warning -- Time out.
+			ValueError -- No topic found.
+		"""
+		
+		# Set start time if necessary, and check the timeout
+		self.__setStartTimeAndCheckTimeOut()
+
+		# Check the topic exists or not
+		salTopic = self.moduleName + "_logevent_" + topic
+		if (self.status is None):
+			self.status = self.salMiddleware.salEvent(salTopic)
+
+			# Raise the error if no topic is found
+			if (self.status == -1):
+				raise ValueError("There is no '%s' topic in event." % topic)
+			else:
+				print("SAL Event: '%s' is ready." % salTopic)
+
+		# Instantiate the data type
+		data = getattr(self.__module, salTopic+"C")()
+
+		# Retrieve the data
+		if (self.retData is None):
+			self.retData = self.__getPubAttr(data)
+
+		# Name of subscribe function
+		subFuncName = "getEvent_" + topic
+
+		# Get the retrieval data status
+		retStatus = self.__getInfo(subFuncName, data)
+
+	def getTelemetry(self, topic):
+		"""
+		
+		Get the telemetry for specific topic.
+		
+		Arguments:
+			topic {[str]} -- Topic name.
+		
+		Raises:
+			ValueError -- No topic found.
+		"""
+		
+		# Set start time if necessary, and check the timeout
+		self.__setStartTimeAndCheckTimeOut()
+
+		# Check the topic exists or not
+		salTopic = self.moduleName + "_" + topic
+		if (self.status is None):
+			self.status = self.salMiddleware.salTelemetrySub(salTopic)
+
+			# Raise the error if no topic is found
+			if (self.status == -1):
+				raise ValueError("There is no '%s' topic in telemetry." % topic)
+			else:
+				print("SAL Telemetry Subscriber: '%s' is ready." % salTopic)
+
+		# Instantiate the data type
+		data = getattr(self.__module, salTopic+"C")()
+
+		# Retrieve the data
+		if (self.retData is None):
+			self.retData = self.__getPubAttr(data)
+
+		# Name of subscribe function
+		subFuncName = "getNextSample_" + topic
+
+		# Get the retrieval data status
+		retStatus = self.__getInfo(subFuncName, data)
+
+	def getCommand(self, topic):
+		"""
+		
+		Get the command for specific topic.
+		
+		Arguments:
+			topic {[str]} -- Topic name.
+		
+		Raises:
 			ValueError -- No topic found.
 		"""
 
-		# Check the type
-		if atype not in ("event", "command", "telemetry"):
-			raise ValueError("This is no '%s' type." % atype)
+		# Set start time if necessary, and check the timeout
+		self.__setStartTimeAndCheckTimeOut()
+
+		# Check the topic exists or not
+		salTopic = self.moduleName + "_command_" + topic
+		if (self.status is None):
+			self.status = self.salMiddleware.salProcessor(salTopic)
+
+			# Raise the error if no topic is found
+			if (self.status == -1):
+				raise ValueError("There is no '%s' topic in command." % topic)
+			else:
+				print("SAL Processor: '%s' is ready." % salTopic)
+
+		# Instantiate the data type
+		data = getattr(self.__module, salTopic+"C")()
+
+		# Retrieve the data
+		if (self.retData is None):
+			self.retData = self.__getPubAttr(data)
+
+		# Name of subscribe function
+		subFuncName = "acceptCommand_" + topic
+
+		# Get the retrieval data status
+		cmdId = self.__getInfo(subFuncName, data, showInfo=False)
+
+		# Acknowledge the finish of command
+		# Need to add the details how to check the command is done
+		isDone = True
+		SAL__CMD_COMPLETE = 303
+		if (cmdId > 0 and isDone):
+			time.sleep(1)
+			ackFuncationName = "ackCommand_" + topic
+			getattr(self.salMiddleware, ackFuncationName)(cmdId, SAL__CMD_COMPLETE, 0, "Done : OK")
+
+	def issueEvent(self, topic, newData):
+		"""
+		
+		Issue the event for specific topic.
+		
+		Arguments:
+			topic {[str]} -- Topic name.
+			newData {[dict]} -- New data for this topic's SAL data instance.
+		
+		Raises:
+			ValueError -- No topic found.
+		"""
+
+		# Check the topic exists or not
+		salTopic = self.moduleName + "_logevent_" + topic
+		if (self.status is None):
+			self.status = self.salMiddleware.salEvent(salTopic)
+
+			# Raise the error if no topic is found
+			if (self.status == -1):
+				raise ValueError("There is no '%s' topic in event." % topic)
+			else:
+				print("SAL Event: '%s' is ready." % salTopic)
+
+		# Update the data for this topic
+		data = self.__setDataValue(salTopic, newData)
+
+		# Publish the data
+		pubFuncName = "logEvent_" + topic
+		# Put the "0" here because there is an required interge for input in SAL.
+		getattr(self.salMiddleware, pubFuncName)(data, 0)
+
+	def issueTelemetry(self, topic, newData):
+		"""
+		
+		Issue the telemetry for specific topic.
+		
+		Arguments:
+			topic {[str]} -- Topic name.
+			newData {[dict]} -- New data for this topic's SAL data instance.
+		
+		Raises:
+			ValueError -- No topic found.
+		"""
+
+		# Check the topic exists or not
+		salTopic = self.moduleName + "_" + topic
+		if (self.status is None):
+			self.status = self.salMiddleware.salTelemetryPub(salTopic)
+
+			# Raise the error if no topic is found
+			if (self.status == -1):
+				raise ValueError("There is no '%s' topic in telemetry." % topic)
+			else:
+				print("SAL Telemetry Publisher: '%s' is ready." % salTopic)
+
+		# Update the data for this topic
+		data = self.__setDataValue(salTopic, newData)
+
+		# Publish the data
+		pubFuncName = "putSample_" + topic
+		getattr(self.salMiddleware, pubFuncName)(data)
+
+	def issueCommand(self, topic, newData, defaultTimeOut=5):
+		"""
+		
+		Issue the command for specific topic.
+		
+		Arguments:
+			topic {[str]} -- Topic name.
+			newData {[dict]} -- New data for this topic's SAL data instance.
+		
+		Keyword Arguments:
+			defaultTimeOut {number} -- Default timeout time if it is not set. (default: {5})
+		
+		Raises:
+			ValueError -- No topic found.
+		"""
+
+		# Check the topic exists or not
+		salTopic = self.moduleName + "_command_" + topic
+		if (self.status is None):
+			self.status = self.salMiddleware.salCommand(salTopic)
+
+			# Raise the error if no topic is found
+			if (self.status == -1):
+				raise ValueError("There is no '%s' topic in command." % topic)
+			else:
+				print("SAL command: '%s' is ready." % salTopic)
+
+		# Update the data for this topic
+		data = self.__setDataValue(salTopic, newData)
+
+		# Publish the data
+		pubFuncName = "issueCommand_" + topic
+		cmdId = getattr(self.salMiddleware, pubFuncName)(data)
+
+		# Wait for the command to complete, otherwise to abort
+		waitFuncName = "waitForCompletion_" + topic
+		if (self.timeOut >0):
+			getattr(self.salMiddleware, waitFuncName)(cmdId, self.timeOut)
+		else:
+			# Set the default timeOut
+			getattr(self.salMiddleware, waitFuncName)(cmdId, defaultTimeOut)
+
+	def __setStartTimeAndCheckTimeOut(self):
+		"""
+		
+		Set the start time and check the time out.
+		
+		Raises:
+			Warning -- Face the time out.
+		"""
 
 		# Get the current time
 		timeNow = time.time()
@@ -62,28 +285,24 @@ class Middleware(object):
 			self.timeStart = timeNow
 
 		# Check the time out
-		if (timeNow-self.timeStart > self.timeOut):
-			raise Warning("Face the time out (%f s) for no new %s data." % (self.timeOut, atype))
-		
-		# Check the topic exists or not
-		if (atype == "telemetry"):
-			topic = self.moduleName + "_" + topic
-			status = self.salMiddleware.salTelemetrySub(topic)
-		elif (atype == "event"):
-			topic = self.moduleName + "_logevent_" + topic
-			status = self.salMiddleware.salEvent(topic)
-		elif (atype == "command"):
-			topic = self.moduleName + "_command_" + topic
-			status = self.salMiddleware.salProcessor(topic)
+		if (self.timeOut >= 0):
+			if (timeNow-self.timeStart > self.timeOut):
+				raise Warning("Face the time out (%f s) for no new data." % self.timeOut)
 
-		if (status == -1):
-			raise ValueError("There is no '%s' topic in %s." % (topic, atype))
-			
-		# Instantiate the data type
-		data = getattr(self.__module, topic+"C")()
+	def __getPubAttr(self, data):
+		"""
+		
+		Get the public attribute in SAL data instance.
+		
+		Arguments:
+			data {[salDataInstance]} -- Instance of SAL data in specific topic.
+		
+		Returns:
+			[dict] -- Attributes of SAL data instance in dictionary.
+		"""
 
 		# Analyze the attribute names
-		telData = {}
+		salData = {}
 		listAttr = dir(data)
 		for attribute in listAttr:
 
@@ -93,33 +312,18 @@ class Middleware(object):
 
 			# Only take the unmatched attribute
 			if (objMatch is None):
-				telData[attribute] = None
+				salData[attribute] = None
 
-		self.retTelData = telData
+		return salData
 
-		# Name of subscribe function
-		if (atype == "telemetry"):
-			subFuncName = "getNextSample_" + topic.split("_")[-1]
-		elif (atype == "event"):
-			subFuncName = "getEvent_" + topic.split("_")[-1]
-		elif (atype == "command"):
-			subFuncName = "acceptCommand_" + topic.split("_")[-1]
-
-		# Get the retrieval data status
-		retStatus = self.__getInfo(subFuncName, data)
-
-		# Reset the time if get the new update
-		if (retStatus == 0):
-			self.timeStart = timeNow
-
-	def __getInfo(self, subFuncName, data):
+	def __getInfo(self, subFuncName, data, showInfo=True):
 		"""
 		
 		Get the information data.
 		
 		Arguments:
 			subFuncName {[str]} -- Function name of subscription.
-			data {[dataOfTelemetry]} -- Telemetry data.
+			data {[dict]} -- New data.
 		
 		Returns:
 			[int] -- Status of getting telemetry data.
@@ -129,59 +333,43 @@ class Middleware(object):
 		retStatus = getattr(self.salMiddleware, subFuncName)(data)
 
 		# Need to consider the condition of command
-		if (retStatus == 0):
+		if (retStatus >= 0):
 
 			# Get the telemetry data
-			for aKey in self.retTelData.keys():
+			for aKey in self.retData.keys():
 				telData = getattr(data, aKey)
 
 				# Check the data is iterable or not
 				if (isinstance(telData, Iterable)):
-					self.retTelData[aKey] = list(telData)
+					self.retData[aKey] = list(telData)
 				else:
-					self.retTelData[aKey] = telData
+					self.retData[aKey] = telData
 
 			# Print the information
-			print("Get the '%s' telemetry data." % subFuncName)
-			print self.retTelData
+			if (showInfo):
+				print("Get the '%s' data." % subFuncName)
 
+			# Reset the time if get the new update
+			self.timeOut = time.time()
+
+		# Return the status to retrieve the SAL data
 		return retStatus
 
-	def pubInfo(self, atype, topic, newData):
+	def __setDataValue(self, salTopic, newData):
 		"""
 		
-		Publish the telemetry of specific topic.
+		Set the data values in specific sal topic.
 		
 		Arguments:
-			atype {[str]} -- Type of publication. This can be "event", "command", or "telemetry".
-			topic {[str]} -- Topic name.
-			newData {[dataOfTelemetry]} -- Telemetry data.
+			salTopic {[str]} -- SAL topic name.
+			newData {[dict]} -- New data in dictionary.
 		
-		Raises:
-			ValueError -- No type found.
-			ValueError -- No topic found.
+		Returns:
+			[salDataInstance] -- Instance of SAL data in specific topic.
 		"""
 
-		# Check the type
-		if atype not in ("event", "command", "telemetry"):
-			raise ValueError("This is no '%s' type." % atype)
-
-		# Check the topic exists or not
-		if (atype == "telemetry"):
-			topic = self.moduleName + "_" + topic
-			status = self.salMiddleware.salTelemetryPub(topic)
-		if (atype == "event"):
-			topic = self.moduleName + "_logevent_" + topic
-			status = self.salMiddleware.salEvent(topic)
-		if (atype == "command"):
-			topic = self.moduleName + "_command_" + topic
-			status = self.salMiddleware.salCommand(topic)
-
-		if (status == -1):
-			raise ValueError("There is no '%s' topic in %s." % (topic, atype))
-
 		# Instantiate the data type
-		data = getattr(self.__module, topic+"C")()
+		data = getattr(self.__module, salTopic+"C")()
 
 		# Update the data here
 		for aKey, aItem in newData.items():
@@ -198,26 +386,8 @@ class Middleware(object):
 				# Put the value to data attribute
 				setattr(data, aKey, aItem)
 
-		# Publish the data
-		if (atype == "telemetry"):
-			pubFuncName = "putSample_" + topic.split("_")[-1]
-			getattr(self.salMiddleware, pubFuncName)(data)
-		elif (atype == "event"):
-			pubFuncName = "logEvent_" + topic.split("_")[-1]
-			# Put the "0" here because there is an required interge for input in SAL.
-			getattr(self.salMiddleware, pubFuncName)(data, 0)
-		elif (atype == "command"):
-			pubFuncName = "issueCommand_" + topic.split("_")[-1]
-			cmdId = getattr(self.salMiddleware, pubFuncName)(data)
-
-			# Wait for the command to complete, otherwise to abort
-			waitFuncName = "waitForCompletion_" + topic.split("_")[-1]
-			if (self.timeOut >0):
-				getattr(self.salMiddleware, waitFuncName)(cmdId, self.timeOut)
-			else:
-				# Set the default timeOut as 5 sec
-				getattr(self.salMiddleware, waitFuncName)(cmdId, 5)
-
+		# Return the sal data instance
+		return data
 
 if __name__ == "__main__":
 
@@ -225,14 +395,15 @@ if __name__ == "__main__":
 	moduleName = "m2ms"
 
 	# Declare the SAL middleware
-	wepSal = Middleware(moduleName)
+	wepSalIssue = Middleware(moduleName)
+	wepSalGet = Middleware(moduleName)
 
 	# Set the time out
 	timeOut = 15
-	wepSal.setTimeOut(timeOut)
+	wepSalIssue.setTimeOut(timeOut)
+	wepSalGet.setTimeOut(timeOut)
 
 	# Set the topic
-
 
 	# Publish the data for sepecific topic
 	# topic name
@@ -284,33 +455,34 @@ if __name__ == "__main__":
 	# SAL Loop
 	sleepTime = 1
 	startTime = time.time()
-	# for ii in range(3):
-	# 	wepSal.pubInfo("telemetry", topic, newData)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-	# 	wepSal.subInfo("telemetry", topic)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-
-	# for ii in range(10):
-	# 	wepSal.pubInfo("event", eventTopic, eventData)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-	# 	wepSal.subInfo("event", eventTopic)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-
-	for ii in range(3):
-		wepSal.pubInfo("command", commandTopic, commandData)
+	for ii in range(5):
+		wepSalIssue.issueTelemetry(topic, newData)
 		time.sleep(sleepTime)
 		print time.time()-startTime
-		# wepSal.subInfo("command", commandTopic)
-		# time.sleep(sleepTime)
-		# print time.time()-startTime
+		wepSalGet.getTelemetry(topic)
+		time.sleep(sleepTime)
+		print time.time()-startTime
+
+	# for ii in range(5):
+	# 	wepSalIssue.issueEvent(eventTopic, eventData)
+	# 	time.sleep(sleepTime)
+	# 	print time.time()-startTime
+	# 	wepSalGet.getEvent(eventTopic)
+	# 	time.sleep(sleepTime)
+	# 	print time.time()-startTime
+
+	# for ii in range(100):
+	# 	# wepSalIssue.issueCommand(commandTopic, commandData)
+	# 	# time.sleep(sleepTime)
+	# 	# print time.time()-startTime
+	# 	wepSalGet.getCommand(commandTopic)
+	# 	time.sleep(sleepTime)
+	# 	print time.time()-startTime
 
 
 	# Turn off the SAL
-	wepSal.shutDownSal()
+	wepSalIssue.shutDownSal()
+	wepSalGet.shutDownSal()
 
 
 

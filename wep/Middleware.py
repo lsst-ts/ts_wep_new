@@ -2,15 +2,28 @@ import time, re
 from collections import Iterable
 
 from SALPY_m2ms import SAL_m2ms
-from SALPY_tcsWEP import SAL_tcsWEP
+
+import unittest
 
 class Middleware(object):
 
 	def __init__(self, moduleName):
 
 		self.moduleName = moduleName		
-		self.__module = __import__("SALPY_"+moduleName)
-		self.salMiddleware = getattr(self.__module, "SAL_"+moduleName)()
+		self.__module = __import__("SALPY_" + moduleName)
+		self.salMiddleware = getattr(self.__module, "SAL_" + moduleName)()
+
+		self.retData = None
+		self.status = None
+
+		self.timeOut = -1
+		self.timeStart = None
+
+	def resetTopic(self):
+		"""
+		
+		Reset the topic.
+		"""
 
 		self.retData = None
 		self.status = None
@@ -389,101 +402,116 @@ class Middleware(object):
 		# Return the sal data instance
 		return data
 
+class MiddlewareTest(unittest.TestCase):
+	"""
+	Test functions in Middleware.
+	"""
+
+	def setUp(self):
+
+		# Module name
+		moduleName = "m2ms"
+
+		# Declare the Middleware
+		self.wepSalIssue = Middleware(moduleName)
+		self.wepSalGet = Middleware(moduleName)
+
+	def testTelemetry(self):
+
+		# Reset the topic
+		self.wepSalIssue.resetTopic()
+		self.wepSalGet.resetTopic()
+
+		# Set the time out
+		timeOut = 15
+		self.wepSalGet.setTimeOut(timeOut)
+		
+		# Test the set timeOut
+		self.assertEqual(self.wepSalGet.timeOut, timeOut)
+
+		# Set the telemetry topic
+		topic = "PowerStatus"
+
+		# Data information of "m2ms_PowerStatus"
+		currents = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+		onOff = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+		states = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+		voltages = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+
+		newData = {"currents": currents,
+				   "onOff": onOff,
+				   "states": states,
+				   "voltages": voltages}
+
+		# Issue the telemetry
+		self.wepSalIssue.issueTelemetry(topic, newData)
+
+		# Sleep 1 sec
+		time.sleep(1)
+
+		# Get the telemetry
+		self.wepSalGet.getTelemetry(topic)
+
+		# Test to get the telemetry
+		self.assertEqual(self.wepSalGet.retData["currents"], currents)
+
+	def testEvent(self):
+
+		# Reset the topic
+		self.wepSalIssue.resetTopic()
+		self.wepSalGet.resetTopic()
+
+		# Set the event topic
+		topic = "SummaryState"
+
+		# Event data
+		SummaryStateValue = 2
+		priority = 1
+		newData = {"SummaryStateValue": SummaryStateValue,
+				   "priority": priority}
+
+		# Issue the event
+		self.wepSalIssue.issueEvent(topic, newData)
+
+		# Sleep 1 sec
+		time.sleep(1)
+
+		# Get the event
+		self.wepSalGet.getEvent(topic)
+
+		# Test to get the event information
+		self.assertEqual(self.wepSalGet.retData["SummaryStateValue"], SummaryStateValue)
+
+	def testCommand(self):
+
+		# Reset the topic
+		self.wepSalIssue.resetTopic()
+		self.wepSalGet.resetTopic()
+
+		# Set the command topic
+		topic = "abort"
+
+		# Command data
+		state = 2
+		newData = {"state": state}
+
+		# Issue the event
+		self.wepSalIssue.issueCommand(topic, newData)
+
+		# Sleep 1 sec
+		self.wepSalGet.getCommand(topic)
+
+		# Test to get the command item list
+		self.assertEqual(len(self.wepSalGet.retData), 5)
+
+	def tearDown(self):
+
+		# Turn off the sal
+		self.wepSalIssue.shutDownSal()
+		self.wepSalGet.shutDownSal()
+
 if __name__ == "__main__":
 
-	# Module name
-	moduleName = "m2ms"
-
-	# Declare the SAL middleware
-	wepSalIssue = Middleware(moduleName)
-	wepSalGet = Middleware(moduleName)
-
-	# Set the time out
-	timeOut = 15
-	wepSalIssue.setTimeOut(timeOut)
-	wepSalGet.setTimeOut(timeOut)
-
-	# Set the topic
-
-	# Publish the data for sepecific topic
-	# topic name
-	topic = "PowerStatus"
-	# topic = "m2ms_MirrorPositionMeasured"
-
-	# Data information of "m2ms_PowerStatus"
-	currents = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-	onOff = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-	states = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-	voltages = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-
-	newData = {"currents": currents,
-			   "onOff": onOff,
-			   "states": states,
-			   "voltages": voltages}
-
-	# # Data information of "m2ms_MirrorPositionMeasured"
-	# xTilt = 0.1
-	# yTilt = 0.2
-	# piston = 0.3
-	# xPosition = 1.0
-	# yPosition = 2.0
-	# theta_z_position = 3.0
-
-	# newData = {"xTilt": xTilt,
-	# 		   "yTilt": yTilt,
-	# 		   "piston": piston,
-	# 		   "xPosition":xPosition,
-	# 		   "yPosition":yPosition,
-	# 		   "theta_z_position": theta_z_position}
-
-	# Event topic name
-	eventTopic = "SummaryState"
-
-	# Event data
-	SummaryStateValue = 2
-	priority = 1
-	eventData = {"SummaryStateValue": SummaryStateValue,
-				 "priority": priority}
-
-	# Command topic name
-	commandTopic = "abort"
-
-	# Command data
-	state = 2
-	commandData = {"state": state}
-
-	# SAL Loop
-	sleepTime = 1
-	startTime = time.time()
-	for ii in range(5):
-		wepSalIssue.issueTelemetry(topic, newData)
-		time.sleep(sleepTime)
-		print time.time()-startTime
-		wepSalGet.getTelemetry(topic)
-		time.sleep(sleepTime)
-		print time.time()-startTime
-
-	# for ii in range(5):
-	# 	wepSalIssue.issueEvent(eventTopic, eventData)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-	# 	wepSalGet.getEvent(eventTopic)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-
-	# for ii in range(100):
-	# 	# wepSalIssue.issueCommand(commandTopic, commandData)
-	# 	# time.sleep(sleepTime)
-	# 	# print time.time()-startTime
-	# 	wepSalGet.getCommand(commandTopic)
-	# 	time.sleep(sleepTime)
-	# 	print time.time()-startTime
-
-
-	# Turn off the SAL
-	wepSalIssue.shutDownSal()
-	wepSalGet.shutDownSal()
-
-
-
-
+	# Do the unit test
+	unittest.main()
+	

@@ -353,7 +353,7 @@ class Middleware(object):
 				telData = getattr(data, aKey)
 
 				# Check the data is iterable or not
-				if (isinstance(telData, Iterable)):
+				if (isinstance(telData, Iterable) and not isinstance(telData, str)):
 					self.retData[aKey] = list(telData)
 				else:
 					self.retData[aKey] = telData
@@ -391,7 +391,7 @@ class Middleware(object):
 			dataItem = getattr(data, aKey)
 			
 			# Check the item is iterable or not
-			if (isinstance((aItem), Iterable)):
+			if (isinstance(aItem, Iterable) and not isinstance(aItem, str)):
 				# Put the value one by one
 				for ii in range(len(aItem)):
 					dataItem[ii] = aItem[ii]
@@ -514,4 +514,3 @@ if __name__ == "__main__":
 
 	# Do the unit test
 	unittest.main()
-	

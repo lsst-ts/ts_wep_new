@@ -87,7 +87,7 @@ class Middleware(object):
 		subFuncName = "getEvent_" + topic
 
 		# Get the retrieval data status
-		retStatus = self.__getInfo(subFuncName, data)
+		retStatus = self.__getDataValue(subFuncName, data)
 
 	def getTelemetry(self, topic):
 		"""
@@ -126,7 +126,7 @@ class Middleware(object):
 		subFuncName = "getNextSample_" + topic
 
 		# Get the retrieval data status
-		retStatus = self.__getInfo(subFuncName, data)
+		retStatus = self.__getDataValue(subFuncName, data)
 
 	def getCommand(self, topic):
 		"""
@@ -165,7 +165,7 @@ class Middleware(object):
 		subFuncName = "acceptCommand_" + topic
 
 		# Get the retrieval data status
-		cmdId = self.__getInfo(subFuncName, data, showInfo=False)
+		cmdId = self.__getDataValue(subFuncName, data, showInfo=False)
 
 		# Acknowledge the finish of command
 		# Need to add the details how to check the command is done
@@ -329,7 +329,7 @@ class Middleware(object):
 
 		return salData
 
-	def __getInfo(self, subFuncName, data, showInfo=True):
+	def __getDataValue(self, subFuncName, data, showInfo=True):
 		"""
 		
 		Get the information data.
@@ -353,6 +353,7 @@ class Middleware(object):
 				telData = getattr(data, aKey)
 
 				# Check the data is iterable or not
+				# Because the string is iterable in Python, need to consider it also.
 				if (isinstance(telData, Iterable) and not isinstance(telData, str)):
 					self.retData[aKey] = list(telData)
 				else:
@@ -391,6 +392,7 @@ class Middleware(object):
 			dataItem = getattr(data, aKey)
 			
 			# Check the item is iterable or not
+			# Because the string is iterable in Python, need to consider it also.
 			if (isinstance(aItem, Iterable) and not isinstance(aItem, str)):
 				# Put the value one by one
 				for ii in range(len(aItem)):

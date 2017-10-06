@@ -3,6 +3,8 @@ import numpy as np
 
 from deblend.BlendedImageDecorator import BlendedImageDecorator
 
+from isr.WfsIsrTask import poltExposureImage, plotHist
+
 from SourceSelector import SourceSelector
 
 from matplotlib.colors import LogNorm, SymLogNorm
@@ -11,13 +13,14 @@ import matplotlib.pylab as plt
 class SourceProcessor(object):
 
 	def __init__(self, sensorName):
-		
+
 		self.sensorName = sensorName
 		self.sensorDim = None
+		self.donutRadiusInPixel = None
 
 		self.blendedImageDecorator = BlendedImageDecorator()
 
-	def config(self, sensorName=None, sensorDim=None):
+	def config(self, sensorName=None, sensorDim=None, donutRadiusInPixel=None):
 
 		# Give the sensor name
 		if (sensorName is not None):
@@ -26,6 +29,10 @@ class SourceProcessor(object):
 		# Give the dimension of sensor
 		if (sensorDim is not None):
 			self.sensorDim = sensorDim
+
+		# Give the donut radius in pixel
+		if (donutRadiusInPixel is not None):
+			self.donutRadiusInPixel = donutRadiusInPixel
 
 	def analFieldXY(self):
 		# Analyze the field X and Y
@@ -46,6 +53,7 @@ class SourceProcessor(object):
 
 	def evalSNR(self):
 		# Evaluate the SNR of donut.
+		# Put the responsibility of evaluating the SNR in this high level class.
 		pass
 
 	def analDonutImgQual(self):
@@ -64,20 +72,127 @@ class SourceProcessor(object):
 		# Overlap donut images.
 		pass
 
-	def simulateImg(self, imageFolderPath, defocalDis, neighboringStarMapOnSingleSensor, aFilterType):
+	def getSingleTargetImage(self, ccdImg, neighboringStarMapOnSingleSensor, index):
 		"""
 		
-		Simulate the defocal CCD images with the neighboring star map.
+		Get the image of single scientific target and related neighboring stars.
 		
+		Arguments:
+			ccdImg {[float]} -- Ccd image.
+			neighboringStarMapOnSingleSensor {[dict]} -- Neighboring star map.
+			index {[int]} -- Index of science target star in neighboring star map.
+		
+		Returns:
+			[float] -- Ccd image of target stars.
+			[float] -- Star positions in x, y.
+		
+		Raises:
+			ValueError -- Science star index is out of the neighboring star map.
+		"""
+
+		# Get the target star position
+		if (index >= len(neighboringStarMapOnSingleSensor.SimobjID)):
+			raise ValueError("Index is higher than the length of star map.")
+
+		# Get the star SimobjID
+		brightStar = neighboringStarMapOnSingleSensor.SimobjID.keys()[index]
+		neighboringStar = neighboringStarMapOnSingleSensor.SimobjID.values()[index]
+
+		# Get all star SimobjID list
+		allStar = neighboringStar[:]
+		allStar.append(brightStar)
+
+		# Get the pixel positions
+		allStarPosX = []
+		allStarPosY = []
+		for star in allStar:
+			pixelXY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
+			allStarPosX.append(pixelXY[0])
+			allStarPosY.append(pixelXY[1])
+
+		# Check the ccd image dimenstion
+		ccdD1, ccdD2 = ccdImg.shape
+
+		# Define the range of image
+		# Get min/ max of x, y
+		minX = int(min(allStarPosX))
+		maxX = int(max(allStarPosX))
+
+		minY = int(min(allStarPosY))
+		maxY = int(max(allStarPosY))
+
+		# Get the central point
+		cenX = int(np.mean([minX, maxX]))
+		cenY = int(np.mean([minY, maxY]))
+
+		# Get the image dimension
+		d1 = (maxY-minY) + 4*self.donutRadiusInPixel
+		d2 = (maxX-minX) + 4*self.donutRadiusInPixel
+
+		# Make d1 and d2 to be symmetric and even
+		d = max(d1, d2)
+		if (d%2 == 1):
+			# Use d-1 instead of d+1 to avoid the boundary touch
+			d = d-1
+
+		# Compare the distances from the central point to four boundaries of ccd image
+		cenYup = ccdD1 - cenY
+		cenXright = ccdD2 - cenX 
+
+		# If central x or y plus d/2 will over the boundary, shift the central x, y values
+		cenY = self.__shiftCenter(cenY, ccdD1, d/2)
+		cenY = self.__shiftCenter(cenY, 0, d/2)
+
+		cenX = self.__shiftCenter(cenX, ccdD2, d/2)
+		cenX = self.__shiftCenter(cenX, 0, d/2)
+
+		# Get the bright star and neighboring stas image
+		singleSciNeiImg = ccdImg[cenY-d/2:cenY+d/2, cenX-d/2:cenX+d/2]
+
+		# Get the stars position in the new coordinate system
+		# The final one is the bright star
+		allStarPosX = np.array(allStarPosX)-cenX+d/2
+		allStarPosY = np.array(allStarPosY)-cenY+d/2
+
+		return singleSciNeiImg, allStarPosX, allStarPosY
+
+	def __shiftCenter(self, center, boundary, distance):
+		"""
+		
+		Shift the center if its distance to boundary is less than required.
+		
+		Arguments:
+			center {[float]} -- Center point.
+			boundary {[float]} -- Boundary point.
+			distance {[float]} -- Required distance.
+		
+		Returns:
+			[float] -- Shifted center.
+		"""
+
+		# Distance between the center and boundary
+		delta = boundary - center
+
+		# Shift the center if needed
+		if (abs(delta) < distance):
+			center = boundary - np.sign(delta)*distance
+
+		return center
+
+	def simulateImg(self, imageFolderPath, defocalDis, neighboringStarMapOnSingleSensor, aFilterType):
+		"""
+
+		Simulate the defocal CCD images with the neighboring star map.
+
 		Arguments:
 			imageFolderPath {[str]} -- Path to image directory.
 			defocalDis {[float]} -- Defocal distance in mm.
 			neighboringStarMapOnSingleSensor {[dict]} -- Neighboring star map.
 			aFilterType {[string]} -- Active filter type.
-		
+
 		Returns:
 			[float] -- Simulated intra- and extra-focal images.
-		
+
 		Raises:
 			ValueError -- No intra-focal image files.
 			ValueError -- Numbers of intra- and extra-focal image files are different.
@@ -106,7 +221,7 @@ class SourceProcessor(object):
 
 			# Find the file name with the correct defocal distance
 			if (len(fileNameStr) == 3 and fileNameStr[1] == defocalDis):
-				
+
 				# Collect the file name based on the defocal type
 				if (fileNameStr[-1] == "intra"):
 					intraFileList.append(afile)
@@ -131,7 +246,7 @@ class SourceProcessor(object):
 
 			# Generate a random number
 			randNum = np.random.randint(0, high=numFile)
-			
+
 			# Choose a random donut image from the file
 			donutImageIntra = self.__getDonutImgFromFile(imageFolderPath, intraFileList[randNum])
 			donutImageExtra = self.__getDonutImgFromFile(imageFolderPath, extraFileList[randNum])
@@ -150,7 +265,7 @@ class SourceProcessor(object):
 				starX, starY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
 				magStar = starMag[star]
 
-				# Ratio of magnitude between donuts (If the magnitudes of stars differs by 5, 
+				# Ratio of magnitude between donuts (If the magnitudes of stars differs by 5,
 				# the brightness differs by 100.)
 				# (Magnitude difference shoulbe be >= 1.)
 				magDiff = magStar-magBS
@@ -164,18 +279,18 @@ class SourceProcessor(object):
 
 	def __getDonutImgFromFile(self, imageFolderPath, fileName):
 		"""
-		
+
 		Read the donut image from the file.
-		
+
 		Arguments:
 			imageFolderPath {[str]} -- Path to image directory.
 			fileName {[str]} -- File name.
-		
+
 		Returns:
 			[float] -- Image in numpy array.
 		"""
 
-		# Get the donut image from the file by the delegation 
+		# Get the donut image from the file by the delegation
 		self.blendedImageDecorator.setImg(imageFile=os.path.join(imageFolderPath, fileName))
 
 		return self.blendedImageDecorator.image.copy()
@@ -183,9 +298,9 @@ class SourceProcessor(object):
 
 	def __addDonutImage(self, donutImage, starX, starY, ccdImg):
 		"""
-		
+
 		Add the donut image to simulated CCD image frame.
-		
+
 		Arguments:
 			donutImage {[float]} -- Image in numpy array.
 			starX {[float]} -- Star position in pixel x.
@@ -202,42 +317,6 @@ class SourceProcessor(object):
 
 		# Add the donut image on the CCD image
 		ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += donutImage
-
-def plotCcdImg(ccdImg, name="", scale="log", vmin=None, vmax=None):
-	"""
-	
-	Plot the ccd image.
-	
-	Arguments:
-		ccdImg {[numpy array]} -- Imgae.
-	
-	Keyword Arguments:
-		name {string} -- Image title name (default: {""}).
-		scale {string} -- Scale of image map (log or linear) (default: {"log"}).
-		vmin {[float]} -- Mininum value to show. This normalizes the luminance data (default: {None}).
-		vmax {[float]} -- Maximum value to show. This normalizes the luminance data (default: {None}).		
-	"""
-
-	# Change the scale if needed
-	if scale not in ("linear", "log"):
-		print("No %s scale to choose. Only 'linear' and 'log' scales are allowed." % scale)
-		return
-
-	# Decide the norm in imshow for the ploting
-	if (scale == "linear"):
-		plotNorm = None
-	elif (scale == "log"):
-		if (ccdImg.min()) < 0:
-			plotNorm = SymLogNorm(linthresh=0.03)
-		else:
-			plotNorm = LogNorm()
-	
-	# Plot the image
-	plt.figure()
-	plt.imshow(ccdImg, origin="lower", norm=plotNorm, vmin=vmin, vmax=vmax)
-	plt.colorbar()
-	plt.title(name)
-	plt.show()
 
 if __name__ == '__main__':
 
@@ -273,9 +352,9 @@ if __name__ == '__main__':
 	# Get the neighboring star map
 	localDb = SourceSelector("LocalDb", cameraType)
 	localDb.connect(dbAdress)
-	localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
+	localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=1)
 	localDb.setFilter(aFilterType)
-	neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = localDb.getTargetStar(pointing, 
+	neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = localDb.getTargetStar(pointing,
 																		cameraRotation, orientation=orientation)
 	localDb.disconnect()
 
@@ -292,21 +371,27 @@ if __name__ == '__main__':
 
 	# Give the path to the image folder
 	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
-	sourProc.config(sensorDim = (4000, 4072))
+	sourProc.config(sensorDim=(4000, 4072), donutRadiusInPixel=starRadiusInPixel)
 
 	# Generate the simulated image
 	defocalDis = 1.5
 	ccdImgIntra, ccdImgExtra = sourProc.simulateImg(imageFolderPath, defocalDis, neighborStarMapLocal[sensorList[0]], aFilterType)
 
+	# Get the images of one bright star map
+	singleSciNeiImg, allStarPosX, allStarPosY = sourProc.getSingleTargetImage(ccdImgIntra, neighborStarMapLocal[sensorList[0]], 0)
+
 	# Plot the ccd image
-	plotCcdImg(ccdImgIntra, name="Intra focal image", scale="log")
-	plotCcdImg(ccdImgExtra, name="Extra focal image", scale="log")
+	# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="log", cmap=None)
+	# poltExposureImage(ccdImgExtra, name="Extra focal image", scale="log", cmap=None)
 
-	plotCcdImg(ccdImgIntra, name="Intra focal image", scale="linear")
-	plotCcdImg(ccdImgExtra, name="Extra focal image", scale="linear")
+	# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="linear", cmap=None)
+	# poltExposureImage(ccdImgExtra, name="Extra focal image", scale="linear", cmap=None)
+
+	poltExposureImage(singleSciNeiImg, name="", scale="linear", cmap=None)
+	poltExposureImage(singleSciNeiImg, name="", scale="log", cmap=None)
 
 
- 
+
 
 
 

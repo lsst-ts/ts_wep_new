@@ -4,6 +4,7 @@ import numpy as np
 from deblend.BlendedImageDecorator import BlendedImageDecorator
 
 from isr.WfsIsrTask import poltExposureImage, plotHist
+from isr.changePhoSimInstrument import readData
 
 from SourceSelector import SourceSelector
 
@@ -15,29 +16,152 @@ class SourceProcessor(object):
 	def __init__(self, sensorName):
 
 		self.sensorName = sensorName
-		self.sensorDim = None
 		self.donutRadiusInPixel = None
+
+		self.sensorFocaPlane = None
+		self.sensorDimList = None
 
 		self.blendedImageDecorator = BlendedImageDecorator()
 
-	def config(self, sensorName=None, sensorDim=None, donutRadiusInPixel=None):
+	def config(self, sensorName=None, donutRadiusInPixel=None):
 
 		# Give the sensor name
 		if (sensorName is not None):
 			self.sensorName = sensorName
 
-		# Give the dimension of sensor
-		if (sensorDim is not None):
-			self.sensorDim = sensorDim
-
 		# Give the donut radius in pixel
 		if (donutRadiusInPixel is not None):
 			self.donutRadiusInPixel = donutRadiusInPixel
 
-	def analFieldXY(self):
-		# Analyze the field X and Y
+	def readFocalPlane(self, folderPath, fileName="focalplanelayout.txt", pixel2Arcsec=0.2):
+		"""
+		
+		Read the focal plane data used in PhoSim to get the ccd dimension and fieldXY in origin.
+		
+		Arguments:
+			folderPath {[str]} -- Directory of focal plane file.
+		
+		Keyword Arguments:
+			fileName {[str]} -- Filename of focal plane. (default: {"focalplanelayout.txt"}) 
+			pixel2Arcsec {number} -- Pixel to arcsec. (default: {0.2})
+		"""
 
-		pass
+		# Read the focal plane setting by the delegation
+		ccdData = readData(folderPath, fileName, "fieldCenter")
+
+		# Collect the focal plane data
+		focalPlaneData = {}
+		sensorDimList = {}
+		for akey, aitem in ccdData.items():
+
+			# Consider the x-translation in corner wavefront sensors
+			aitem = self.__shiftCenterWfs(akey, aitem)
+
+			# Get the field X, Y in the origin for each CCD
+			aitem = self.__getOriginFieldXY(akey, aitem)
+
+			# Change the unit from um to degree
+			fieldX = float(aitem[0])/float(aitem[2])*pixel2Arcsec/3600
+			fieldY = float(aitem[1])/float(aitem[2])*pixel2Arcsec/3600
+
+			# Change the format of float
+			fieldX = float("{0:.4f}".format(fieldX))
+			fieldY = float("{0:.4f}".format(fieldY))
+
+			# Get the data
+			focalPlaneData.update({akey: (fieldX, fieldY)})
+			sensorDimList.update({akey: (int(aitem[3]), int(aitem[4]))})
+
+		# Assign the values
+		self.sensorDimList = sensorDimList
+		self.sensorFocaPlane = focalPlaneData
+
+	def __getOriginFieldXY(self, sensorName, focalPlaneData):
+		"""
+		
+		Get the fieldXY of chip's origin.
+		
+		Arguments:
+			sensorName {[str]} -- Sensor name.
+			focalPlaneData {[list]} -- Data of focal plane: x position (microns), y position (microns), 
+						   			   pixel size (microns), number of x pixels, number of y pixels.
+		
+		Returns:
+			[list] -- Updated focal plane data.
+		"""
+
+		# Get the field XY of chip
+		# The listed sernsors are the WFS with horizonal split.
+		if sensorName in ("R40_S02_C0", "R40_S02_C1", "R04_S20_C0", "R04_S20_C1"):
+			focalPlaneData[0] = float(focalPlaneData[0]) - float(focalPlaneData[4])/2*float(focalPlaneData[2])
+			focalPlaneData[1] = float(focalPlaneData[1]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
+		else:
+			focalPlaneData[0] = float(focalPlaneData[0]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
+			focalPlaneData[1] = float(focalPlaneData[1]) - float(focalPlaneData[4])/2*float(focalPlaneData[2])
+
+		return focalPlaneData
+
+	def __shiftCenterWfs(self, sensorName, focalPlaneData):
+		"""
+		
+		Get the fieldXY of center of wavefront sensors. The input data is the center of combined chips (C0+C1).
+		The layout is shown in the following: 
+
+		R04_S20              R44_S00
+		--------           -----------       /\ +y
+		|  C0  |           |    |    |        |
+		|------|           | C1 | C0 |		  |
+		|  C1  |           |    |    |		  |
+		--------           -----------        -----> +x
+
+		R00_S22              R40_S02
+		-----------          --------
+		|    |    |          |  C1  |
+		| C0 | C1 |		     |------|
+		|    |    |          |  C0  |
+		-----------			 --------
+
+		Arguments:
+			sensorName {[str]} -- Sensor name.
+			focalPlaneData {[list]} -- Data of focal plane: x position (microns), y position (microns), 
+									   pixel size (microns), number of x pixels, number of y pixels.
+		Returns:
+			[list] -- Updated focal plane data.
+		"""
+
+		# Consider the x-translation in corner wavefront sensors
+		tempX = None
+		tempY = None
+
+		if sensorName in ("R44_S00_C0", "R00_S22_C1"):
+			# Shift center to +x direction
+			tempX = float(focalPlaneData[0]) + float(focalPlaneData[3])/2*float(focalPlaneData[2])
+		elif sensorName in ("R44_S00_C1", "R00_S22_C0"):
+			# Shift center to -x direction
+			tempX = float(focalPlaneData[0]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
+		elif sensorName in ("R04_S20_C1", "R40_S02_C0"):
+			# Shift center to -y direction
+			tempY = float(focalPlaneData[1]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
+		elif sensorName in ("R04_S20_C0", "R40_S02_C1"):
+			# Shift center to +y direction
+			tempY = float(focalPlaneData[1]) + float(focalPlaneData[3])/2*float(focalPlaneData[2])
+
+		# Replace the value by the shifted one
+		if (tempX is not None):
+			focalPlaneData[0] = str(tempX)
+		elif (tempY is not None):
+			focalPlaneData[1] = str(tempY)
+
+		# Return the center position of wave front sensor
+		return focalPlaneData
+
+	def getFieldXY(self, pixelXY, pixel2Arcsec=0.2):
+		# Get the field X, Y of star
+
+		# Get the field X, Y of sensor's origin
+		fieldX0, fieldY0 = self.sensorFocaPlane[self.sensorName]
+
+		print fieldX0, fieldY0
 
 	def migrateDonut(self):
 		# Migrate the donut images to reference point for off-axis correction.
@@ -199,8 +323,8 @@ class SourceProcessor(object):
 		"""
 
 		# Generate the intra- and extra-focal ccd images
-		ccdImgIntra = np.zeros(self.sensorDim)
-		ccdImgExtra = np.zeros(self.sensorDim)
+		ccdImgIntra = np.zeros(self.sensorDimList[self.sensorName])
+		ccdImgExtra = ccdImgIntra.copy()
 
 		# Redefine the format of defocal distance
 		defocalDis = "%.2f" % defocalDis
@@ -367,11 +491,17 @@ if __name__ == '__main__':
 	fieldXY = [0, 0]
 
 	# Instantiate a source processor
-	sourProc = SourceProcessor(sensorList[0])
+	sourProc = SourceProcessor("R22_S11")
 
 	# Give the path to the image folder
 	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
-	sourProc.config(sensorDim=(4000, 4072), donutRadiusInPixel=starRadiusInPixel)
+	sourProc.config(donutRadiusInPixel=starRadiusInPixel)
+
+	# CCD focal plane file
+	ccdFocalPlaneFolder = "/Users/Wolf/Documents/bitbucket/phosim_syseng2/data/lsst/"
+
+	# Read the CCD focal plane data
+	sourProc.readFocalPlane(ccdFocalPlaneFolder)
 
 	# Generate the simulated image
 	defocalDis = 1.5
@@ -387,8 +517,25 @@ if __name__ == '__main__':
 	# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="linear", cmap=None)
 	# poltExposureImage(ccdImgExtra, name="Extra focal image", scale="linear", cmap=None)
 
-	poltExposureImage(singleSciNeiImg, name="", scale="linear", cmap=None)
-	poltExposureImage(singleSciNeiImg, name="", scale="log", cmap=None)
+	# poltExposureImage(singleSciNeiImg, name="", scale="linear", cmap=None)
+	# poltExposureImage(singleSciNeiImg, name="", scale="log", cmap=None)
+
+	# Plot the center
+	posX = []
+	posY = []
+	for akeys, aitem in sourProc.sensorFocaPlane.items():
+		posX.append(aitem[0])
+		posY.append(aitem[1])
+
+	plt.figure()
+	plt.plot(posX, posY, "bo")
+	plt.show()
+
+	# Get the field X, Y of donut
+	sourProc.getFieldXY([0,0])
+
+
+
 
 
 

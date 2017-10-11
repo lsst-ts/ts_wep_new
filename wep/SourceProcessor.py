@@ -20,6 +20,7 @@ class SourceProcessor(object):
 
 		self.sensorFocaPlane = None
 		self.sensorDimList = None
+		self.sensorEulerRot = None
 
 		self.blendedImageDecorator = BlendedImageDecorator()
 
@@ -36,7 +37,7 @@ class SourceProcessor(object):
 	def readFocalPlane(self, folderPath, fileName="focalplanelayout.txt", pixel2Arcsec=0.2):
 		"""
 		
-		Read the focal plane data used in PhoSim to get the ccd dimension and fieldXY in origin.
+		Read the focal plane data used in PhoSim to get the ccd dimension and fieldXY in chip center.
 		
 		Arguments:
 			folderPath {[str]} -- Directory of focal plane file.
@@ -46,60 +47,29 @@ class SourceProcessor(object):
 			pixel2Arcsec {number} -- Pixel to arcsec. (default: {0.2})
 		"""
 
-		# Read the focal plane setting by the delegation
+		# Read the focal plane data by the delegation
 		ccdData = readData(folderPath, fileName, "fieldCenter")
 
 		# Collect the focal plane data
-		focalPlaneData = {}
+		sensorFocaPlane = {}
 		sensorDimList = {}
 		for akey, aitem in ccdData.items():
 
 			# Consider the x-translation in corner wavefront sensors
 			aitem = self.__shiftCenterWfs(akey, aitem)
 
-			# Get the field X, Y in the origin for each CCD
-			aitem = self.__getOriginFieldXY(akey, aitem)
-
 			# Change the unit from um to degree
 			fieldX = float(aitem[0])/float(aitem[2])*pixel2Arcsec/3600
 			fieldY = float(aitem[1])/float(aitem[2])*pixel2Arcsec/3600
 
-			# Change the format of float
-			fieldX = float("{0:.4f}".format(fieldX))
-			fieldY = float("{0:.4f}".format(fieldY))
-
 			# Get the data
-			focalPlaneData.update({akey: (fieldX, fieldY)})
+			sensorFocaPlane.update({akey: (fieldX, fieldY)})
 			sensorDimList.update({akey: (int(aitem[3]), int(aitem[4]))})
 
 		# Assign the values
 		self.sensorDimList = sensorDimList
-		self.sensorFocaPlane = focalPlaneData
-
-	def __getOriginFieldXY(self, sensorName, focalPlaneData):
-		"""
-		
-		Get the fieldXY of chip's origin.
-		
-		Arguments:
-			sensorName {[str]} -- Sensor name.
-			focalPlaneData {[list]} -- Data of focal plane: x position (microns), y position (microns), 
-						   			   pixel size (microns), number of x pixels, number of y pixels.
-		
-		Returns:
-			[list] -- Updated focal plane data.
-		"""
-
-		# Get the field XY of chip
-		# The listed sernsors are the WFS with horizonal split.
-		if sensorName in ("R40_S02_C0", "R40_S02_C1", "R04_S20_C0", "R04_S20_C1"):
-			focalPlaneData[0] = float(focalPlaneData[0]) - float(focalPlaneData[4])/2*float(focalPlaneData[2])
-			focalPlaneData[1] = float(focalPlaneData[1]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
-		else:
-			focalPlaneData[0] = float(focalPlaneData[0]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
-			focalPlaneData[1] = float(focalPlaneData[1]) - float(focalPlaneData[4])/2*float(focalPlaneData[2])
-
-		return focalPlaneData
+		self.sensorFocaPlane = sensorFocaPlane
+		self.sensorEulerRot = readData(folderPath, fileName, "eulerRot")
 
 	def __shiftCenterWfs(self, sensorName, focalPlaneData):
 		"""
@@ -155,13 +125,55 @@ class SourceProcessor(object):
 		# Return the center position of wave front sensor
 		return focalPlaneData
 
-	def getFieldXY(self, pixelXY, pixel2Arcsec=0.2):
-		# Get the field X, Y of star
+	def getFieldXY(self, sensorName, pixelX, pixelY, pixel2Arcsec=0.2):
+		"""
+		
+		Get the field X, Y for the pixel postion in CCD. It is noted that the wavefront sensors 
+		(R04_S20_C0/1 and R40_S02_C0/1) will do the counter-clockwise rotation as the following:
 
-		# Get the field X, Y of sensor's origin
-		fieldX0, fieldY0 = self.sensorFocaPlane[self.sensorName]
+		Arguments:
+			sensorName {[str]} -- Sensor name.
+			pixelX {[float]} -- Pixel x.
+			pixelY {[float]} -- Pixel y.
+		
+		Keyword Arguments:
+			pixel2Arcsec {float} -- Pixel to arcsec. (default: {0.2})
+		
+		Returns:
+			[float] -- Field X, Y in degree.
+		"""
 
-		print fieldX0, fieldY0
+		# Get the field X, Y of sensor's center
+		fieldXc, fieldYc = self.sensorFocaPlane[sensorName]
+
+		# Get the center pixel position
+		pixelXc, pixelYc = self.sensorDimList[sensorName]
+		pixelXc = pixelXc/2
+		pixelYc = pixelYc/2
+
+		# Get the euler angle in z direction (only consider the z rotatioin at this moment)
+		eulerZ = round(float(self.sensorEulerRot[sensorName][0]))
+
+		# Change the unit to radian
+		eulerZ = eulerZ/180.0*np.pi
+
+		# Calculate the delta x and y in degree
+		deltaX = (pixelX-pixelXc)*pixel2Arcsec/3600.0
+		deltaY = (pixelY-pixelYc)*pixel2Arcsec/3600.0
+
+		# Calculate the field x, y by the rotation. This is important for wavefront sensor.
+		fieldX = fieldXc + np.cos(eulerZ)*deltaX - np.sin(eulerZ)*deltaY
+		fieldY = fieldYc + np.sin(eulerZ)*deltaX + np.cos(eulerZ)*deltaY
+
+		return fieldX, fieldY
+
+	def dmXY2CamXY(self):
+		# Transform the pixel x, y from DM library to camera to use. Camera coordinate is defined 
+		# in LCA-13381.
+		# Define camera coordinate (x', y') and DM coordinate (x, y), then the relation is
+		# x' = -y, y' = x
+
+		pass
 
 	def migrateDonut(self):
 		# Migrate the donut images to reference point for off-axis correction.
@@ -458,14 +470,14 @@ if __name__ == '__main__':
 	aFilterType = "u"
 
 	# Camera type: "lsst" or "comcam"
-	cameraType = "comcam"
+	cameraType = "lsst"
 
 	# Set the camera MJD
 	cameraMJD = 59580.0
 
 	# Camera orientation for ComCam ("center" or "corner" or "all")
 	# Camera orientation for LSSTcam ("corner" or "all")
-	orientation = "center"
+	orientation = "corner"
 
 	# Maximum distance in units of radius one donut must be considered as a neighbor.
 	spacingCoefficient = 2.5
@@ -491,7 +503,7 @@ if __name__ == '__main__':
 	fieldXY = [0, 0]
 
 	# Instantiate a source processor
-	sourProc = SourceProcessor("R22_S11")
+	sourProc = SourceProcessor("R04_S20_C1")
 
 	# Give the path to the image folder
 	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
@@ -502,6 +514,9 @@ if __name__ == '__main__':
 
 	# Read the CCD focal plane data
 	sourProc.readFocalPlane(ccdFocalPlaneFolder)
+
+	# Need to do the pixel transformation for the neighboring star map
+
 
 	# Generate the simulated image
 	defocalDis = 1.5
@@ -529,10 +544,25 @@ if __name__ == '__main__':
 
 	plt.figure()
 	plt.plot(posX, posY, "bo")
+	plt.xlabel("x-axis")
+	plt.ylabel("y-axis")
 	plt.show()
 
 	# Get the field X, Y of donut
-	sourProc.getFieldXY([0,0])
+	# pixelX = [0, 0, 2000, 2000]
+	# pixelY = [0, 4072, 0, 4072]
+	pixelX = [0]
+	pixelY = [0]
+	# stars = neighborStarMapLocal[sensorList[0]]
+	# pixelX = []
+	# pixelY = []
+	# for akey, aitem in stars.RaDeclInPixel.items():
+	# 	pixelX.append(aitem[0])
+	# 	pixelY.append(aitem[1])
+
+	fieldX, fieldY = sourProc.getFieldXY("R04_S20_C1", np.array(pixelX), np.array(pixelY))
+	plt.plot(fieldX, fieldY, "rx")
+	plt.show()
 
 
 

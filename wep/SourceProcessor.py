@@ -15,6 +15,7 @@ from lsst.sims.utils import ObservationMetaData
 from lsst.sims.coordUtils.CameraUtils import focalPlaneCoordsFromRaDec, chipNameFromRaDec
 from lsst.obs.lsstSim import LsstSimMapper
 
+import unittest
 
 class SourceProcessor(object):
 
@@ -30,7 +31,18 @@ class SourceProcessor(object):
 
 		self.blendedImageDecorator = BlendedImageDecorator()
 
-	def config(self, sensorName=None, donutRadiusInPixel=None):
+	def config(self, sensorName=None, donutRadiusInPixel=None, folderPath2FocalPlane=None, pixel2Arcsec=0.2):
+		"""
+		
+		Do the configuration.
+		
+		Keyword Arguments:
+			sensorName {[str]} -- Sensor name. (default: {None})
+			donutRadiusInPixel {[float]} -- Donut radius in pixel. (default: {None})
+			folderPath2FocalPlane {[str]} -- Path to the directory of focal plane data 
+											 ("focalplanelayout.txt"). (default: {None})
+			pixel2Arcsec {float} -- [Pixel to arcsec. (default: {0.2})
+		"""
 
 		# Give the sensor name
 		if (sensorName is not None):
@@ -40,17 +52,21 @@ class SourceProcessor(object):
 		if (donutRadiusInPixel is not None):
 			self.donutRadiusInPixel = donutRadiusInPixel
 
-	def readFocalPlane(self, folderPath, fileName="focalplanelayout.txt", pixel2Arcsec=0.2):
+		# Read the focal plane data
+		if (folderPath2FocalPlane is not None):
+			self.__readFocalPlane(folderPath2FocalPlane, pixel2Arcsec=pixel2Arcsec)
+
+	def __readFocalPlane(self, folderPath, pixel2Arcsec, fileName="focalplanelayout.txt"):
 		"""
 
 		Read the focal plane data used in PhoSim to get the ccd dimension and fieldXY in chip center.
 
 		Arguments:
 			folderPath {[str]} -- Directory of focal plane file.
+			pixel2Arcsec {float} -- Pixel to arcsec.
 
 		Keyword Arguments:
 			fileName {[str]} -- Filename of focal plane. (default: {"focalplanelayout.txt"})
-			pixel2Arcsec {number} -- Pixel to arcsec. (default: {0.2})
 		"""
 
 		# Read the focal plane data by the delegation
@@ -134,7 +150,7 @@ class SourceProcessor(object):
 		# Return the center position of wave front sensor
 		return focalPlaneData
 
-	def getFieldXY(self, pixelX, pixelY, pixel2Arcsec=0.2):
+	def camXYtoFieldXY(self, pixelX, pixelY, pixel2Arcsec=0.2):
 		"""
 
 		Get the field X, Y of the pixel postion in CCD. It is noted that the wavefront sensors
@@ -287,12 +303,6 @@ class SourceProcessor(object):
 
 		return pixelCamX, pixelCamY
 
-	def evalSNR(self):
-		# Evaluate the SNR of donut.
-		# Put the responsibility of evaluating the SNR in this high level class.
-		# Put this to cwfs.
-		pass
-
 	def evalVignette(self, fieldX, fieldY, distanceToVignette=1.75):
 		"""
 		
@@ -321,28 +331,61 @@ class SourceProcessor(object):
 
 		return isVignette
 
-	def doDeblending(self):
-		# Do the deblending. The remove Background should be included in the algorithm.
-		pass
+	def doDeblending(self, blendedImg, allStarPosX, allStarPosY, magRatio):
+		"""
+		
+		Do the deblending. It is noted that the algorithm now is only for one bright star and 
+		one neighboring star.
+		
+		Arguments:
+			blendedImg {[float]} -- Blended image.
+			allStarPosX {[float]} -- Star's position x in pixel. The final one is the bright star.
+			allStarPosY {[float]} -- Star's position y in pixel. The final one is the bright star.
+			magRatio {[float]} -- Star's magnitude compared with the bright star.
+		
+		Returns:
+			[float] -- Deblended image.
+			[float] -- Pixel x, y of bright star.
+		
+		Raises:
+			ValueError -- The inputs are not one bright star + one neighboring star.
+		"""
 
-	def getSingleTargetImage(self, ccdImg, neighboringStarMapOnSingleSensor, index):
+		# Check there is only one bright star and one neighboring star. This is the limit of 
+		# deblending algorithm now.
+		if (len(magRatio) != 2):
+			raise ValueError("Deblending can only handle one bright star and one neighboring Star now.")
+
+		# Set the image for the deblending
+		self.blendedImageDecorator.setImg(image=blendedImg)
+
+		# Do the deblending
+		imgDeblend, realcx, realcy = self.blendedImageDecorator.deblendDonut([allStarPosX[0], 
+																			allStarPosY[0]], magRatio[0])
+
+		return imgDeblend, realcx, realcy
+
+	def getSingleTargetImage(self, ccdImg, neighboringStarMapOnSingleSensor, index, aFilter):
 		"""
 
 		Get the image of single scientific target and related neighboring stars.
 
 		Arguments:
-			ccdImg {[float]} -- Ccd image.
+			ccdImg {[float]} -- CCD image.
 			neighboringStarMapOnSingleSensor {[dict]} -- Neighboring star map.
 			index {[int]} -- Index of science target star in neighboring star map.
+			aFilter {[str]} -- Active filter type
 
 		Returns:
 			[float] -- Ccd image of target stars.
 			[float] -- Star positions in x, y.
+			[float] -- Star magnitude ratio compared with the bright star.
+			[float] -- Offset x, y from the origin of target star image to the origin of CCD image.
 
 		Raises:
 			ValueError -- Science star index is out of the neighboring star map.
 		"""
-
+	
 		# Get the target star position
 		if (index >= len(neighboringStarMapOnSingleSensor.SimobjID)):
 			raise ValueError("Index is higher than the length of star map.")
@@ -359,9 +402,15 @@ class SourceProcessor(object):
 		allStarPosX = []
 		allStarPosY = []
 		for star in allStar:
-			pixelXY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
-			allStarPosX.append(pixelXY[0])
-			allStarPosY.append(pixelXY[1])
+
+			# Get the star pixel position 
+			starX, starY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
+
+			# Transform the coordiante from DM team to camera team
+			starX, starY = self.dmXY2CamXY(starX, starY)
+
+			allStarPosX.append(starX)
+			allStarPosY.append(starY)
 
 		# Check the ccd image dimenstion
 		ccdD1, ccdD2 = ccdImg.shape
@@ -400,14 +449,29 @@ class SourceProcessor(object):
 		cenX = self.__shiftCenter(cenX, 0, d/2)
 
 		# Get the bright star and neighboring stas image
-		singleSciNeiImg = ccdImg[cenY-d/2:cenY+d/2, cenX-d/2:cenX+d/2]
+		offsetX = cenX-d/2
+		offsetY = cenY-d/2
+		singleSciNeiImg = ccdImg[offsetY:cenY+d/2, offsetX:cenX+d/2]
 
 		# Get the stars position in the new coordinate system
 		# The final one is the bright star
-		allStarPosX = np.array(allStarPosX)-cenX+d/2
-		allStarPosY = np.array(allStarPosY)-cenY+d/2
+		allStarPosX = np.array(allStarPosX)-offsetX
+		allStarPosY = np.array(allStarPosY)-offsetY
 
-		return singleSciNeiImg, allStarPosX, allStarPosY
+		# Get the star magnitude
+		magList = getattr(neighboringStarMapOnSingleSensor, "LSSTMag"+aFilter.upper())
+
+		# Get the list of magnitude
+		magRatio = np.array([])
+		for star in allStar:
+			neiMag = magList[star]
+			magRatio = np.append(magRatio, neiMag)
+
+		# Calculate the magnitude ratio
+		magRatio = 1/100**((magRatio-magRatio[-1])/5.0)
+		magRatio = magRatio.tolist()
+
+		return singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY
 
 	def __shiftCenter(self, center, boundary, distance):
 		"""
@@ -432,7 +496,7 @@ class SourceProcessor(object):
 
 		return center
 
-	def simulateImg(self, imageFolderPath, defocalDis, neighboringStarMapOnSingleSensor, aFilterType):
+	def simulateImg(self, imageFolderPath, defocalDis, neighboringStarMapOnSingleSensor, aFilterType, noiseRatio=0.01):
 		"""
 
 		Simulate the defocal CCD images with the neighboring star map.
@@ -443,6 +507,9 @@ class SourceProcessor(object):
 			neighboringStarMapOnSingleSensor {[dict]} -- Neighboring star map.
 			aFilterType {[string]} -- Active filter type.
 
+		Keyword Arguments:
+			noiseRatio {[float]} -- The noise ratio. (default: {0.01})
+
 		Returns:
 			[float] -- Simulated intra- and extra-focal images.
 
@@ -452,7 +519,8 @@ class SourceProcessor(object):
 		"""
 
 		# Generate the intra- and extra-focal ccd images
-		ccdImgIntra = np.zeros(self.sensorDimList[self.sensorName])
+		d1, d2 = self.sensorDimList[self.sensorName]
+		ccdImgIntra = np.random.random([d2, d1])*noiseRatio
 		ccdImgExtra = ccdImgIntra.copy()
 
 		# Redefine the format of defocal distance
@@ -518,6 +586,9 @@ class SourceProcessor(object):
 				starX, starY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
 				magStar = starMag[star]
 
+				# Transform the coordiante from DM team to camera team
+				starX, starY = self.dmXY2CamXY(starX, starY)
+
 				# Ratio of magnitude between donuts (If the magnitudes of stars differs by 5,
 				# the brightness differs by 100.)
 				# (Magnitude difference shoulbe be >= 1.)
@@ -547,7 +618,6 @@ class SourceProcessor(object):
 		self.blendedImageDecorator.setImg(imageFile=os.path.join(imageFolderPath, fileName))
 
 		return self.blendedImageDecorator.image.copy()
-
 
 	def __addDonutImage(self, donutImage, starX, starY, ccdImg):
 		"""
@@ -622,25 +692,21 @@ if __name__ == '__main__':
 	# Instantiate a source processor
 	sourProc = SourceProcessor()
 
-	# Give the path to the image folder
-	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
-	sourProc.config(sensorName="R00_S22_C0", donutRadiusInPixel=starRadiusInPixel)
-
 	# CCD focal plane file
 	ccdFocalPlaneFolder = "/Users/Wolf/Documents/bitbucket/phosim_syseng2/data/lsst/"
 
-	# Read the CCD focal plane data
-	sourProc.readFocalPlane(ccdFocalPlaneFolder)
-
-	# Need to do the pixel transformation for the neighboring star map
-
+	# Give the path to the image folder
+	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
+	sourProc.config(sensorName="R00_S22_C0", donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=ccdFocalPlaneFolder)
 
 	# Generate the simulated image
 	defocalDis = 1.5
-	ccdImgIntra, ccdImgExtra = sourProc.simulateImg(imageFolderPath, defocalDis, neighborStarMapLocal[sensorList[0]], aFilterType)
+	ccdImgIntra, ccdImgExtra = sourProc.simulateImg(imageFolderPath, defocalDis, neighborStarMapLocal[sensorList[0]], 
+													aFilterType, noiseRatio=0)
 
 	# Get the images of one bright star map
-	singleSciNeiImg, allStarPosX, allStarPosY = sourProc.getSingleTargetImage(ccdImgIntra, neighborStarMapLocal[sensorList[0]], 0)
+	singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = sourProc.getSingleTargetImage(ccdImgIntra, 
+																			neighborStarMapLocal[sensorList[0]], 0, aFilterType)
 
 	# Plot the ccd image
 	# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="log", cmap=None)
@@ -677,7 +743,7 @@ if __name__ == '__main__':
 	# 	pixelX.append(aitem[0])
 	# 	pixelY.append(aitem[1])
 
-	fieldX, fieldY = sourProc.getFieldXY(np.array(pixelX), np.array(pixelY))
+	fieldX, fieldY = sourProc.camXYtoFieldXY(np.array(pixelX), np.array(pixelY))
 	plt.plot(fieldX, fieldY, "rx")
 	plt.show()
 
@@ -699,10 +765,20 @@ if __name__ == '__main__':
 	print sourProc.dmXY2CamXY(stars.RaDeclInPixel[bscId][0], stars.RaDeclInPixel[bscId][1])
 
 	# Judge the vignette
-	print sourProc.evalVignette(0, 0)
 	print sourProc.evalVignette(1, 1)
 	print sourProc.evalVignette(1.5, 1.5)
-	print sourProc.evalVignette(2, 2)
+
+	# Do the deblending
+	poltExposureImage(singleSciNeiImg, name="", scale="linear", cmap=None)
+
+	# Actually, it is better not to do the deblending if the magnitudes differs too much
+	imgDeblend, realcx, realcy = sourProc.doDeblending(singleSciNeiImg, allStarPosX, allStarPosY, magRatio)
+	poltExposureImage(imgDeblend, name="", scale="linear", cmap=None)
+
+	print realcx, realcy
+
+	# Calculate the field X, Y of this star
+	print sourProc.camXYtoFieldXY(offsetX+realcx, offsetY+realcy)
 
 
 

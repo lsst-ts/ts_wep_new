@@ -18,9 +18,9 @@ from lsst.obs.lsstSim import LsstSimMapper
 
 class SourceProcessor(object):
 
-	def __init__(self, sensorName):
+	def __init__(self):
 
-		self.sensorName = sensorName
+		self.sensorName = None
 		self.donutRadiusInPixel = None
 
 		self.sensorFocaPlaneInDeg = None
@@ -134,7 +134,7 @@ class SourceProcessor(object):
 		# Return the center position of wave front sensor
 		return focalPlaneData
 
-	def getFieldXY(self, sensorName, pixelX, pixelY, pixel2Arcsec=0.2):
+	def getFieldXY(self, pixelX, pixelY, pixel2Arcsec=0.2):
 		"""
 
 		Get the field X, Y of the pixel postion in CCD. It is noted that the wavefront sensors
@@ -155,7 +155,6 @@ class SourceProcessor(object):
 		O----O-----			 -------O
 
 		Arguments:
-			sensorName {[str]} -- Sensor name.
 			pixelX {[float]} -- Pixel x on camera coordinate.
 			pixelY {[float]} -- Pixel y on camera coordinate.
 
@@ -167,10 +166,10 @@ class SourceProcessor(object):
 		"""
 
 		# Get the field X, Y of sensor's center
-		fieldXc, fieldYc = self.sensorFocaPlaneInDeg[sensorName]
+		fieldXc, fieldYc = self.sensorFocaPlaneInDeg[self.sensorName]
 
 		# Get the center pixel position
-		pixelXc, pixelYc = self.sensorDimList[sensorName]
+		pixelXc, pixelYc = self.sensorDimList[self.sensorName]
 		pixelXc = pixelXc/2
 		pixelYc = pixelYc/2
 
@@ -179,17 +178,16 @@ class SourceProcessor(object):
 		deltaY = (pixelY-pixelYc)*pixel2Arcsec/3600.0
 
 		# Calculate the transformed coordinate in degree.
-		fieldX, fieldY = self.__rotCam2FocalPlane(sensorName, fieldXc, fieldYc, deltaX, deltaY)
+		fieldX, fieldY = self.__rotCam2FocalPlane(self.sensorName, fieldXc, fieldYc, deltaX, deltaY)
 
 		return fieldX, fieldY
 
-	def focalPlaneXY2CamXY(self, sensorName, xInUm, yInUm, pixel2um=10.0):
+	def focalPlaneXY2CamXY(self, xInUm, yInUm, pixel2um=10.0):
 		"""
 		
 		Get the x, y position on camera plane from the focal plane position.
 		
 		Arguments:
-			sensorName {[str]} -- Sensor name.
 			xInUm {[float]} -- Position x on focal plane in um.
 			yInUm {[float]} -- Position y on focal plane in um.
 		
@@ -201,10 +199,10 @@ class SourceProcessor(object):
 		"""
 
 		# Get the central position of sensor in um
-		xc, yc = self.sensorFocaPlaneInUm[sensorName]
+		xc, yc = self.sensorFocaPlaneInUm[self.sensorName]
 
 		# Get the center pixel position
-		pixelXc, pixelYc = self.sensorDimList[sensorName]
+		pixelXc, pixelYc = self.sensorDimList[self.sensorName]
 		pixelXc = pixelXc/2
 		pixelYc = pixelYc/2
 
@@ -213,7 +211,8 @@ class SourceProcessor(object):
 		deltaY = (yInUm-yc)/pixel2um
 
 		# Calculate the transformed coordinate
-		pixelX, pixelY = self.__rotCam2FocalPlane(sensorName, pixelXc, pixelYc, deltaX, deltaY, counterClockWise=False)
+		pixelX, pixelY = self.__rotCam2FocalPlane(self.sensorName, pixelXc, pixelYc, deltaX, deltaY, 
+												  counterClockWise=False)
 
 		return pixelX, pixelY
 
@@ -252,7 +251,7 @@ class SourceProcessor(object):
 
 		return newX, newY
 
-	def dmXY2CamXY(self, sensorName, pixelDmX, pixelDmY):
+	def dmXY2CamXY(self, pixelDmX, pixelDmY):
 		"""
 
 		Transform the pixel x, y from DM library to camera to use. Camera coordinate is defined
@@ -272,7 +271,6 @@ class SourceProcessor(object):
 		 O-----> x'
 
 		Arguments:
-			sensorName {[str]} -- Sensor name.
 			pixelDmX {[float]} -- Pixel x defined in DM coordinate.
 			pixelDmY {[float]} -- Pixel y defined in DM coordinate.
 
@@ -281,7 +279,7 @@ class SourceProcessor(object):
 		"""
 
 		# Get the CCD dimension
-		dimX, dimY = self.sensorDimList[sensorName]
+		dimX, dimY = self.sensorDimList[self.sensorName]
 
 		# Calculate the transformed coordinate
 		pixelCamX = dimX-pixelDmY
@@ -289,25 +287,42 @@ class SourceProcessor(object):
 
 		return pixelCamX, pixelCamY
 
-	def removeBg(self):
-		# Remove the backgrond noise.
-		pass
-
 	def evalSNR(self):
 		# Evaluate the SNR of donut.
 		# Put the responsibility of evaluating the SNR in this high level class.
+		# Put this to cwfs.
 		pass
 
-	def analDonutImgQual(self):
-		# Analyze the donut image quality.
-		pass
+	def evalVignette(self, fieldX, fieldY, distanceToVignette=1.75):
+		"""
+		
+		Evaluate the donut is vignetted or not by comparing the donut's distance to center with
+		a reference value.
+		
+		Arguments:
+			fieldX {[float]} -- Field x in degree.
+			fieldY {[float]} -- Field y in degree.
+		
+		Keyword Arguments:
+			distanceToVignette {float} -- Reference to be the vignetting. Use the half of field of view 
+										  as a initial guess. (default: {1.75})
+		
+		Returns:
+			[type] -- [description]
+		"""
+		
+		# The donut is vignetted or not.
+		isVignette = False
 
-	def evalDonutQuality(self):
-		# Evaluate the donut image quality
-		pass
+		# Calculate the distance to center in degree to judge the donut is vignetted or not.
+		fldr = np.sqrt(fieldX**2 + fieldY**2)
+		if (fldr >= distanceToVignette):
+			isVignette = True 
 
-	def evalVignette(self, fieldX, fieldY, distanceToVignette):
-		# Correct the vignette of donut images (or skip them?).
+		return isVignette
+
+	def doDeblending(self):
+		# Do the deblending. The remove Background should be included in the algorithm.
 		pass
 
 	def getSingleTargetImage(self, ccdImg, neighboringStarMapOnSingleSensor, index):
@@ -605,11 +620,11 @@ if __name__ == '__main__':
 	fieldXY = [0, 0]
 
 	# Instantiate a source processor
-	sourProc = SourceProcessor("R00_S22_C0")
+	sourProc = SourceProcessor()
 
 	# Give the path to the image folder
 	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
-	sourProc.config(donutRadiusInPixel=starRadiusInPixel)
+	sourProc.config(sensorName="R00_S22_C0", donutRadiusInPixel=starRadiusInPixel)
 
 	# CCD focal plane file
 	ccdFocalPlaneFolder = "/Users/Wolf/Documents/bitbucket/phosim_syseng2/data/lsst/"
@@ -662,12 +677,12 @@ if __name__ == '__main__':
 	# 	pixelX.append(aitem[0])
 	# 	pixelY.append(aitem[1])
 
-	fieldX, fieldY = sourProc.getFieldXY("R00_S22_C0", np.array(pixelX), np.array(pixelY))
+	fieldX, fieldY = sourProc.getFieldXY(np.array(pixelX), np.array(pixelY))
 	plt.plot(fieldX, fieldY, "rx")
 	plt.show()
 
 	# Test the coordinate transformation
-	pixelCamX, pixelCamY = sourProc.dmXY2CamXY("R00_S22_C0", 4072, 2000)
+	pixelCamX, pixelCamY = sourProc.dmXY2CamXY(4072, 2000)
 	print pixelCamX, pixelCamY
 
 	# Test to get the focal plane position
@@ -680,8 +695,14 @@ if __name__ == '__main__':
 	bscId = stars.RaDecl.keys()[0]
 
 	focalX, focalY = focalPlaneCoordsFromRaDec(stars.RaDecl[bscId][0], stars.RaDecl[bscId][1], obs_metadata=obs, camera=camera)
-	print sourProc.focalPlaneXY2CamXY("R00_S22_C0", focalX*1000, focalY*1000)
-	print sourProc.dmXY2CamXY("R00_S22_C0", stars.RaDeclInPixel[bscId][0], stars.RaDeclInPixel[bscId][1])
+	print sourProc.focalPlaneXY2CamXY(focalX*1000, focalY*1000)
+	print sourProc.dmXY2CamXY(stars.RaDeclInPixel[bscId][0], stars.RaDeclInPixel[bscId][1])
+
+	# Judge the vignette
+	print sourProc.evalVignette(0, 0)
+	print sourProc.evalVignette(1, 1)
+	print sourProc.evalVignette(1.5, 1.5)
+	print sourProc.evalVignette(2, 2)
 
 
 

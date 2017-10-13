@@ -1,19 +1,16 @@
 import os
+import re
 import numpy as np
 
-from deblend.BlendedImageDecorator import BlendedImageDecorator
+from lsst.sims.utils import ObservationMetaData
+from lsst.sims.coordUtils.CameraUtils import focalPlaneCoordsFromRaDec
+from lsst.obs.lsstSim import LsstSimMapper
 
-from isr.WfsIsrTask import poltExposureImage, plotHist
+from deblend.BlendedImageDecorator import BlendedImageDecorator
+from isr.WfsIsrTask import poltExposureImage
 from isr.changePhoSimInstrument import readData
 
 from SourceSelector import SourceSelector
-
-from matplotlib.colors import LogNorm, SymLogNorm
-import matplotlib.pylab as plt
-
-from lsst.sims.utils import ObservationMetaData
-from lsst.sims.coordUtils.CameraUtils import focalPlaneCoordsFromRaDec, chipNameFromRaDec
-from lsst.obs.lsstSim import LsstSimMapper
 
 import unittest
 
@@ -641,156 +638,256 @@ class SourceProcessor(object):
 		# Add the donut image on the CCD image
 		ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += donutImage
 
+def expandDetectorName(abbrevName):
+    """Convert a detector name of the form Rxy_Sxy[_Ci] to canonical form: R:x,y S:x,y[,c]
+    C0 -> A, C1 -> B
+
+    This is copied from lsst.obs.lsstSim:
+    https://github.com/lsst/obs_lsstSim/blob/master/bin.src/makeLsstCameraRepository.py
+    """
+    m = re.match(r"R(\d)(\d)_S(\d)(\d)(?:_C([0,1]))?$", abbrevName)
+    if m is None:
+        raise RuntimeError("Cannot parse abbreviated name %r" % (abbrevName,))
+    fullName = "R:%s,%s S:%s,%s" % tuple(m.groups()[0:4])
+    subSensor = m.groups()[4]
+    if subSensor is not None:
+        fullName = fullName + "," + {"0": "A", "1": "B"}[subSensor]
+    return fullName
+
+class testClass(object):
+	# Used only for the test class
+	pass
+
+class SourceProcessorTest(unittest.TestCase):
+
+	"""
+	Test the function of SourceProcessor.
+	"""
+
+	def setUp(self):
+
+		# CCD focal plane file
+		focalPlaneFolder = "/Users/Wolf/Documents/bitbucket/phosim_syseng2/data/lsst/"
+
+		# Set the source processor
+		self.sourProc = SourceProcessor()
+
+		# Set the configuration
+		self.sourProc.config(sensorName="R00_S22_C0", donutRadiusInPixel=63, 
+							 folderPath2FocalPlane=focalPlaneFolder)
+
+	def testBasicFunc(self):
+
+		# Test the function
+		self.assertEqual(self.sourProc.sensorName, "R00_S22_C0")
+		self.assertEqual(self.sourProc.donutRadiusInPixel, 63)
+		self.assertEqual(len(self.sourProc.sensorDimList), 205)
+		self.assertEqual(len(self.sourProc.sensorEulerRot), 205)
+		self.assertEqual(len(self.sourProc.sensorFocaPlaneInDeg), 205)
+		self.assertEqual(len(self.sourProc.sensorFocaPlaneInUm), 205)
+
+		self.assertEqual(self.sourProc.sensorDimList["R00_S22_C0"], (2000, 4072))
+		self.assertEqual(self.sourProc.sensorDimList["R22_S11"], (4000, 4072))
+		self.assertEqual(self.sourProc.sensorFocaPlaneInDeg["R22_S11"], (0, 0))
+		self.assertNotEqual(self.sourProc.sensorFocaPlaneInDeg["R00_S22_C0"], 
+							self.sourProc.sensorFocaPlaneInDeg["R00_S22_C1"])
+
+		self.assertTrue(self.sourProc.evalVignette(2, 2))
+		self.assertFalse(self.sourProc.evalVignette(1, 1))
+
+	def testCamXYtoFieldXY(self):
+
+		# Test the camera XY to field XY
+		self.assertEqual(self.sourProc.camXYtoFieldXY(1000, 2036), 
+						 self.sourProc.sensorFocaPlaneInDeg["R00_S22_C0"])
+
+		# Test the origin for eight WFSs
+		self.sourProc.config(sensorName="R00_S22_C0")
+		oxR00S22C0, oyR00S22C0 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R00_S22_C1")
+		oxR00S22C1, oyR00S22C1 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R40_S02_C0")
+		oxR40S02C0, oyR40S02C0 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R40_S02_C1")
+		oxR40S02C1, oyR40S02C1 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R44_S00_C0")
+		oxR44S00C0, oyR44S00C0 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R44_S00_C1")
+		oxR44S00C1, oyR44S00C1 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R04_S20_C0")
+		oxR04S20C0, oyR04S20C0 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		self.sourProc.config(sensorName="R04_S20_C1")
+		oxR04S20C1, oyR04S20C1 = self.sourProc.camXYtoFieldXY(0, 0)
+
+		# Compare with the same RXX_SYY
+		self.assertEqual(oyR00S22C0, oyR00S22C1)
+		self.assertEqual(oxR40S02C0, oxR40S02C1)
+		self.assertEqual(oyR44S00C0, oyR44S00C1)
+		self.assertEqual(oxR04S20C0, oxR04S20C1)
+
+		# Campare with different RXX_SYY
+		self.assertEqual((oxR00S22C0+oxR44S00C0, oyR00S22C0+oyR44S00C0), (0, 0))
+		self.assertEqual((oxR40S02C1+oxR04S20C1, oyR40S02C1+oyR04S20C1), (0, 0))
+
+	def testDmXY2CamXY(self):
+
+		# Define the database and get the neighboring star map
+		# Address of local database
+		dbAdress = "/Users/Wolf/bsc.db3"
+
+		# Use the focal plane as a reference to double check the DM XY to Camera XY
+		# Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
+		pointing = (20.0, 30.0)
+
+		# Camera rotation
+		cameraRotation = 0.0
+
+		# Active filter type
+		aFilterType = "u"
+
+		# Camera type: "lsst" or "comcam"
+		cameraType = "lsst"
+
+		# Set the camera MJD
+		cameraMJD = 59580.0
+
+		# Camera orientation for ComCam ("center" or "corner" or "all")
+		# Camera orientation for LSSTcam ("corner" or "all")
+		orientation = "corner"
+
+		# Maximum distance in units of radius one donut must be considered as a neighbor.
+		spacingCoefficient = 2.5
+
+		# For the defocus = 1.5 mm, the star's radius is 63 pixel.
+		starRadiusInPixel = 63
+
+		# Collect the data from bright star catalog
+
+		# Get the neighboring star map
+		localDb = SourceSelector("LocalDb", cameraType)
+		localDb.connect(dbAdress)
+		localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=1)
+		localDb.setFilter(aFilterType)
+		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = localDb.getTargetStar(pointing,
+																			cameraRotation, orientation=orientation)
+		localDb.disconnect()
+
+		# Collect the data
+		neighborStarMapLocal = neighborStarMapLocal
+		sensorList = wavefrontSensorsLocal.keys()
+
+		# Test the DM XY to Camera XY directly
+		self.sourProc.config(sensorName="R22_S11")
+		self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
+
+		# Change the DM name to camera team
+
+		# Test to get the focal plane position
+		# When writing the test cases, need to add four corners
+		camera = LsstSimMapper().camera
+		obs = ObservationMetaData(pointingRA=pointing[0], pointingDec=pointing[1], 
+								  rotSkyPos=cameraRotation, mjd=cameraMJD)
+
+		# Veriry the function of DmXY2CamXY() by (ra, decl) to (focal X, focal Y) and then to (cam X, cam Y)
+		# The focal plane coordinate system is the reference of DM and Camera teams
+		abbrevNameList = ["R40_S02_C0", "R00_S22_C0", "R04_S20_C0", "R44_S00_C0", 
+						  "R40_S02_C1", "R00_S22_C1", "R04_S20_C1", "R44_S00_C1"]
+		for abbrevName in abbrevNameList: 
+			self.sourProc.config(sensorName=abbrevName)
+
+			# Transfrom the abbreviated name to full name
+			fullName = expandDetectorName(abbrevName)
+
+			stars = neighborStarMapLocal[fullName]
+			for starID in stars.RaDecl.keys():
+				# Transform star (ra, dec) to focal plane coordinate in mm
+				focalX, focalY = focalPlaneCoordsFromRaDec(stars.RaDecl[starID][0], stars.RaDecl[starID][1], 
+														   obs_metadata=obs, camera=camera)
+
+				# Transform focal plane coordinate in mm to pixel position in camera coordinate 
+				# The input unit is "um" instead of "mm"
+				camX, camY = self.sourProc.focalPlaneXY2CamXY(focalX*1000, focalY*1000)
+
+				# Transform to camera coordinate directly from the DM coordinate
+				camX1, camY1 = self.sourProc.dmXY2CamXY(stars.RaDeclInPixel[starID][0], 
+														stars.RaDeclInPixel[starID][1])
+
+				# Do the comparison
+				delta = np.sqrt( (camX-camX1)**2 + (camY-camY1)**2 )
+				self.assertLess(delta, 8)
+
+	def testDeblending(self):
+
+		# Donut image folder
+		imageFolder = "/Users/Wolf/Documents/stash/cwfs_test_images"
+		donutImageFolder = "LSST_C_SN26"
+
+		# Give the path to the image folder
+		imageFolderPath = os.path.join(imageFolder, donutImageFolder)
+
+		# Generate the simulated image
+		defocalDis = 1.5
+		afilter = "u"
+		self.sourProc.config(sensorName="R04_S20_C1")
+
+		# Create a mocked neighboring star map
+		neighborStarMap = testClass()
+		SimobjID = {523572575: [], 
+					523572679: [523572671]}
+		setattr(neighborStarMap, "SimobjID", SimobjID)
+		LSSTMagU = {523572575: 14.66652, 
+					523572671: 16.00000, 
+					523572679: 13.25217}
+		setattr(neighborStarMap, "LSSTMagU", LSSTMagU)
+		RaDeclInPixel = {523572679: (3966.4462129591157, 1022.9153550029878), 
+						 523572671: (3968.7766808905071, 1081.0241833910586),
+						 523572575: (3475.4821263515223, 479.33235991200854)}
+		setattr(neighborStarMap, "RaDeclInPixel", RaDeclInPixel)
+
+		# Simulate the image
+		ccdImgIntra, ccdImgExtra = self.sourProc.simulateImg(imageFolderPath, defocalDis, neighborStarMap, 
+															 afilter, noiseRatio=0)
+
+		# Check the dimension and the image is not zero
+		self.assertEqual(ccdImgIntra.shape, (4072, 2000))
+		self.assertNotEqual(np.sum(np.abs(ccdImgIntra)), 0)
+
+		# Show the image
+		# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="log", cmap=None)
+		# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="linear", cmap=None)
+
+		# Get the images of one bright star map
+		singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = self.sourProc.getSingleTargetImage(ccdImgIntra, 
+																								neighborStarMap, 0, afilter)
+
+		# Show the image
+		# poltExposureImage(singleSciNeiImg, name="Single intra focal image", scale="log", cmap=None)
+		# poltExposureImage(singleSciNeiImg, name="Single intra focal image", scale="linear", cmap=None)
+
+		# Do the deblending and determine the real position on camera
+		imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, allStarPosX, allStarPosY, magRatio)
+
+		# Show the deblended image
+		# poltExposureImage(imgDeblend, name="Deblended image", scale="log", cmap=None)
+		# poltExposureImage(imgDeblend, name="Deblended image", scale="linear", cmap=None)
+
+		# Get the real camera position x, y after the deblending
+		realCameraX = realcx + offsetX
+		realCameraY = realcy + offsetY
+
+		# Compared with DM prediction
+		dmX, dmY = self.sourProc.dmXY2CamXY(RaDeclInPixel[523572679][0], RaDeclInPixel[523572679][1])
+		delta = np.sqrt( (realCameraX-dmX)**2 + (realCameraY-dmY)**2 )
+		self.assertLess(delta, 8)
+
 if __name__ == '__main__':
 
-	# Define the database and get the neighboring star map
-	# Address of local database
-	dbAdress = "/Users/Wolf/bsc.db3"
-
-	# Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-	pointing = (20.0, 30.0)
-
-	# Camera rotation
-	cameraRotation = 0.0
-
-	# Active filter type
-	aFilterType = "u"
-
-	# Camera type: "lsst" or "comcam"
-	cameraType = "lsst"
-
-	# Set the camera MJD
-	cameraMJD = 59580.0
-
-	# Camera orientation for ComCam ("center" or "corner" or "all")
-	# Camera orientation for LSSTcam ("corner" or "all")
-	orientation = "corner"
-
-	# Maximum distance in units of radius one donut must be considered as a neighbor.
-	spacingCoefficient = 2.5
-
-	# For the defocus = 1.5 mm, the star's radius is 63 pixel.
-	starRadiusInPixel = 63
-
-	# Get the neighboring star map
-	localDb = SourceSelector("LocalDb", cameraType)
-	localDb.connect(dbAdress)
-	localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=1)
-	localDb.setFilter(aFilterType)
-	neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = localDb.getTargetStar(pointing,
-																		cameraRotation, orientation=orientation)
-	localDb.disconnect()
-
-	# Get the sensor list
-	sensorList = wavefrontSensorsLocal.keys()
-
-	# Donut image folder
-	imageFolder = "/Users/Wolf/Documents/stash/cwfs_test_images"
-	donutImageFolder = "LSST_C_SN26"
-	fieldXY = [0, 0]
-
-	# Instantiate a source processor
-	sourProc = SourceProcessor()
-
-	# CCD focal plane file
-	ccdFocalPlaneFolder = "/Users/Wolf/Documents/bitbucket/phosim_syseng2/data/lsst/"
-
-	# Give the path to the image folder
-	imageFolderPath = os.path.join(imageFolder, donutImageFolder)
-	sourProc.config(sensorName="R00_S22_C0", donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=ccdFocalPlaneFolder)
-
-	# Generate the simulated image
-	defocalDis = 1.5
-	ccdImgIntra, ccdImgExtra = sourProc.simulateImg(imageFolderPath, defocalDis, neighborStarMapLocal[sensorList[0]], 
-													aFilterType, noiseRatio=0)
-
-	# Get the images of one bright star map
-	singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = sourProc.getSingleTargetImage(ccdImgIntra, 
-																			neighborStarMapLocal[sensorList[0]], 0, aFilterType)
-
-	# Plot the ccd image
-	# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="log", cmap=None)
-	# poltExposureImage(ccdImgExtra, name="Extra focal image", scale="log", cmap=None)
-
-	# poltExposureImage(ccdImgIntra, name="Intra focal image", scale="linear", cmap=None)
-	# poltExposureImage(ccdImgExtra, name="Extra focal image", scale="linear", cmap=None)
-
-	# poltExposureImage(singleSciNeiImg, name="", scale="linear", cmap=None)
-	# poltExposureImage(singleSciNeiImg, name="", scale="log", cmap=None)
-
-	# Plot the center
-	posX = []
-	posY = []
-	for akeys, aitem in sourProc.sensorFocaPlaneInDeg.items():
-		posX.append(aitem[0])
-		posY.append(aitem[1])
-
-	plt.figure()
-	plt.plot(posX, posY, "bo")
-	plt.xlabel("x-axis")
-	plt.ylabel("y-axis")
-	plt.show()
-
-	# Get the field X, Y of donut
-	pixelX = [0, 0, 2000, 2000]
-	pixelY = [0, 4072, 0, 4072]
-	# pixelX = [0]
-	# pixelY = [0]
-	# stars = neighborStarMapLocal[sensorList[0]]
-	# pixelX = []
-	# pixelY = []
-	# for akey, aitem in stars.RaDeclInPixel.items():
-	# 	pixelX.append(aitem[0])
-	# 	pixelY.append(aitem[1])
-
-	fieldX, fieldY = sourProc.camXYtoFieldXY(np.array(pixelX), np.array(pixelY))
-	plt.plot(fieldX, fieldY, "rx")
-	plt.show()
-
-	# Test the coordinate transformation
-	pixelCamX, pixelCamY = sourProc.dmXY2CamXY(4072, 2000)
-	print pixelCamX, pixelCamY
-
-	# Test to get the focal plane position
-	# When writing the test cases, need to add four corners
-	camera = LsstSimMapper().camera
-	obs = ObservationMetaData(pointingRA=pointing[0], pointingDec=pointing[1], rotSkyPos=cameraRotation, mjd=cameraMJD)
-
-	stars = neighborStarMapLocal[sensorList[7]]
-
-	bscId = stars.RaDecl.keys()[0]
-
-	focalX, focalY = focalPlaneCoordsFromRaDec(stars.RaDecl[bscId][0], stars.RaDecl[bscId][1], obs_metadata=obs, camera=camera)
-	print sourProc.focalPlaneXY2CamXY(focalX*1000, focalY*1000)
-	print sourProc.dmXY2CamXY(stars.RaDeclInPixel[bscId][0], stars.RaDeclInPixel[bscId][1])
-
-	# Judge the vignette
-	print sourProc.evalVignette(1, 1)
-	print sourProc.evalVignette(1.5, 1.5)
-
-	# Do the deblending
-	poltExposureImage(singleSciNeiImg, name="", scale="linear", cmap=None)
-
-	# Actually, it is better not to do the deblending if the magnitudes differs too much
-	imgDeblend, realcx, realcy = sourProc.doDeblending(singleSciNeiImg, allStarPosX, allStarPosY, magRatio)
-	poltExposureImage(imgDeblend, name="", scale="linear", cmap=None)
-
-	print realcx, realcy
-
-	# Calculate the field X, Y of this star
-	print sourProc.camXYtoFieldXY(offsetX+realcx, offsetY+realcy)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	# Do the unit test
+	unittest.main()

@@ -7,10 +7,10 @@ from lsst.sims.coordUtils.CameraUtils import focalPlaneCoordsFromRaDec
 from lsst.obs.lsstSim import LsstSimMapper
 
 from deblend.BlendedImageDecorator import BlendedImageDecorator
-from isr.WfsIsrTask import poltExposureImage
 from isr.changePhoSimInstrument import readData
 
 from SourceSelector import SourceSelector
+from IsrWrapper import poltExposureImage
 
 import unittest
 

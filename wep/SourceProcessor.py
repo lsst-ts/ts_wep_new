@@ -654,6 +654,40 @@ def expandDetectorName(abbrevName):
         fullName = fullName + "," + {"0": "A", "1": "B"}[subSensor]
     return fullName
 
+def abbrevDectectorName(canonicalForm):
+	"""
+	
+	Convert a canonical name to abbreviate name (R:x,y S:x,y[,c] --> Rxy_Sxy[_Ci]).
+	
+	Arguments:
+		canonicalForm {[str]} -- Detector canonical name.
+	
+	Returns:
+		[str] -- Abbreviated name.
+	
+	Raises:
+		RuntimeError -- Input does not match the canonical form of detector name.
+	"""
+
+	# Use the regular expression to analyze the input name
+	m = re.match(r"R:(\d),(\d) S:(\d),(\d)(?:,([A,B]))?$", canonicalForm)
+
+	# Raise error if the input does not match the form of regular expression
+	if m is None:
+	    raise RuntimeError("Cannot parse canonical name %r" % (canonicalForm,))
+
+	# Generate the abbreviated name
+	abbrevName = "R%s%s_S%s%s" % tuple(m.groups()[0:4])
+
+	# Check the sensor is wavefront sensor or not
+	subSensor = m.groups()[4]
+	if (subSensor is not None):
+		# Label the WFS sensor
+	    abbrevName = abbrevName + "_C" + {"A": "0", "B": "1"}[subSensor]
+
+	# Return the abbreviate name
+	return abbrevName
+
 class testClass(object):
 	# Used only for the test class
 	pass
@@ -694,6 +728,12 @@ class SourceProcessorTest(unittest.TestCase):
 
 		self.assertTrue(self.sourProc.evalVignette(2, 2))
 		self.assertFalse(self.sourProc.evalVignette(1, 1))
+
+		# Test the name transformation
+		sciSensorName = "R22_S11"
+		wfsSensorName = "R40_S02_C1"
+		self.assertEqual(abbrevDectectorName(expandDetectorName(sciSensorName)), sciSensorName)
+		self.assertEqual(abbrevDectectorName(expandDetectorName(wfsSensorName)), wfsSensorName)
 
 	def testCamXYtoFieldXY(self):
 

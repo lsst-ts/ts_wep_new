@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import os
 
 import numpy as np
@@ -388,7 +386,7 @@ class IsrWrapperTest(unittest.TestCase):
 	def setUp(self):
 
 		# Path of data folder
-		dataFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_isr/test"
+		dataFolderPath = "../test"
 		self.dataFolderPath = dataFolderPath
 
 	def testWfsIsrTask(self):

@@ -379,8 +379,11 @@ class SourceSelector(object):
 			if (trimMarginInPixel > min(dim1, dim2)/2):
 				raise ValueError("trimMarginInPixel ('%f') >= half of CCD's dimension." % trimMarginInPixel)
 
+			# Copy a new dictionary to avoid the iteration error for changing size of iteration
+			neighborStarSimobjID = neighborStar.SimobjID.copy()
+
 			# Use the candidate star as the unit to check stars are inside the boundary or not
-			for candidateStar, neighboringStars in neighborStar.SimobjID.items():
+			for candidateStar, neighboringStars in neighborStarSimobjID.items():
 
 				# Get all stars (candidateStar: string + neighboringStars: list) in this item
 				# Use the List[:] to get the copy of list
@@ -406,42 +409,42 @@ class SourceSelector(object):
 					neighborStar.SimobjID.pop(candidateStar, None)
 
 			if (trimmedCandidateStarNum != 0):
-				print("Trimmed candidate stars on %s: %d" % (detector, trimmedCandidateStarNum))
+				print("Trimmed candidate stars on %s: %d." % (detector, trimmedCandidateStarNum))
 
 class SourceSelectorTest(unittest.TestCase):
-    """
-    Test the source selector. 
-    """
+	"""
+	Test the source selector. 
+	"""
 
-    # Address of local database
-    dbAdress = "/Users/Wolf/bsc.db3"
+	# Address of local database
+	dbAdress = "../test/bsc.db3"
 
-    # Remote database setting
-    databaseHost = "localhost:51433"
-    databaseUser = "LSST-2"
-    databasePassword = "L$$TUser"
-    databaseName = "LSSTCATSIM"
+	# Remote database setting
+	databaseHost = "localhost:51433"
+	databaseUser = "LSST-2"
+	databasePassword = "L$$TUser"
+	databaseName = "LSSTCATSIM"
 
-    # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-    pointing = (20.0, 30.0)
+	# Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
+	pointing = (20.0, 30.0)
 
-    # Camera rotation
-    cameraRotation = 0.0
+	# Camera rotation
+	cameraRotation = 0.0
 
-    # Active filter type
-    aFilterType = "r"
+	# Active filter type
+	aFilterType = "r"
 
-    # Camera type: "lsst" or "comcam"
-    cameraType = "comcam"
+	# Camera type: "lsst" or "comcam"
+	cameraType = "comcam"
 
-    # Set the camera MJD
-    cameraMJD = 59580.0
+	# Set the camera MJD
+	cameraMJD = 59580.0
 
-    # Camera orientation for ComCam ("center" or "corner" or "all")
-    # Camera orientation for LSSTcam ("corner" or "all")
-    orientation = "center"
+	# Camera orientation for ComCam ("center" or "corner" or "all")
+	# Camera orientation for LSSTcam ("corner" or "all")
+	orientation = "center"
 
-    def setUp(self):
+	def setUp(self):
 		
 		# Set the database
 		self.remoteDb = SourceSelector("UWdb", self.cameraType)
@@ -454,13 +457,13 @@ class SourceSelectorTest(unittest.TestCase):
 		self.remoteDb.connect(*remoteDbInfo)
 		self.localDb.connect(self.dbAdress)
 
-    def tearDown(self):
+	def tearDown(self):
 
 		# Disconnect database
 		self.remoteDb.disconnect()
 		self.localDb.disconnect()
 
-    def testFunctions(self):
+	def testFunctions(self):
 
 		# Maximum distance in units of radius one donut must be considered as a neighbor.
 		spacingCoefficient = 2.5

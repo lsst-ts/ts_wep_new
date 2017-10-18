@@ -1,9 +1,9 @@
 Author: Te-Wei Tsai
 
-Date: 8-30-2017
+Date: 10-18-2017
 
-Test python version: 2.7.13
-Scientific pipeline version: v13
+Test python version: 3.6.2
+Scientific pipeline version: v14
 
 This code is used to 
 (1) grab the wavefront image files,

@@ -1,17 +1,36 @@
 import os, re
 
+import lsst.daf.persistence as dafPersistence
+
 from isr.PhoSimImgAdaptor import PhoSimImgAdaptor
 from isr.LocalDatabase import LocalDatabase
 
+import unittest
+import shutil
+
 class WFDataCollector(object):
 
-	def __init__(self, pathOfRawData, destinationPath):
+	def __init__(self, pathOfRawData, destinationPath, butlerInputs=None, butlerOutputs=None):
 		
 		self.pathOfRawData = pathOfRawData
 		self.destinationPath = destinationPath
+
+		self.db = LocalDatabase()
 		self.dbAdress = None
 
+		# There is a bulter instance here for the future use.
+		self.butler = dafPersistence.Butler(inputs=butlerInputs, outputs=butlerOutputs)
+
 	def config(self, pathOfRawData=None, destinationPath=None, dbAdress=None):
+		"""
+		
+		Do the configuration.
+		
+		Keyword Arguments:
+			pathOfRawData {[str]} -- Path of raw data. (default: {None})
+			destinationPath {[str]} -- Path to the destination. (default: {None})
+			dbAdress {[str]} -- Path to the registry.sqlite3 repo.  (default: {None})
+		"""
 
 		# Set the path to get the raw data
 		if (pathOfRawData is not None):
@@ -25,35 +44,32 @@ class WFDataCollector(object):
 		if (dbAdress is not None):
 			self.dbAdress = dbAdress
 
-	def getWfsImg(self):
-		# Get the wavefront images.
-		pass
-
-	def getCalExp(self):
-		# Get the calibration products: bias, flat, dome.
-		pass
-
-	def getHistoricWfsImg(self):
-		# Get the historic wavefront images.
-		pass
-
-	def getWfsMetaData(self):
-		# Get the metadata of wavefront images.
-		pass
-
-	def importPhoSimDataToButler(self, dataDir, obsId=None, aFilter=None, atype="raw"):
-
-		# Import the images into data butler and check the local database.
-
-		# Check the database has the record or not
-		self.__checkRegistryRepo(dataDir)
-
-		return
-
+	def importPhoSimDataToButler(self, dataDir, obsId=None, aFilter=None, atype=None, overwrite=False):
+		"""
+		
+		Import the PhoSim simulated data to match with the data butler to use. This means the registry.sqlite3 
+		repo will be inserted with the meta data if necessary.
+		
+		Arguments:
+			dataDir {[str]} -- PhoSim FITS data directory.
+		
+		Keyword Arguments:
+			obsId {[int]} -- Visit/ observation ID. (default: {None})
+			aFilter {[str]} -- Filter name (u, g, r, i, z, y). (default: {None})
+			atype {[str]} -- Dataset type. (default: {None})
+			overwrite {[boolean]} -- Overwrite the existed files or not. (default: {False})
+		
+		Raises:
+			ValueError -- Not allowed type ("raw", "bias", "dark", "flat").
+		"""
 
 		# Check the atype
 		if atype not in ("raw", "bias", "dark", "flat"):
 			raise ValueError("'%s' type is not allowed." % atype)
+
+		# Check the database has the metadata or not. If it is not, the meta data will be put in the repo.
+		if (atype == "raw"):
+			self.__checkRegistryRepo(dataDir, obsId=obsId, aFilter=aFilter)
 
 		# Declare the PhoSim adaptor
 		phosimImage = PhoSimImgAdaptor(self.pathOfRawData, self.destinationPath)
@@ -61,16 +77,20 @@ class WFDataCollector(object):
 		# Configure the path of PhoSimImgAdaptor and rearrange the files
 		if (atype == "raw"):
 			phosimImage.config(rawDir=dataDir)
-			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=obsId, eVisit=obsId, aFilter=aFilter, atype=atype) 
+			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=obsId, eVisit=obsId, 
+													aFilter=aFilter, atype=atype, overwrite=overwrite) 
 		elif (atype == "bias"):
 			phosimImage.config(biasDir=dataDir)
-			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=0, atype=atype) 
+			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=0, atype=atype, 
+																		 overwrite=overwrite) 
 		elif (atype == "dark"):
 			phosimImage.config(darkDir=dataDir)
-			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=1, atype=atype) 
+			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=1, atype=atype, 
+																		 overwrite=overwrite) 
 		elif (atype == "flat"):
 			phosimImage.config(flatDir=dataDir)
-			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=2, aFilter=aFilter, atype=atype)
+			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=2, aFilter=aFilter, 
+																		 atype=atype, overwrite=overwrite)
 
 		# Import data into the data butler and do the check of header file
 		if (atype == "raw"):
@@ -81,9 +101,19 @@ class WFDataCollector(object):
 		elif (atype == "flat"):
 			phosimImage.importToButler(self.destinationPath, ampImgName, atype, aFilter=aFilter)
 
-	def __checkRegistryRepo(self, dataDir):
-
-		global m
+	def __checkRegistryRepo(self, dataDir, obsId=None, aFilter=None):
+		"""
+		
+		Check the survey meta data exists in registry.sqlite3 repo or not. If it is not, the
+		meta data will be put in the repo.
+		
+		Arguments:
+			dataDir {[str]} -- FITS data directory.
+		
+		Keyword Arguments:
+			obsId {[int]} -- Visit ID. (default: {None})
+			aFilter {[str]} -- Active filter type. (default: {None})
+		"""
 
 		# Analyze the file name in directory
 		# Get all files
@@ -92,45 +122,136 @@ class WFDataCollector(object):
 		# Use the regular expression to analyze the input name
 		for fileName in fileList:
 
-			# fileName = "temp_a_99999999_f2_R02_S31_C00_E012.fits.gz"
-			
 			# Do the file name match
-			m = re.match(r"\S*R(\d)(\d)_S(\d)(\d)\S*E(\d*)", fileName)
+			m = re.match(r"\S*_R(\d)(\d)_S(\d)(\d)(?:_C(\d)(\d))?\S*E(\d*)", fileName)
+
+			if (m is not None):
 			
-			# Get the information
-			raft = "%s,%s" % m.groups()[0:2]
-			sensor = "%s,%s" % m.groups()[2:4]
-			snap = int(m.groups()[4])
+				# Get the information
+				raft = "%s,%s" % m.groups()[0:2]
+				sensor = "%s,%s" % m.groups()[2:4]
+				channel = None
+				if (m.groups()[4] is not None):
+					channel = "%s,%s" % m.groups()[4:6]
+				snap = int(m.groups()[-1])
 
-			print(raft, sensor, snap)
+				# Set the data Id
+				dataId = {"filter": aFilter, "raft": raft, "sensor": sensor, 
+						  "snap": snap, "visit": obsId}
 
+				# Check the input image is eimage or amplifier image
+				if (channel is not None):
+					# Add channel information
+					dataId["channel"] = channel
+				else:
+					# Change the type to eimage
+					atype = "eimage"
 
+				# Query the metadata to check the "visit" exists or not. If it returns a empty list,
+				# this means the metadata does not exist. 
+				queryVisit = self.butler.queryMetadata("raw", "visit", dataId=dataId)
 
-		print(fileList)
+				# Data exists if do not get the empty queryVisit result
+				isExist = False
+				if (queryVisit):
+					isExist = True
 
+				# Put the meta data if not existed.
+				if (not isExist):
+					# This function should be replaced by the butler API in the final.
+					self.__putFakeData(dataId)
+
+	def __putFakeData(self, dataId):
+		"""
+		
+		Put the faked survay meta data into registry.sqlite3 repo. This function should be
+		replaced by the butler API in the final.
+		
+		Arguments:
+			dataId {[dict]} -- Data ID.
+		"""
+
+		# Connect the local database
+		self.db.connect(self.dbAdress)
+
+		# Put the new data
+		taiObs = "1994-07-19T06:49:51.543999744"
+		skyTile = 30001
+		expTime = 15.0
+
+		# insertData(self, visit, snap, raft, sensor, aFilter, taiObs, skyTile, expTime)
+		self.db.insertData(dataId["visit"], dataId["snap"], dataId["raft"], dataId["sensor"], 
+						   dataId["filter"], taiObs, skyTile, expTime)
+
+		# Disconnect the local database
+		self.db.disconnect()
+
+class WFDataCollectorTest(unittest.TestCase):
+
+	"""	
+	Test the function of WFDataCollector.
+	"""
+
+	def setUp(self):
+
+		# Set the path of raw data
+		pathOfRawData = "../test/phosimOutput"
+
+		# Destination folder
+		destinationPath = "../test"
+
+		# Butler
+		butlerInputs = "../test"
+		butlerOutputs = "../test"
+
+		# Instantiate the WFDataCollector
+		self.wfDataCollector = WFDataCollector(pathOfRawData, destinationPath, 
+											butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
+
+	def testFunction(self):
+
+		# Local database setting
+		dbAdress = "../test/registry.sqlite3"
+		
+		# DO the configuration
+		self.wfDataCollector.config(dbAdress=dbAdress)
+		self.assertEqual(self.wfDataCollector.dbAdress, dbAdress)
+
+		# Import the PhoSim simulated image
+		obsId = 99999998
+		snap = 0
+		raft = "2,2"
+		sensor = "1,1"
+		aFilter = "r"
+
+		# Search the visit id first
+		self.wfDataCollector.db.connect(self.wfDataCollector.dbAdress)
+		item = self.wfDataCollector.db.query("raw", visit=obsId, snap=snap, raft=raft, sensor=sensor, aFilter=aFilter)
+		self.wfDataCollector.db.disconnect()
+		self.assertEqual(item, [])
+
+		# Import the PhoSim simulated image
+		dataDir = "real/output"
+		atype = "raw"
+		self.wfDataCollector.importPhoSimDataToButler(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, overwrite=False)
+
+		# Search the visit id again
+		self.wfDataCollector.db.connect(self.wfDataCollector.dbAdress)
+		item = self.wfDataCollector.db.query("raw", visit=obsId, snap=snap, raft=raft, sensor=sensor, aFilter=aFilter)
+		self.wfDataCollector.db.disconnect()
+		self.assertNotEqual(item, [])
+
+		# Delete the meta data in repo
+		self.wfDataCollector.db.connect(self.wfDataCollector.dbAdress)
+		self.wfDataCollector.db.deleteData(obsId, snap, raft, sensor, aFilter)
+		self.wfDataCollector.db.disconnect()
+
+		# Delete the file
+		dirName = "v" + str(obsId) + "-f" + str(aFilter)
+		dirPath = os.path.join(self.wfDataCollector.destinationPath, atype, dirName)
+		shutil.rmtree(dirPath)
 
 if __name__ == "__main__":
 
-	# Local database setting
-	dbAdress = "../data/registry.sqlite3"
-
-	# Set the path of raw data
-	pathOfRawData = "/Users/Wolf/tcs_phosim_output"
-
-	# Destination folder
-	destinationPath = "/Users/Wolf/Documents/stash/ts_tcs_wep/data"
-
-	# Instantiate the WFDataCollector
-	wfDataCollector = WFDataCollector(pathOfRawData, destinationPath)
-
-	# Import the PhoSim simulated image
-	# Rearrange the files (raw and eimage) for butler to use
-	dataDir = "real/output"
-	atype = "raw"
-
-	obsId = 99999999
-	aFilter = "r"
-
-	wfDataCollector.importPhoSimDataToButler(dataDir, obsId=obsId, aFilter=aFilter, atype=atype)
-
-
+	# Do the unit test
+	unittest.main()

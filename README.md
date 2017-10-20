@@ -1,22 +1,22 @@
 # Wavefront Estimation Pipeline (WEP)
 
-*This package is used to calculate the wavefront error in annular Zernike polynomials up to 22 terms based on the intra- and extra-focal images in the large synoptic survey telescope (LSST). The main idea is to use the transport of intensity (TIE) and assume the change of intensity only comes from the wavefront error.*
+*This module is used to calculate the wavefront error in annular Zernike polynomials up to 22 terms based on the intra- and extra-focal images in the large synoptic survey telescope (LSST). The main idea is to use the transport of intensity (TIE) and assume the change of intensity only comes from the wavefront error.*
 
-## Version History
+## 1. Version History
 
 *Version 1.0*
 <br/>
 *Finish the WEP in totally ideal condition.*
 
 *Author: Te-Wei Tsai*
-*Date: 10-18-2017*
+*Date: 10-20-2017*
 
-## Test Platform
+## 2. Platform
 
 - *python: 3.6.2*
 - *scientific pipeline: v14*
 
-## Needed Package
+## 3. Needed Package
 
 - *lsst_sims*
 - *numpy*
@@ -26,9 +26,29 @@
 - *cython*
 - *scikit-image*
 
-## Content
+## 4. Use of Module
 
-*This package contains the following classes:*
+*1. Setup the DM environment:*
+<br/>
+source (path_of_lsst_scientific_pipeline)/loadLSST.bash
+<br/>
+setup sims_catUtils -t sims
+
+*2. Setup the WEP environment:*
+<br/>
+export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_bsc)/ts_lsst_bsc
+<br/>
+export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_wep)/ts_lsst_wep
+<br/>
+export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_deblend)/ts_lsst_deblend
+<br/>
+export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_isr)/ts_lsst_isr
+<br/>
+export PYTHONPATH=$PYTHONPATH:(path_to_ts_tcs_wep)/ts_tcs_wep
+
+## 5. Content
+
+*This module contains the following classes:*
 
 - *WFDataCollector: Accommodate the PhoSim simulated image contains the sky and calibration products (bias, dark current, and flat dome light) into the data butler format. The registry repository will be updated if it is necessary.*
 - *IsrWrapper: Do the ISR by using DM ISR library directly. The calibration products of bias, dark current, and flat dome light are used.*
@@ -38,7 +58,7 @@
 - *WFEstimator: Calculate the wavefront error in annular Zernike polynomials up to 22 terms based on the defocal star donut images.*
 - *Middleware: Communicate with subsystems by software abstraction layer (SAL).*
 
-## Target for Future Release
+## 6. Target for Future Release
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*

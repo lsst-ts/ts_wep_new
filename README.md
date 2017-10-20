@@ -30,21 +30,27 @@
 
 *1. Setup the DM environment:*
 <br/>
-source (path_of_lsst_scientific_pipeline)/loadLSST.bash
+source $path_of_lsst_scientific_pipeline/loadLSST.bash
 <br/>
 setup sims_catUtils -t sims
 
 *2. Setup the WEP environment:*
 <br/>
-export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_bsc)/ts_lsst_bsc
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_bsc
 <br/>
-export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_wep)/ts_lsst_wep
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_wep
 <br/>
-export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_deblend)/ts_lsst_deblend
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_deblend
 <br/>
-export PYTHONPATH=$PYTHONPATH:(path_to_ts_lsst_isr)/ts_lsst_isr
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_isr
 <br/>
-export PYTHONPATH=$PYTHONPATH:(path_to_ts_tcs_wep)/ts_tcs_wep
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep
+
+*3. Connect to fatboy server:*
+<br/>
+ssh -i $Position_of_SSH_key -L 51433:fatboy.phys.washington.edu:1433 simsuser@gateway.astro.washington.edu
+<br/>
+Keep this terminal open for the connection.
 
 ## 5. Content
 

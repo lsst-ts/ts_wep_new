@@ -1,13 +1,19 @@
-import time, re
+import time, re, unittest
+
 from collections import Iterable
 
 from SALPY_m2ms import SAL_m2ms
 
-import unittest
-
 class Middleware(object):
 
 	def __init__(self, moduleName):
+		"""
+		
+		Initialize the Middleware class.
+		
+		Arguments:
+			moduleName {[str]} -- The name of module.
+		"""
 
 		self.moduleName = moduleName		
 		self.__module = __import__("SALPY_" + moduleName)

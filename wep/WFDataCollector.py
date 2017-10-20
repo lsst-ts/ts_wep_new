@@ -1,16 +1,25 @@
-import os, re
+import os, re, unittest, shutil
 
 import lsst.daf.persistence as dafPersistence
 
 from isr.PhoSimImgAdaptor import PhoSimImgAdaptor
 from isr.LocalDatabase import LocalDatabase
 
-import unittest
-import shutil
-
 class WFDataCollector(object):
 
 	def __init__(self, pathOfRawData, destinationPath, butlerInputs=None, butlerOutputs=None):
+		"""
+		
+		Initialize the WFDataCollector class.
+		
+		Arguments:
+			pathOfRawData {[str]} -- Path of raw FITS data.
+			destinationPath {[str]} -- Path of destination of FITS file.
+		
+		Keyword Arguments:
+			butlerInputs {[str]} -- Butler input directory. (default: {None})
+			butlerOutputs {[str]} -- Butler output directory. (default: {None})
+		"""
 		
 		self.pathOfRawData = pathOfRawData
 		self.destinationPath = destinationPath

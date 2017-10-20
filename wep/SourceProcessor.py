@@ -1,5 +1,4 @@
-import os
-import re
+import os, re, unittest
 import numpy as np
 
 from lsst.sims.utils import ObservationMetaData
@@ -12,11 +11,13 @@ from isr.changePhoSimInstrument import readData
 from SourceSelector import SourceSelector
 from IsrWrapper import poltExposureImage
 
-import unittest
-
 class SourceProcessor(object):
 
 	def __init__(self):
+		"""
+		
+		Initialize the SourceProcessor class.
+		"""
 
 		self.sensorName = None
 		self.donutRadiusInPixel = None

@@ -1,3 +1,6 @@
+import unittest
+import numpy as np
+
 from lsst.sims.utils import ObservationMetaData
 
 from bsc.BrightStarDatabase import BrightStarDatabase
@@ -5,16 +8,30 @@ from bsc.LocalDatabase import LocalDatabase
 from bsc.CameraData import LsstCamera, ComCam 
 from bsc.Filter import Filter
 
-import numpy as np
-
-import unittest
-
 class SourceSelector(object):
 
 	UWdb = "UWdb"
 	LocalDb = "LocalDb"
 
+	LSST = "lsst"
+	COMCAM = "comcam"
+
 	def __init__(self, dbType, cameraType, cameraMJD=59580.0):
+		"""
+		
+		Initialize the SourceSelector class.
+		
+		Arguments:
+			dbType {[str]} -- Type of database ("UWdb" or "LocalDb").
+			cameraType {[str]} -- Type of camera ("lsst" or "comcam").
+		
+		Keyword Arguments:
+			cameraMJD {float} -- Camera MJD. (default: {59580.0})
+		
+		Raises:
+			ValueError -- No database type.
+			ValueError -- No camera type.
+		"""
 
 		if (dbType == self.UWdb):
 			self.db = BrightStarDatabase()
@@ -27,12 +44,13 @@ class SourceSelector(object):
 
 		self.name = dbType
 
-		if (cameraType == "lsst"):
+		if (cameraType == self.LSST):
 			self.camera = LsstCamera()
-		elif (cameraType == "comcam"):
+		elif (cameraType == self.COMCAM):
 			self.camera = ComCam()
 		else:
 			raise ValueError("No '%s' camera." % cameraType)
+
 		self.camera.initializeDetectors()
 		self.cameraMJD = cameraMJD
 

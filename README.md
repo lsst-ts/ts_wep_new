@@ -59,3 +59,4 @@
 - *The calculation time is much longer than the spec (14 sec).*
 - *The pipeline framework (e.g. luigi) and parallel calculation are not included.*
 - *The data collection from data acquisition (DAQ) is not included.*
+- *The commissioning camera (ComCam) mapper is mocked based on the central raft of LSST mapper.*

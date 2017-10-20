@@ -1,15 +1,21 @@
-import os, sys
+import os, sys, unittest
 import numpy as np
 
 from cwfs.Instrument import Instrument
 from cwfs.Algorithm import Algorithm
 from cwfs.CompensationImageDecorator import CompensationImageDecorator
 
-import unittest
-
 class WFEstimator(object):
 
-	def __init__(self, instruFolder, algoFolderPath):
+	def __init__(self, instruFolderPath, algoFolderPath):
+		"""
+		
+		Initialize the WFEstimator class.
+		
+		Arguments:
+			instruFolderPath {[str]} -- Path to instrument directory.
+			algoFolderPath {[str]} -- Path to algorithm directory.
+		"""
 
 		self.algo = Algorithm(algoFolderPath)
 		self.inst = Instrument(instruFolder)
@@ -195,13 +201,13 @@ class WFEsitmatorTest(unittest.TestCase):
     def setUp(self):
 
         # Define the instrument folder
-        instruFolder = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/instruData"
+        instruFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep/instruData"
 
         # Define the algorithm folder
-        algoFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/algo"
+        algoFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep/algo"
 
         # Decalre the WFEsitmator
-        self.wfsEst = WFEstimator(instruFolder, algoFolderPath)
+        self.wfsEst = WFEstimator(instruFolderPath, algoFolderPath)
 
     def testFunc(self):
 

@@ -42,6 +42,7 @@
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*
+- *No boundary consideration of TIE studied.*
 - *The use of instrument signature removal (ISR) in WEP traces to data management (DM) ISR library, which needs to customize the details/ strategies in the future release.*
 - *The deblending algorithm assumes the neighboring stars have the same optical condition as the bright star. This algorithm can only handle one neighboring star that has certain magnitude and distance compared with the bright star.*
 - *The algorithm to calculate the centroid of star needs a clean background.*

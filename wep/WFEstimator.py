@@ -18,7 +18,7 @@ class WFEstimator(object):
 		"""
 
 		self.algo = Algorithm(algoFolderPath)
-		self.inst = Instrument(instruFolder)
+		self.inst = Instrument(instruFolderPath)
 		self.ImgIntra = CompensationImageDecorator()
 		self.ImgExtra = CompensationImageDecorator()
 		self.opticalModel = None
@@ -201,10 +201,10 @@ class WFEsitmatorTest(unittest.TestCase):
     def setUp(self):
 
         # Define the instrument folder
-        instruFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep/instruData"
+        instruFolderPath = "../instruData"
 
         # Define the algorithm folder
-        algoFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep/algo"
+        algoFolderPath = "../algo"
 
         # Decalre the WFEsitmator
         self.wfsEst = WFEstimator(instruFolderPath, algoFolderPath)
@@ -214,7 +214,7 @@ class WFEsitmatorTest(unittest.TestCase):
     	# Define the image folder and image names
     	# Image data -- Don't know the final image format.
     	# It is noted that image.readFile inuts is based on the txt file.
-    	imageFolderPath = "/Users/Wolf/Documents/stash/ts_lsst_wep_27/tests/testImages/LSST_NE_SN25"
+    	imageFolderPath = "../test/testImages/LSST_NE_SN25"
     	intra_image_name = "z11_0.25_intra.txt"
     	extra_image_name = "z11_0.25_extra.txt"
 

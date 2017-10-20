@@ -8,8 +8,8 @@ from lsst.obs.lsstSim import LsstSimMapper
 from deblend.BlendedImageDecorator import BlendedImageDecorator
 from isr.changePhoSimInstrument import readData
 
-from SourceSelector import SourceSelector
-from IsrWrapper import poltExposureImage
+from wep.SourceSelector import SourceSelector
+from wep.IsrWrapper import poltExposureImage
 
 class SourceProcessor(object):
 
@@ -867,14 +867,14 @@ class SourceProcessorTest(unittest.TestCase):
 	def testDeblending(self):
 
 		# Donut image folder
-		imageFolder = "/Users/Wolf/Documents/stash/cwfs_test_images"
+		imageFolder = "../test/testImages"
 		donutImageFolder = "LSST_C_SN26"
 
 		# Give the path to the image folder
 		imageFolderPath = os.path.join(imageFolder, donutImageFolder)
 
 		# Generate the simulated image
-		defocalDis = 1.5
+		defocalDis = 0.25
 		afilter = "u"
 		self.sourProc.config(sensorName="R04_S20_C1")
 

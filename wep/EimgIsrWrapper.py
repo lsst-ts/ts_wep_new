@@ -1,6 +1,6 @@
 import os, shutil, unittest
 
-from IsrWrapper import IsrWrapper
+from wep.IsrWrapper import IsrWrapper
 
 class EimgIsrWrapper(IsrWrapper):
 

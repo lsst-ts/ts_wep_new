@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-
-import os, shutil
-import unittest
+import os, shutil, unittest
 
 from IsrWrapper import IsrWrapper
 

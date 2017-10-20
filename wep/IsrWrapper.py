@@ -1,5 +1,4 @@
-import os
-
+import os, unittest
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, SymLogNorm
@@ -8,14 +7,12 @@ import lsst.daf.persistence as dafPersistence
 from lsst.ip.isr import IsrTask
 from lsst.ip.isr.assembleCcdTask import AssembleCcdTask
 
-import unittest
-
 class IsrWrapper(object):
 
 	def __init__(self, inputs=None, outputs=None):
 		"""
 		
-		Initialize the WFS ISR task.
+		Initialize the IsrWrapper class.
 		
 		Keyword Arguments:
 			inputs {[RepositoryArg or string]} -- Can be a single item or a list. Provides arguments 

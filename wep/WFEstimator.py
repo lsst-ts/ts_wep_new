@@ -49,7 +49,8 @@ class WFEstimator(object):
 		# Check the inputs and assign the parameters used in the TIE
 		# Need to change the way to hole the classes of Instrument and Algorithm
 
-		if (instName != "lsst"):
+		if instName not in ("lsst", "lsst05", "lsst10", "lsst15", "lsst20", "lsst25", 
+							"comcam10", "comcam15", "comcam20"):
 			raise ValueError("Instrument can not be '%s'." % instName)
 		else:
 			if (not self.ImgIntra.sizeinPix):

@@ -79,7 +79,7 @@ Keep this terminal open for the connection.
 - *No vignette correction included.*
 - *World coordinate system (WCS) is based on the focal plane with the parallax model. However, the defocal images are used in TIE. The difference and compensation between real and calculated pixel positions are not considered yet.*
 - *The reliability of BSC in University of Washington (UW) is not verified.*
-- *The local BSC database is not constructed. Need to use the Scheduler to give a reasonable survey route to minimize the calculation time.*
+- *The local BSC database is not constructed. Need to use the Scheduler to give a reasonable survey route to minimize the calculation time. Another choice is to use SkyCoord() in Astropy. The ref is at: "http://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html".*
 - *The mechanism to update the BSC is not included.*
 - *No statistics/ strategy of selecting wavefront sensors on full-focal plane of LSST camera included.*
 - *The calculation time is much longer than the spec (14 sec).*

@@ -86,3 +86,4 @@ Keep this terminal open for the connection.
 - *The pipeline framework (e.g. luigi) and parallel calculation are not included.*
 - *The data collection from data acquisition (DAQ) is not included.*
 - *The commissioning camera (ComCam) mapper is mocked based on the central raft of LSST mapper.*
+- *Update the annular Zernike polynomials to Z37.*

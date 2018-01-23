@@ -301,6 +301,29 @@ class SourceProcessor(object):
 
 		return pixelCamX, pixelCamY
 
+	def camXY2DmXY(self, pixelCamX, pixelCamY):
+		"""
+		
+		Transform the pixel x, y from camera coordinate to DM coordinate. Camera coordinate is 
+		defined in LCA-13381.
+		
+		Arguments:
+			pixelCamX {[float]} -- Pixel x defined in Camera coordinate based on LCA-13381.
+			pixelCamY {[float]} -- Pixel y defined in Camera coordinate based on LCA-13381.
+		
+		Returns:
+			[float] -- Pixel x, y defined in DM coordinate.
+		"""
+		
+		# Get the CCD dimension
+		dimX, dimY = self.sensorDimList[self.sensorName]
+
+		# Calculate the transformed coordinate
+		pixelDmX = pixelCamY
+		pixelDmY = dimX-pixelCamX
+
+		return pixelDmX, pixelDmY
+
 	def evalVignette(self, fieldX, fieldY, distanceToVignette=1.75):
 		"""
 		
@@ -702,7 +725,7 @@ class SourceProcessorTest(unittest.TestCase):
 	def setUp(self):
 
 		# CCD focal plane file
-		focalPlaneFolder = "/Users/Wolf/Documents/bitbucket/phosim_syseng2/data/lsst/"
+		focalPlaneFolder = os.path.join("..", "test")
 
 		# Set the source processor
 		self.sourProc = SourceProcessor()
@@ -781,7 +804,7 @@ class SourceProcessorTest(unittest.TestCase):
 
 		# Define the database and get the neighboring star map
 		# Address of local database
-		dbAdress = "../test/bsc.db3"
+		dbAdress = os.path.join("..", "test", "bsc.db3")
 
 		# Use the focal plane as a reference to double check the DM XY to Camera XY
 		# Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
@@ -828,6 +851,9 @@ class SourceProcessorTest(unittest.TestCase):
 		self.sourProc.config(sensorName="R22_S11")
 		self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
 
+		# Test the Camera XY to DM XY directly
+		self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
+
 		# Change the DM name to camera team
 
 		# Test to get the focal plane position
@@ -867,7 +893,7 @@ class SourceProcessorTest(unittest.TestCase):
 	def testDeblending(self):
 
 		# Donut image folder
-		imageFolder = "../test/testImages"
+		imageFolder = os.path.join("..", "test", "testImages")
 		donutImageFolder = "LSST_C_SN26"
 
 		# Give the path to the image folder

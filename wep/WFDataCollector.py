@@ -7,30 +7,20 @@ from isr.LocalDatabase import LocalDatabase
 
 class WFDataCollector(object):
 
-	def __init__(self, pathOfRawData, destinationPath, butlerInputs=None, butlerOutputs=None):
+	def __init__(self, pathOfRawData=None, destinationPath=None):
 		"""
 		
 		Initialize the WFDataCollector class.
-		
-		Arguments:
-			pathOfRawData {[str]} -- Path of raw FITS data.
-			destinationPath {[str]} -- Path of destination of FITS file.
-		
-		Keyword Arguments:
-			butlerInputs {[str]} -- Butler input directory. (default: {None})
-			butlerOutputs {[str]} -- Butler output directory. (default: {None})
 		"""
 		
-		self.pathOfRawData = pathOfRawData
-		self.destinationPath = destinationPath
-
-		self.db = LocalDatabase()
+		self.pathOfRawData = None
+		self.destinationPath = None
+		self.db = None
 		self.dbAdress = None
+		self.butler = None
 
-		# There is a bulter instance here for the future use.
-		self.butler = dafPersistence.Butler(inputs=butlerInputs, outputs=butlerOutputs)
-
-	def config(self, pathOfRawData=None, destinationPath=None, dbAdress=None):
+	def config(self, pathOfRawData=None, destinationPath=None, dbAdress=None, butlerInputs=None, 
+				butlerOutputs=None):
 		"""
 		
 		Do the configuration.
@@ -39,19 +29,37 @@ class WFDataCollector(object):
 			pathOfRawData {[str]} -- Path of raw data. (default: {None})
 			destinationPath {[str]} -- Path to the destination. (default: {None})
 			dbAdress {[str]} -- Path to the registry.sqlite3 repo.  (default: {None})
+			butlerInputs {[str]} -- Butler input directory. (default: {None})
+			butlerOutputs {[str]} -- Butlter output directory. (default: {None})
 		"""
 
 		# Set the path to get the raw data
-		if (pathOfRawData is not None):
-			self.pathOfRawData = pathOfRawData
+		self.__setVar(pathOfRawData, "pathOfRawData")
 
 		# Set the destination path
-		if (destinationPath is not None):
-			self.destinationPath = destinationPath
+		self.__setVar(destinationPath, "destinationPath")
 
 		# Set the local database address (registry.sqlite3) for data butler to use
 		if (dbAdress is not None):
-			self.dbAdress = dbAdress
+			self.db = LocalDatabase()
+			self.__setVar(dbAdress, "dbAdress")
+
+		# Instantiate the data butler
+		if (butlerInputs is not None) or (butlerOutputs is not None):
+			self.butler = dafPersistence.Butler(inputs=butlerInputs, outputs=butlerOutputs)
+
+	def __setVar(self, value, attrName):
+		"""
+	    
+	    Set the value of attribute.
+	    
+	    Arguments:
+	        value {[obj]} -- New value.
+	        attrName {[str]} -- Attribute name to set the value.
+	    """
+
+		if (value is not None):
+			setattr(self, attrName, value)
 
 	def importPhoSimDataToButler(self, dataDir, obsId=None, aFilter=None, atype=None, overwrite=False):
 		"""
@@ -214,8 +222,9 @@ class WFDataCollectorTest(unittest.TestCase):
 		butlerOutputs = "../test"
 
 		# Instantiate the WFDataCollector
-		self.wfDataCollector = WFDataCollector(pathOfRawData, destinationPath, 
-											butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
+		self.wfDataCollector = WFDataCollector()
+		self.wfDataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
+									butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
 
 	def testFunction(self):
 

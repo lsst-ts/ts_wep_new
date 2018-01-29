@@ -7,7 +7,7 @@ from isr.LocalDatabase import LocalDatabase
 
 class WFDataCollector(object):
 
-	def __init__(self, pathOfRawData=None, destinationPath=None):
+	def __init__(self):
 		"""
 		
 		Initialize the WFDataCollector class.

@@ -9,11 +9,22 @@ from lsst.ip.isr.assembleCcdTask import AssembleCcdTask
 
 class IsrWrapper(object):
 
-	def __init__(self, inputs=None, outputs=None):
+	def __init__(self):
 		"""
 		
-		Initialize the IsrWrapper class.
+		Initialize the IsrWrapper class.		
+		"""
+
+		self.pathData = None
+		self.outputPath = None
+		self.butler = None
+		self.config = None
+
+	def configWrapper(self, inputs=None, outputs=None):
+		"""
 		
+		Configurate the ISR wrapper.
+
 		Keyword Arguments:
 			inputs {[RepositoryArg or string]} -- Can be a single item or a list. Provides arguments 
 					to load an existing repository (or repositories). String is assumed to be a URI 
@@ -24,11 +35,10 @@ class IsrWrapper(object):
 					load one or more existing repositories or create new ones. String is assumed to be a 
 					URI and as used as the repository root.
 		"""
-
+		
 		self.pathData = inputs
 		self.outputPath = outputs
 		self.butler = dafPersistence.Butler(inputs=inputs, outputs=outputs)
-		self.config = None
 
 	def setConfig(self, doBias=True, doBrighterFatter=False, doDark=True, doDefect=True, doFlat=True, 
 				  doFringe=True, doLinearize=True, doWrite=False, overscanFitType="MEDIAN"):
@@ -396,11 +406,12 @@ class IsrWrapperTest(unittest.TestCase):
 		channel = "1,4"
 
 		# Instantiate the WFS ISR task
-		isrWrapper = IsrWrapper(inputs=self.dataFolderPath, outputs=self.dataFolderPath)
+		isrWrapper = IsrWrapper()
+		isrWrapper.configWrapper(inputs=self.dataFolderPath, outputs=self.dataFolderPath)
 
 		# Test the function of data butler
 		visit = isrWrapper.butler.queryMetadata("raw", ["visit"], dataId={"snap":0})
-		self.assertEqual(len(visit), 6)
+		self.assertEqual(len(visit), 8)
 
 		# Set ISR configuration
 		isrWrapper.setConfig(doBias=True, doBrighterFatter=False, doDark=True, 

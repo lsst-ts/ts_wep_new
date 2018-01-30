@@ -110,7 +110,8 @@ class IsrWrapper(object):
 
 		Keyword Arguments:
 			channel {[string]} -- Channel name (default: {"None"}).
-			atype {[string]} -- Type of arrangement: eimage, raw, bias, flat, dark, postISRCCD (default: {"None"}).
+			atype {[string]} -- Type of arrangement: eimage, raw, bias, flat, dark, postISRCCD 
+								(default: {"None"}).
 		
 		Returns:
 			[butler] -- Butler data.
@@ -120,23 +121,32 @@ class IsrWrapper(object):
 		if atype in ("eimage", "postISRCCD"):
 			dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, immediate=True)
 		else:
-			dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, channel=channel, immediate=True)
+			dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, channel=channel, 
+							immediate=True)
 		butlerData = self.butler.get(atype, dataId=dataId)
 
 		return butlerData
 
-	def doISR(self, visit, snap, raft, sensor, channel):
+	def doISR(self, visit, snap, raft, sensor, channel=None, fakeDatasetType=None, 
+				outputDatasetType=None):
 		"""
 		
-		Do the image signature removal (ISR). (This is just the initial version for real ISR work. For the 
-		evaluation reason, the output is single channel. But it should be the ccd in the final.)
+		Do the image signature removal (ISR). (This is just the initial version for real ISR work. 
+		For the evaluation reason, the output is single channel. But it should be the ccd in the 
+		final.)
 		
 		Arguments:
 			visit {[int]} -- Visit time.
 			snap {int} -- Snap time (0 or 1) means first/ second exposure.
-			raft {[string]} -- Raft name.
-			sensor {[string]} -- Sensor name.
-			channel {[string]} -- Channel name.
+			raft {[str]} -- Raft name.
+			sensor {[str]} -- Sensor name.
+
+		Keyword Arguments:
+			channel {[str]} -- Channel name. (default: {None})
+			fakeDatasetType {[str]} -- Use this type of image supported by lsst camera mapper to 
+										simulate the post-ISR image. (default: {None})
+			outputDatasetType {[str]} -- Output data type supported by lsst camera mapper. 
+										(default: {None})
 		
 		Returns:
 			[exposure] -- Exposure image after ISR.
@@ -147,7 +157,10 @@ class IsrWrapper(object):
 
 		# Define the data ID and get the raw amplifer image
 		# level in dataRef(): The level of dataId at which to reference
-		dataId = dict(visit=visit, snap=snap, raft=raft, sensor=sensor, channel=channel)
+		dataId = dict(visit=visit, snap=snap, raft=raft, sensor=sensor)
+		if (channel is not None):
+			dataId["channel"] = channel
+
 		ampRef = self.butler.dataRef("raw", level=None, dataId=dataId)
 		ampExp = ampRef.get("raw")
 
@@ -155,6 +168,10 @@ class IsrWrapper(object):
 		lsstIsrTask = IsrTask(config=self.config)
 		isrData = lsstIsrTask.readIsrData(ampRef, ampExp)
 		postIsrExposure = lsstIsrTask.run(ampExp, **isrData.getDict()).exposure
+
+		# Put the data into the output path
+		if (outputDatasetType is not None):
+			self.butler.put(postIsrExposure, outputDatasetType, dataId=dataId)
 
 		return postIsrExposure
 
@@ -274,7 +291,7 @@ class IsrWrapper(object):
 				singleChannel = str(ii) + "," + str(jj)
 
 				if (doISR is True and atype == "raw"):
-					ampExp[singleChannel] = self.doISR(visit, snap, raft, sensor, singleChannel)
+					ampExp[singleChannel] = self.doISR(visit, snap, raft, sensor, channel=singleChannel)
 				elif (doISR is False and atype is not None):
 					ampExp[singleChannel] = self.getButlerData(visit, snap, raft, sensor, 
 															   channel=singleChannel, atype=atype)
@@ -438,7 +455,7 @@ class IsrWrapperTest(unittest.TestCase):
 		maxRaw = np.max(butlerDataRaw.getMaskedImage().getImage().getArray())
 		self.assertGreater(maxRaw, 1000)
 
-		postIsrExposure = isrWrapper.doISR(obsId, snap, raft, sensor, channel)
+		postIsrExposure = isrWrapper.doISR(obsId, snap, raft, sensor, channel=channel)
 		self.assertEqual(postIsrExposure.getDimensions()[0], 513)
 		self.assertEqual(postIsrExposure.getDimensions()[1], 2001)
 

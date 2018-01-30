@@ -4,22 +4,25 @@ from wep.IsrWrapper import IsrWrapper
 
 class EimgIsrWrapper(IsrWrapper):
 
-	def doISR(self, visit, snap, raft, sensor, fakeDatasetType="eimage", outputDatasetType="postISRCCD"):
+	def doISR(self, visit, snap, raft, sensor, channel=None, fakeDatasetType="eimage", 
+				outputDatasetType="postISRCCD"):
 		"""
 		
-		Do the image signature removal. This is just a simulation. The output is the eimage actually.
+		Do the image signature removal. This is just a simulation. The output is the eimage 
+		actually.
 		
 		Arguments:
 			visit {[int]} -- Visit time.
 			snap {int} -- Snap time (0 or 1) means first/ second exposure.
-			raft {[string]} -- Raft name.
-			sensor {[string]} -- Sensor name.
+			raft {[str]} -- Raft name.
+			sensor {[str]} -- Sensor name.
 
 		Keyword Arguments:
-			fakeDatasetType {[string]} -- Use this type of image supported by lsst camera mapper to simulate 
-								          the post-ISR image. (default: {"eimage"})
-			outputDatasetType {[string]} -- Output data type supported by lsst camera mapper. 
-									        (default: {"postISRCCD"})
+			channel {[str]} -- Channel name. (default: {None})
+			fakeDatasetType {[str]} -- Use this type of image supported by lsst camera mapper 
+										to simulate the post-ISR image. (default: {"eimage"})
+			outputDatasetType {[str]} -- Output data type supported by lsst camera mapper. 
+										(default: {"postISRCCD"})
 
 		Returns:
 			[exposure] -- Faked exposure image after ISR.
@@ -35,7 +38,8 @@ class EimgIsrWrapper(IsrWrapper):
 		postIsrExposure = self.butler.get(fakeDatasetType, dataId=dataId)
 
 		# Put the data into the output path
-		self.butler.put(postIsrExposure, outputDatasetType, dataId=dataId)
+		if (outputDatasetType is not None):
+			self.butler.put(postIsrExposure, outputDatasetType, dataId=dataId)
 
 		return postIsrExposure
 

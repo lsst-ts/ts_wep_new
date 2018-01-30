@@ -63,6 +63,7 @@ Keep this terminal open for the connection.
 - *SourceProcessor: Process the post-ISR images to get the clean star images with measured optical coordinate (field x, y). The deblending algorithm is used to get the single target star image if the neighboring stars exist.*
 - *WFEstimator: Calculate the wavefront error in annular Zernike polynomials up to 22 terms based on the defocal star donut images.*
 - *Middleware: Communicate with subsystems by software abstraction layer (SAL).*
+- *WEPController: High level class to use the WEP package.*
 
 ## 6. Target for Future Release
 

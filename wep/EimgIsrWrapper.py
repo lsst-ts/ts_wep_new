@@ -54,7 +54,8 @@ class EimgIsrWrapperTest(unittest.TestCase):
 	def testEimageWfsIsrTask(self):
 
 		# Instantiate the WFS ISR task
-		eIsrWrapper = EimgIsrWrapper(self.dataFolderPath, self.dataFolderPath)
+		eIsrWrapper = EimgIsrWrapper()
+		eIsrWrapper.configWrapper(inputs=self.dataFolderPath, outputs=self.dataFolderPath)
 
 		# Setting for the ISR correction
 		obsId = 99999999

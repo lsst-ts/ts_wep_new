@@ -16,10 +16,28 @@ class SourceSelector(object):
 	LSST = "lsst"
 	COMCAM = "comcam"
 
-	def __init__(self, dbType, cameraType, cameraMJD=59580.0):
+	def __init__(self):
 		"""
 		
 		Initialize the SourceSelector class.
+		"""
+
+		self.db = None
+		self.tableName = None
+		self.name = None
+
+		self.camera = None
+		self.cameraMJD = None
+
+		self.maxDistance = np.nan
+		self.maxNeighboringStar = np.nan
+
+		self.filter = Filter()
+
+	def configSelector(self, dbType, cameraType, cameraMJD=59580.0):
+		"""
+		
+		Configurate the source selector.
 		
 		Arguments:
 			dbType {[str]} -- Type of database ("UWdb" or "LocalDb").
@@ -41,7 +59,7 @@ class SourceSelector(object):
 			self.tableName = "BrightStarCatalog"
 		else:
 			raise ValueError("No '%s' database." % dbType)
-
+	
 		self.name = dbType
 
 		if (cameraType == self.LSST):
@@ -50,14 +68,9 @@ class SourceSelector(object):
 			self.camera = ComCam()
 		else:
 			raise ValueError("No '%s' camera." % cameraType)
-
+	
 		self.camera.initializeDetectors()
 		self.cameraMJD = cameraMJD
-
-		self.maxDistance = np.nan
-		self.maxNeighboringStar = np.nan
-
-		self.filter = Filter()
 
 	def connect(self, *kwargs):
 		"""
@@ -465,8 +478,11 @@ class SourceSelectorTest(unittest.TestCase):
 	def setUp(self):
 		
 		# Set the database
-		self.remoteDb = SourceSelector("UWdb", self.cameraType)
-		self.localDb = SourceSelector("LocalDb", self.cameraType)
+		self.remoteDb = SourceSelector()
+		self.localDb = SourceSelector()
+
+		self.remoteDb.configSelector("UWdb", self.cameraType)
+		self.localDb.configSelector("LocalDb", self.cameraType)
 
 		# Remote database infomation
 		remoteDbInfo = [self.databaseHost, self.databaseUser, self.databasePassword, self.databaseName]

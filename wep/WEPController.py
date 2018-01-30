@@ -16,7 +16,7 @@ class WEPController(object):
         
         self.dataCollector = WFDataCollector()
         self.isrWrapper = EimgIsrWrapper()
-        self.sourSelc = None
+        self.sourSelc = SourceSelector()
         self.sourProc = None
         self.wfsEsti = None
         self.middleWare = None
@@ -43,6 +43,32 @@ class WEPController(object):
 
         if (value is not None):
             setattr(self, attrName, value)
+
+    def setFilter(self, atype):
+        """
+        
+        Set the active filter type.
+        
+        Arguments:
+            atype {[str]} -- Filter type ("u", "g", "r", "i", "z", "y").
+        """
+
+        self.sourSelc.filter.setFilter(atype)
+
+    def configSourSelc(self, cameraType, dbType=None, cameraMJD=59580.0):
+        """
+        
+        Do the configuration of source selector.
+        
+        Arguments:
+            cameraType {[str]} -- Type of camera ("lsst" or "comcam").
+        
+        Keyword Arguments:
+            dbType {[str]} -- Type of database ("UWdb" or "LocalDb"). (default: {None}) 
+            cameraMJD {float} -- Camera MJD. (default: {59580.0})
+        """
+        
+        self.sourSelc.configSelector(cameraType=cameraType, dbType=dbType, cameraMJD=cameraMJD)
 
     def configIsrWrapper(self, inputs=None, outputs=None):
         """
@@ -253,3 +279,9 @@ if __name__ == "__main__":
     # Get the image data
     intraImg, extraImg = wepCntlr.getDefocalImg(snap, raft, sensor, intraObsId, extraObsId, 
                                             datasetType="postISRCCD")
+
+    # Do the source selector
+    cameraMJD = 59580.0
+    cameraType = "comcam"
+    wepCntlr.configSourSelc(cameraType, cameraMJD=cameraMJD)
+    wepCntlr.setFilter(aFilter)

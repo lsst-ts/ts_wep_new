@@ -131,7 +131,7 @@ class IsrWrapper(object):
 				outputDatasetType=None):
 		"""
 		
-		Do the image signature removal (ISR). (This is just the initial version for real ISR work. 
+		Do the instrument signature removal (ISR). (This is just the initial version for real ISR work. 
 		For the evaluation reason, the output is single channel. But it should be the ccd in the 
 		final.)
 		

@@ -8,7 +8,7 @@ class EimgIsrWrapper(IsrWrapper):
 				outputDatasetType="postISRCCD"):
 		"""
 		
-		Do the image signature removal. This is just a simulation. The output is the eimage 
+		Do the instrument signature removal. This is just a simulation. The output is the eimage 
 		actually.
 		
 		Arguments:

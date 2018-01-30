@@ -97,10 +97,14 @@ class SourceSelector(object):
 
 		self.db.disconnect()
 
+	def getTargetStarByFile(self, pointing, cameraRotation, skyInfoFilePath, orientation=None, 
+							offset=0):
+		pass
+
 	def getTargetStar(self, pointing, cameraRotation, orientation=None, offset=0):
 		"""
 		
-		Get the target stars.
+		Get the target stars by querying the database.
 		
 		Arguments:
 			pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
@@ -122,7 +126,7 @@ class SourceSelector(object):
 	    # Filter type
 		cameraFilter = self.filter.getFilter()
 
-	    # Regenerate the tablen name for local database
+	    # Regenerate the table name for local database
 		if (self.name == self.LocalDb):
 		   	tableName = self.tableName + self.filter.getFilter().upper()
 	    # Keep the same table name for remote database
@@ -571,4 +575,16 @@ class SourceSelectorTest(unittest.TestCase):
 if __name__ == "__main__":
 
 	# Do the unit test
-	unittest.main()
+	# unittest.main()
+
+	# Instantiate the source selector
+	sourSelc = SourceSelector()
+
+	# Do the configuration
+	cameraMJD = 59580.0
+	cameraType = "comcam"
+	aFilter = "g"
+
+	sourSelc.configSelector(cameraType, cameraMJD=cameraMJD)
+	sourSelc.setFilter(aFilter)
+

@@ -34,16 +34,16 @@ class SourceSelector(object):
 
 		self.filter = Filter()
 
-	def configSelector(self, dbType, cameraType, cameraMJD=59580.0):
+	def configSelector(self, cameraType, dbType=None, cameraMJD=59580.0):
 		"""
 		
 		Configurate the source selector.
 		
 		Arguments:
-			dbType {[str]} -- Type of database ("UWdb" or "LocalDb").
 			cameraType {[str]} -- Type of camera ("lsst" or "comcam").
 		
 		Keyword Arguments:
+			dbType {[str]} -- Type of database ("UWdb" or "LocalDb"). (default: {None}) 
 			cameraMJD {float} -- Camera MJD. (default: {59580.0})
 		
 		Raises:
@@ -51,25 +51,31 @@ class SourceSelector(object):
 			ValueError -- No camera type.
 		"""
 
-		if (dbType == self.UWdb):
-			self.db = BrightStarDatabase()
-			self.tableName = "bright_stars"
-		elif (dbType == self.LocalDb):
-			self.db = LocalDatabase()
-			self.tableName = "BrightStarCatalog"
-		else:
-			raise ValueError("No '%s' database." % dbType)
+		# Set the data base
+		if (dbType is not None):
+			
+			if (dbType == self.UWdb):
+				self.db = BrightStarDatabase()
+				self.tableName = "bright_stars"
+			elif (dbType == self.LocalDb):
+				self.db = LocalDatabase()
+				self.tableName = "BrightStarCatalog"
+			else:
+				raise ValueError("No '%s' database." % dbType)
 	
-		self.name = dbType
+			self.name = dbType
 
+		# Set the camera mapper
 		if (cameraType == self.LSST):
 			self.camera = LsstCamera()
 		elif (cameraType == self.COMCAM):
 			self.camera = ComCam()
 		else:
 			raise ValueError("No '%s' camera." % cameraType)
-	
+
 		self.camera.initializeDetectors()
+
+		# Set the camera MJD
 		self.cameraMJD = cameraMJD
 
 	def connect(self, *kwargs):
@@ -481,8 +487,8 @@ class SourceSelectorTest(unittest.TestCase):
 		self.remoteDb = SourceSelector()
 		self.localDb = SourceSelector()
 
-		self.remoteDb.configSelector("UWdb", self.cameraType)
-		self.localDb.configSelector("LocalDb", self.cameraType)
+		self.remoteDb.configSelector(self.cameraType, dbType="UWdb")
+		self.localDb.configSelector(self.cameraType, dbType="LocalDb")
 
 		# Remote database infomation
 		remoteDbInfo = [self.databaseHost, self.databaseUser, self.databasePassword, self.databaseName]

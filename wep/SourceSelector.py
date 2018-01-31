@@ -97,11 +97,7 @@ class SourceSelector(object):
 
 		self.db.disconnect()
 
-	def getTargetStarByFile(self, pointing, cameraRotation, skyInfoFilePath, orientation=None, 
-							offset=0):
-		pass
-
-	def getTargetStar(self, pointing, cameraRotation, orientation=None, offset=0):
+	def getTargetStar(self, pointing, cameraRotation, orientation=None, offset=0, tableName=None):
 		"""
 		
 		Get the target stars by querying the database.
@@ -111,89 +107,91 @@ class SourceSelector(object):
 			cameraRotation {[float]} -- Camera rotation angle in degree.
 		
 		Keyword Arguments:
-	        orientation {[string]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
-	        offset{[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
-	                           offset=0 for normal use. 
-	                           offset=maxDistance to generate the local database. (default: {0})
+	        orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
+	        offset {[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
+	                            offset=0 for normal use. 
+	                            offset=maxDistance to generate the local database. (default: {0})
+	        tableName {[str]} -- Table name. (default: {None})
 		
 		Returns:
-	        neighborStarMap{[list]} -- Information of neighboring stars and candidate stars with 
+	        neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
 	                                   the name of sensor as a list.
-	        starMap{[list]} -- Information of stars with the name of sensor as a list.
-	        wavefrontSensors{[list]} -- Corners of sensor with the name of sensor as a list.
+	        starMap {[list]} -- Information of stars with the name of sensor as a list.
+	        wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
 		"""
 
-	    # Filter type
+		# Filter type
 		cameraFilter = self.filter.getFilter()
 
-	    # Regenerate the table name for local database
-		if (self.name == self.LocalDb):
-		   	tableName = self.tableName + self.filter.getFilter().upper()
-	    # Keep the same table name for remote database
-		elif (self.name == self.UWdb):
-		    tableName = self.tableName
-	    
-	    # Setup the boundary of magnitude based on the filter
+		# Regenerate the table name for local database
+		if (tableName is None):
+			if (self.name == self.LocalDb):
+				tableName = self.tableName + self.filter.getFilter().upper()
+
+			# Keep the same table name for remote database
+			elif (self.name == self.UWdb):
+				tableName = self.tableName
+
+		# Setup the boundary of magnitude based on the filter
 		lowMagnitude, highMagnitude = self.filter.getMagBoundary()
 
-	    # Get corners of wavefront sensors for this observation field
+		# Get corners of wavefront sensors for this observation field
 		obs = self.__getObs(pointing, cameraRotation, self.cameraMJD)
 
-	    # Assign the wavefront sensors 
+		# Assign the wavefront sensors 
 		wavefrontSensors = []
 		if (self.camera.name == self.camera.COMCAM):
-		    if orientation in ("corner", "center", "all"):
-		        wavefrontSensors = self.camera.getSensor(obs, orientation)
+			if orientation in ("corner", "center", "all"):
+				wavefrontSensors = self.camera.getSensor(obs, orientation)
 		elif (self.camera.name == self.camera.LSST):
 			if (orientation == "corner"):
-			    wavefrontSensors = self.camera.getWavefrontSensor(obs)
+				wavefrontSensors = self.camera.getWavefrontSensor(obs)
 			elif (orientation == "all"):
 				wavefrontSensors = self.camera.getScineceSensor(obs)
 
 		if not (wavefrontSensors):
-		    print("No wavefront sensor is allocated.")
+			print("No wavefront sensor is allocated.")
 
 		print("Boresight: (RA, Decl) = (%f, %f) " % (pointing[0], pointing[1]))
 
-	    # Query the star database
+		# Query the star database
 		starMap = {}
 		neighborStarMap = {}
 		for detector in wavefrontSensors:
-	        
-		    print("Processing detector %s" % detector)
-		    wavefrontSensor = wavefrontSensors[detector]
 
-		    # Get stars in this wavefront sensor for this observation field
-		    stars = self.db.query(tableName, cameraFilter, wavefrontSensor[0], wavefrontSensor[1], 
-	                              wavefrontSensor[2], wavefrontSensor[3])
+			print("Processing detector %s" % detector)
+			wavefrontSensor = wavefrontSensors[detector]
 
-		    starsQueried = len(stars.RA)
-		    print("\t\tStars queried: %d" % starsQueried)
-	        
-		    # Populate detector information for the stars
-		    stars.populateDetector(detector)
-	         
-	        # Populate pixel information for stars
-		    self.camera.populatePixelFromRADecl(stars, obs)
-	                
-	        # Remove stars that are not on the detector
-		    self.camera.removeStarsNotOnDetectorSimple(stars, obs, offset)
-		    starMap[detector] = stars
-	        
-		    starsOnDetector = len(stars.RA)
-		    print("\t\tStars on detector: %d" % starsOnDetector)
-	    
-	        # Check the candidate of bright stars based on the magnitude
-		    indexCandidate = stars.checkCandidateStars(cameraFilter, lowMagnitude, highMagnitude)
+			# Get stars in this wavefront sensor for this observation field
+			stars = self.db.query(tableName, cameraFilter, wavefrontSensor[0], wavefrontSensor[1], 
+									wavefrontSensor[2], wavefrontSensor[3])
 
-	        # Determine the neighboring stars based on the distance and allowed number 
-	        # of neighboring stars
-		    neighborStar = stars.getNeighboringStar(indexCandidate, self.maxDistance, 
-	                                                cameraFilter, self.maxNeighboringStar)
-	        
-		    neighborStarMap[detector] = neighborStar
+			starsQueried = len(stars.RA)
+			print("\t\tStars queried: %d" % starsQueried)
 
-		    print("\t\tAvailable candidate stars: %d" % len(neighborStar.SimobjID))
+			# Populate detector information for the stars
+			stars.populateDetector(detector)
+
+			# Populate pixel information for stars
+			self.camera.populatePixelFromRADecl(stars, obs)
+
+			# Remove stars that are not on the detector
+			self.camera.removeStarsNotOnDetectorSimple(stars, obs, offset)
+			starMap[detector] = stars
+
+			starsOnDetector = len(stars.RA)
+			print("\t\tStars on detector: %d" % starsOnDetector)
+
+			# Check the candidate of bright stars based on the magnitude
+			indexCandidate = stars.checkCandidateStars(cameraFilter, lowMagnitude, highMagnitude)
+
+			# Determine the neighboring stars based on the distance and allowed number 
+			# of neighboring stars
+			neighborStar = stars.getNeighboringStar(indexCandidate, self.maxDistance, 
+													cameraFilter, self.maxNeighboringStar)
+			neighborStarMap[detector] = neighborStar
+
+			print("\t\tAvailable candidate stars: %d" % len(neighborStar.SimobjID))
 
 		return neighborStarMap, starMap, wavefrontSensors
 
@@ -212,14 +210,14 @@ class SourceSelector(object):
                           the pointing.
 		"""
 
-	    # Get Ra, Decl
+		# Get Ra, Decl
 		RA, Dec = pointing
 
 		obs = []
 		obs = ObservationMetaData(pointingRA = RA, pointingDec = Dec, 
-	                              rotSkyPos = cameraRotation, mjd = mjd)
+									rotSkyPos = cameraRotation, mjd = mjd)
 		if (not obs):
-		    print("No observation metadata.")
+			print("No observation metadata.")
 
 		return obs
 
@@ -575,16 +573,4 @@ class SourceSelectorTest(unittest.TestCase):
 if __name__ == "__main__":
 
 	# Do the unit test
-	# unittest.main()
-
-	# Instantiate the source selector
-	sourSelc = SourceSelector()
-
-	# Do the configuration
-	cameraMJD = 59580.0
-	cameraType = "comcam"
-	aFilter = "g"
-
-	sourSelc.configSelector(cameraType, cameraMJD=cameraMJD)
-	sourSelc.setFilter(aFilter)
-
+	unittest.main()

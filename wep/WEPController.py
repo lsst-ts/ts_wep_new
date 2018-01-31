@@ -10,6 +10,8 @@ from wep.SourceSelector import SourceSelector
 from wep.SourceProcessor import SourceProcessor
 from wep.WFEstimator import WFEstimator
 
+from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
+
 class WEPController(object):
 
     def __init__(self):
@@ -54,6 +56,120 @@ class WEPController(object):
         """
 
         self.sourSelc.filter.setFilter(atype)
+
+    def connectDb(self, *kwargs):
+        """
+        
+        Connect the database.
+        
+        Arguments:
+            *kwargs {[string]} -- Information to connect to the database.
+        """
+
+        self.sourSelc.connect(*kwargs)
+
+    def disconnectDb(self):
+        """
+        
+        Disconnect the database.
+        """
+
+        self.sourSelc.disconnect()
+
+    def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, 
+                            orientation=None, offset=0, tableName="TempTable"):
+        """
+        
+        Get the target stars by querying the file.
+        
+        Arguments:
+            dbAdress {[str]} -- Local database address.
+            skyInfoFilePath {[str]} -- File path of sky information.
+            pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
+            cameraRotation {[float]} -- Camera rotation angle in degree.
+        
+        Keyword Arguments:
+            orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
+            offset {[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
+                                offset=0 for normal use. 
+                                offset=maxDistance to generate the local database. (default: {0})
+            tableName {[str]} -- Table name. (default: {None})
+        
+        Returns:
+            neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
+                                       the name of sensor as a list.
+            starMap {[list]} -- Information of stars with the name of sensor as a list.
+            wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
+        """
+
+        # Create the table
+        localDb = LocalDatabaseDecorator()
+        localDb.connect(dbAdress)
+
+        # Insert the sky data
+        aFilter = self.sourSelc.filter.getFilter()
+        localDb.createTable(aFilter, tableName)
+        localDb.insertDataByFile(aFilter, tableName, skyInfoFilePath)
+        localDb.disconnect()
+        
+        # Do the query and analysis
+        self.connectDb(dbAdress)
+        neighborStarMap, starMap, wavefrontSensors = self.getTargetStar(pointing, cameraRotation, 
+                                        orientation=orientation, offset=offset, tableName=tableName)
+        self.disconnectDb()
+
+        # Delete the table
+        localDb.connect(dbAdress)
+        localDb.deleteTable(tableName)
+        localDb.disconnect()
+
+        return neighborStarMap, starMap, wavefrontSensors
+
+    def getTargetStar(self, pointing, cameraRotation, orientation=None, offset=0, tableName=None):
+        """
+        
+        Get the target stars by querying the database.
+        
+        Arguments:
+            pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
+            cameraRotation {[float]} -- Camera rotation angle in degree.
+        
+        Keyword Arguments:
+            orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
+            offset {[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
+                                offset=0 for normal use. 
+                                offset=maxDistance to generate the local database. (default: {0})
+            tableName {[str]} -- Table name. (default: {None})
+        
+        Returns:
+            neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
+                                       the name of sensor as a list.
+            starMap {[list]} -- Information of stars with the name of sensor as a list.
+            wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
+        """
+
+        neighborStarMap, starMap, wavefrontSensors = self.sourSelc.getTargetStar(pointing, 
+                    cameraRotation, orientation=orientation, offset=offset, tableName=tableName)
+
+        return neighborStarMap, starMap, wavefrontSensors
+
+    def configNeiborStarCriteria(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
+        """
+        
+        Set the configuration to decide the scientific target.
+        
+        Arguments:
+            starRadiusInPixel {[float]} -- Diameter of star. For the defocus = 1.5 mm, the star's 
+                                            radius is 63 pixel.
+            spacingCoefficient {[float]} -- Maximum distance in units of radius one donut must be 
+                                            considered as a neighbor.
+        
+        Keyword Arguments:
+            maxNeighboringStar {[int]} -- Maximum number of neighboring stars. (default: {99})
+        """
+
+        self.sourSelc.config(starRadiusInPixel, spacingCoefficient, 
+                                maxNeighboringStar=maxNeighboringStar)
 
     def configSourSelc(self, cameraType, dbType=None, cameraMJD=59580.0):
         """
@@ -283,5 +399,25 @@ if __name__ == "__main__":
     # Do the source selector
     cameraMJD = 59580.0
     cameraType = "comcam"
-    wepCntlr.configSourSelc(cameraType, cameraMJD=cameraMJD)
+    wepCntlr.configSourSelc(cameraType, dbType="LocalDb", cameraMJD=cameraMJD)
+
+    # Set the database address
+    dbAdress = "../test/bsc.db3"
+
+    # Do the query
+    pointing = (0,0)
+    cameraRotation = 0.0
+    skyInfoFilePath = "../test/phosimOutput/realComCam/output/skyComCamInfo.txt"
+
+    starRadiusInPixel = 63
+    spacingCoefficient = 2.5
+
     wepCntlr.setFilter(aFilter)
+    wepCntlr.configNeiborStarCriteria(starRadiusInPixel, spacingCoefficient)
+
+    # wepCntlr.connectDb(dbAdress)
+    # neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStar(pointing, cameraRotation, orientation="all")
+    # wepCntlr.disconnectDb()
+
+    neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, pointing, 
+                                                                                cameraRotation, orientation="all")

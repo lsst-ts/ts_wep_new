@@ -4,9 +4,10 @@ import numpy as np
 from lsst.sims.utils import ObservationMetaData
 
 from bsc.BrightStarDatabase import BrightStarDatabase
-from bsc.LocalDatabase import LocalDatabase
 from bsc.CameraData import LsstCamera, ComCam 
 from bsc.Filter import Filter
+
+from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
 
 class SourceSelector(object):
 
@@ -34,34 +35,49 @@ class SourceSelector(object):
 
 		self.filter = Filter()
 
-	def setDb(self, db, tableName, name):
+	def setDb(self, dbType):
 		"""
 		
 		Set the database.
 		
 		Arguments:
-			db {[LocalDatabase/ BrightStarDatabase]} -- Database object.
-			tableName{[str]} -- Table name.
-			name{[str]} -- Database name.
+			dbType {[str]} -- Type of database ("UWdb" or "LocalDb").
 		"""
+
+		if (dbType == self.UWdb):
+			db = BrightStarDatabase()
+			tableName = "bright_stars"
+		
+		elif (dbType == self.LocalDb):
+			db = LocalDatabaseDecorator()
+			tableName = "BrightStarCatalog"
+		else:
+			raise ValueError("No '%s' database." % dbType)
 
 		self.db = db
 		self.tableName = tableName
-		self.name = name
+		self.name = dbType
 
-	def setCamera(self, camera, cameraMJD=59580.0):
+	def setCamera(self, cameraType, cameraMJD=59580.0):
 		"""
 		
 		Set the camera.
 		
 		Arguments:
-			camera {[sstCamera/ ComCam]} -- Camera object.
+			cameraType {[str]} -- Type of camera ("lsst" or "comcam"). (default: {None})
 		
 		Keyword Arguments:
 			cameraMJD {float} -- Camera MJD. (default: {59580.0})
 		"""
 
 		# Set the camera and do the initialization
+		if (cameraType == self.LSST):
+			camera = LsstCamera()
+		elif (cameraType == self.COMCAM):
+			camera = ComCam()
+		else:
+			raise ValueError("No '%s' camera." % cameraType)
+
 		self.camera = camera
 		self.camera.initializeDetectors()
 
@@ -87,30 +103,11 @@ class SourceSelector(object):
 
 		# Set the data base
 		if (dbType is not None):
-			
-			if (dbType == self.UWdb):
-				db = BrightStarDatabase()
-				tableName = "bright_stars"
-			
-			elif (dbType == self.LocalDb):
-				db = LocalDatabase()
-				tableName = "BrightStarCatalog"
-			else:
-				raise ValueError("No '%s' database." % dbType)
-
-			self.setDb(db, tableName, dbType)
+			self.setDb(dbType)
 
 		# Set the camera mapper
 		if (cameraType is not None):
-
-			if (cameraType == self.LSST):
-				camera = LsstCamera()
-			elif (cameraType == self.COMCAM):
-				camera = ComCam()
-			else:
-				raise ValueError("No '%s' camera." % cameraType)
-
-			self.setCamera(camera, cameraMJD=cameraMJD)
+			self.setCamera(cameraType, cameraMJD=cameraMJD)
 
 		# Set the filter
 		if (aFilter is not None):
@@ -371,10 +368,10 @@ class SourceSelector(object):
 		# Update the bright star catalog
 		self.db.updateData(self.filter.getFilter(), listID, listOfItemToChange, listOfNewValue)
 
-	def config(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
+	def configNbrCriteria(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
 		"""
 		
-		Set the configuration to decide the scientific target.
+		Set the neighboring star criteria to decide the scientific target.
 
 		Arguments:
 			starRadiusInPixel {[float]} -- Diameter of star. For the defocus = 1.5 mm, the star's radius 
@@ -549,8 +546,8 @@ class SourceSelectorTest(unittest.TestCase):
 		starRadiusInPixel = 63
 
 		# Set the configuration to select the scientific target
-		self.remoteDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
-		self.localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
+		self.remoteDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
+		self.localDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
 
 		# Set the active filter
 		# self.remoteDb.setFilter(self.aFilterType)

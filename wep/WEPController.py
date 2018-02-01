@@ -16,19 +16,19 @@ class WEPController(object):
 
     def __init__(self):
         
-        self.dataCollector = WFDataCollector()
-        self.isrWrapper = EimgIsrWrapper()
-        self.sourSelc = SourceSelector()
+        self.sourSelc = None
+        self.dataCollector = None
+        self.isrWrapper = None
         self.sourProc = None
         self.wfsEsti = None
         self.middleWare = None
 
-    def config(self, dataCollector=None, isrWrapper=None, sourSelc=None, sourProc=None, wfsEsti=None, 
+    def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, wfsEsti=None, 
                 middleWare=None):
-        
+
+        self.__setVar(sourSelc, "sourSelc")        
         self.__setVar(dataCollector, "dataCollector")
         self.__setVar(isrWrapper, "isrWrapper")
-        self.__setVar(sourSelc, "sourSelc")
         self.__setVar(sourProc, "sourProc")
         self.__setVar(wfsEsti, "wfsEsti")
         self.__setVar(middleWare, "middleWare")
@@ -46,38 +46,8 @@ class WEPController(object):
         if (value is not None):
             setattr(self, attrName, value)
 
-    def setFilter(self, atype):
-        """
-        
-        Set the active filter type.
-        
-        Arguments:
-            atype {[str]} -- Filter type ("u", "g", "r", "i", "z", "y").
-        """
-
-        self.sourSelc.filter.setFilter(atype)
-
-    def connectDb(self, *kwargs):
-        """
-        
-        Connect the database.
-        
-        Arguments:
-            *kwargs {[string]} -- Information to connect to the database.
-        """
-
-        self.sourSelc.connect(*kwargs)
-
-    def disconnectDb(self):
-        """
-        
-        Disconnect the database.
-        """
-
-        self.sourSelc.disconnect()
-
-    def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, 
-                            orientation=None, offset=0, tableName="TempTable"):
+    def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, orientation=None, 
+                            tableName="TempTable"):
         """
         
         Get the target stars by querying the file.
@@ -90,101 +60,77 @@ class WEPController(object):
         
         Keyword Arguments:
             orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
-            offset {[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
-                                offset=0 for normal use. 
-                                offset=maxDistance to generate the local database. (default: {0})
             tableName {[str]} -- Table name. (default: {None})
         
         Returns:
             neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
-                                       the name of sensor as a list.
+                                        the name of sensor as a list.
             starMap {[list]} -- Information of stars with the name of sensor as a list.
             wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
         """
+
+        # Check the database name is local database
+        if (self.sourSelc.name != self.sourSelc.LocalDb):
+            raise TypeError("The database type is not LocalDatabaseDecorator.")
+
+        # Get the filter type
+        aFilter = self.sourSelc.getFilter()
+
+        # Connect the database
+        self.sourSelc.connect(dbAdress)
 
         # Create the table
-        localDb = LocalDatabaseDecorator()
-        localDb.connect(dbAdress)
+        self.sourSelc.db.createTable(aFilter, tableName)
 
         # Insert the sky data
-        aFilter = self.sourSelc.filter.getFilter()
-        localDb.createTable(aFilter, tableName)
-        localDb.insertDataByFile(aFilter, tableName, skyInfoFilePath)
-        localDb.disconnect()
+        self.sourSelc.db.insertDataByFile(aFilter, tableName, skyInfoFilePath, skiprows=1)
         
         # Do the query and analysis
-        self.connectDb(dbAdress)
-        neighborStarMap, starMap, wavefrontSensors = self.getTargetStar(pointing, cameraRotation, 
-                                        orientation=orientation, offset=offset, tableName=tableName)
-        self.disconnectDb()
+        neighborStarMap, starMap, wavefrontSensors = self.sourSelc.getTargetStar(pointing, cameraRotation, 
+                                                                orientation=orientation, tableName=tableName)
+
+        neighborStarMap, starMap, wavefrontSensors = self.__analyzeStarMap(neighborStarMap, starMap, 
+                                                                                    wavefrontSensors)
 
         # Delete the table
-        localDb.connect(dbAdress)
-        localDb.deleteTable(tableName)
-        localDb.disconnect()
+        self.sourSelc.db.deleteTable(tableName)
+        
+        # Disconnect the database
+        self.sourSelc.disconnect()
 
         return neighborStarMap, starMap, wavefrontSensors
 
-    def getTargetStar(self, pointing, cameraRotation, orientation=None, offset=0, tableName=None):
+    def __analyzeStarMap(self, neighborStarMap, starMap, wavefrontSensors):
         """
         
-        Get the target stars by querying the database.
+        Analyze the star map and remove the sensor without bright stars.
         
         Arguments:
-            pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
-            cameraRotation {[float]} -- Camera rotation angle in degree.
-        
-        Keyword Arguments:
-            orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
-            offset {[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
-                                offset=0 for normal use. 
-                                offset=maxDistance to generate the local database. (default: {0})
-            tableName {[str]} -- Table name. (default: {None})
+            neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
+                                        the name of sensor as a list.
+            starMap {[list]} -- Information of stars with the name of sensor as a list.
+            wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
         
         Returns:
             neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
-                                       the name of sensor as a list.
+                                        the name of sensor as a list.
             starMap {[list]} -- Information of stars with the name of sensor as a list.
             wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
         """
 
-        neighborStarMap, starMap, wavefrontSensors = self.sourSelc.getTargetStar(pointing, 
-                    cameraRotation, orientation=orientation, offset=offset, tableName=tableName)
+        # Collect the sensor list without the bright star
+        noStarSensorList = []
+        for aKey, aItem in starMap.items():
+            if len(aItem.RA) == 0:
+                noStarSensorList.append(aKey)
 
+        # Remove the keys in map
+        for aKey in noStarSensorList:
+            neighborStarMap.pop(aKey)
+            starMap.pop(aKey)
+            wavefrontSensors.pop(aKey)
+        
         return neighborStarMap, starMap, wavefrontSensors
-
-    def configNeiborStarCriteria(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
-        """
-        
-        Set the configuration to decide the scientific target.
-        
-        Arguments:
-            starRadiusInPixel {[float]} -- Diameter of star. For the defocus = 1.5 mm, the star's 
-                                            radius is 63 pixel.
-            spacingCoefficient {[float]} -- Maximum distance in units of radius one donut must be 
-                                            considered as a neighbor.
-        
-        Keyword Arguments:
-            maxNeighboringStar {[int]} -- Maximum number of neighboring stars. (default: {99})
-        """
-
-        self.sourSelc.config(starRadiusInPixel, spacingCoefficient, 
-                                maxNeighboringStar=maxNeighboringStar)
-
-    def configSourSelc(self, cameraType, dbType=None, cameraMJD=59580.0):
-        """
-        
-        Do the configuration of source selector.
-        
-        Arguments:
-            cameraType {[str]} -- Type of camera ("lsst" or "comcam").
-        
-        Keyword Arguments:
-            dbType {[str]} -- Type of database ("UWdb" or "LocalDb"). (default: {None}) 
-            cameraMJD {float} -- Camera MJD. (default: {59580.0})
-        """
-        
-        self.sourSelc.configSelector(cameraType=cameraType, dbType=dbType, cameraMJD=cameraMJD)
 
     def configIsrWrapper(self, inputs=None, outputs=None):
         """
@@ -203,23 +149,6 @@ class WEPController(object):
         """
 
         self.isrWrapper.configWrapper(inputs=inputs, outputs=outputs)
-
-    def configDataCollector(self, pathOfRawData=None, destinationPath=None, dbAdress=None, 
-                            butlerInputs=None, butlerOutputs=None):
-        """
-        
-        Do the configuration of data collector.
-        
-        Keyword Arguments:
-            pathOfRawData {[str]} -- Path of raw data. (default: {None})
-            destinationPath {[str]} -- Path to the destination. (default: {None})
-            dbAdress {[str]} -- Path to the registry.sqlite3 repo.  (default: {None})
-            butlerInputs {[str]} -- Butler input directory. (default: {None})
-            butlerOutputs {[str]} -- Butlter output directory. (default: {None})
-        """
-
-        self.dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
-                        dbAdress=dbAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
 
     def importPhoSimDataToButler(self, dataDir, obsId=None, aFilter=None, atype=None, 
                                  overwrite=False):
@@ -354,52 +283,36 @@ class WEPController(object):
 
 if __name__ == "__main__":
     
-    # Initiate the WEP Controller
-    wepCntlr = WEPController()
+    # Instintiate the components
+    sourSelc = SourceSelector()
+    dataCollector = WFDataCollector()
 
-    # Configure the WFS data collector
+    # Configure the source selector
+    cameraType = "comcam"
+    dbType = "LocalDb"
+    aFilter = "g"
+    cameraMJD = 59580.0
+
+    sourSelc.configSelector(cameraType=cameraType, dbType=dbType, aFilter=aFilter, 
+                            cameraMJD=cameraMJD)
+
+    # Set the criteria of neighboring stars
+    starRadiusInPixel = 63
+    spacingCoefficient = 2.5
+    sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
+
+    # Configure the wfs data collector
     pathOfRawData = "../test/phosimOutput"
     destinationPath = "../test"
     butlerInputs = "../test"
     butlerOutputs = "../test"
-    dbAdress = "../test/registry.sqlite3"
+    regisAdress = "../test/registry.sqlite3"
+    dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
+                dbAdress=regisAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
 
-    wepCntlr.configDataCollector(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
-                                    dbAdress=dbAdress, butlerInputs=butlerInputs, 
-                                    butlerOutputs=butlerOutputs)
-
-    # Import the PhoSim simulated image
-    extraObsId = 9007000
-    intraObsId = 9007001
-    obsIdList = [extraObsId, intraObsId]
-    aFilter = "g"
-
-    dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
-    atype = "raw"
-    for ii in range(2):
-        wepCntlr.importPhoSimDataToButler(dataDirList[ii], obsId=obsIdList[ii], aFilter=aFilter, 
-                                            atype=atype, overwrite=False)
-
-    # Set the sensor information
-    snap = 0
-    raft = "2,2"
-    sensor = "1,1"
-
-    # Do the fake ISR
-    wepCntlr.configIsrWrapper(inputs=butlerInputs, outputs=butlerOutputs)
-
-    for ii in range(2):
-        wepCntlr.doISR(obsIdList[ii], snap, raft, sensor, fakeDatasetType="eimage", 
-                        outputDatasetType="postISRCCD")
-
-    # Get the image data
-    intraImg, extraImg = wepCntlr.getDefocalImg(snap, raft, sensor, intraObsId, extraObsId, 
-                                            datasetType="postISRCCD")
-
-    # Do the source selector
-    cameraMJD = 59580.0
-    cameraType = "comcam"
-    wepCntlr.configSourSelc(cameraType, dbType="LocalDb", cameraMJD=cameraMJD)
+    # Initiate the WEP Controller
+    wepCntlr = WEPController()
+    wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector)
 
     # Set the database address
     dbAdress = "../test/bsc.db3"
@@ -409,15 +322,38 @@ if __name__ == "__main__":
     cameraRotation = 0.0
     skyInfoFilePath = "../test/phosimOutput/realComCam/output/skyComCamInfo.txt"
 
-    starRadiusInPixel = 63
-    spacingCoefficient = 2.5
+    neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
+                                        pointing, cameraRotation, orientation="all", tableName="TempTable")
 
-    wepCntlr.setFilter(aFilter)
-    wepCntlr.configNeiborStarCriteria(starRadiusInPixel, spacingCoefficient)
+    # Import the PhoSim simulated image
 
-    # wepCntlr.connectDb(dbAdress)
-    # neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStar(pointing, cameraRotation, orientation="all")
-    # wepCntlr.disconnectDb()
 
-    neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, pointing, 
-                                                                                cameraRotation, orientation="all")
+
+
+    # # Import the PhoSim simulated image
+    # extraObsId = 9007000
+    # intraObsId = 9007001
+    # obsIdList = [extraObsId, intraObsId]
+    # aFilter = "g"
+
+    # dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
+    # atype = "raw"
+    # for ii in range(2):
+    #     wepCntlr.importPhoSimDataToButler(dataDirList[ii], obsId=obsIdList[ii], aFilter=aFilter, 
+    #                                         atype=atype, overwrite=False)
+
+    # # Set the sensor information
+    # snap = 0
+    # raft = "2,2"
+    # sensor = "1,1"
+
+    # # Do the fake ISR
+    # wepCntlr.configIsrWrapper(inputs=butlerInputs, outputs=butlerOutputs)
+
+    # for ii in range(2):
+    #     wepCntlr.doISR(obsIdList[ii], snap, raft, sensor, fakeDatasetType="eimage", 
+    #                     outputDatasetType="postISRCCD")
+
+    # # Get the image data
+    # intraImg, extraImg = wepCntlr.getDefocalImg(snap, raft, sensor, intraObsId, extraObsId, 
+    #                                         datasetType="postISRCCD")

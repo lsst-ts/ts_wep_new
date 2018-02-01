@@ -34,16 +34,50 @@ class SourceSelector(object):
 
 		self.filter = Filter()
 
-	def configSelector(self, cameraType, dbType=None, cameraMJD=59580.0):
+	def setDb(self, db, tableName, name):
+		"""
+		
+		Set the database.
+		
+		Arguments:
+			db {[LocalDatabase/ BrightStarDatabase]} -- Database object.
+			tableName{[str]} -- Table name.
+			name{[str]} -- Database name.
+		"""
+
+		self.db = db
+		self.tableName = tableName
+		self.name = name
+
+	def setCamera(self, camera, cameraMJD=59580.0):
+		"""
+		
+		Set the camera.
+		
+		Arguments:
+			camera {[sstCamera/ ComCam]} -- Camera object.
+		
+		Keyword Arguments:
+			cameraMJD {float} -- Camera MJD. (default: {59580.0})
+		"""
+
+		# Set the camera and do the initialization
+		self.camera = camera
+		self.camera.initializeDetectors()
+
+		# Set the camera MJD
+		self.cameraMJD = cameraMJD
+
+	def configSelector(self, cameraType=None, dbType=None, aFilter=None, cameraMJD=59580.0):
 		"""
 		
 		Configurate the source selector.
 		
-		Arguments:
-			cameraType {[str]} -- Type of camera ("lsst" or "comcam").
-		
 		Keyword Arguments:
-			dbType {[str]} -- Type of database ("UWdb" or "LocalDb"). (default: {None}) 
+			cameraType {[str]} -- Type of camera ("lsst" or "comcam"). (default: {None})
+			dbType {[str]} -- Type of database ("UWdb" or "LocalDb"). (default: {None})
+			aFilter {[str]} -- Active filter type ("u", "g", "r", "i", "z", "y"). 
+								(default: {None})
 			cameraMJD {float} -- Camera MJD. (default: {59580.0})
 		
 		Raises:
@@ -55,28 +89,32 @@ class SourceSelector(object):
 		if (dbType is not None):
 			
 			if (dbType == self.UWdb):
-				self.db = BrightStarDatabase()
-				self.tableName = "bright_stars"
+				db = BrightStarDatabase()
+				tableName = "bright_stars"
+			
 			elif (dbType == self.LocalDb):
-				self.db = LocalDatabase()
-				self.tableName = "BrightStarCatalog"
+				db = LocalDatabase()
+				tableName = "BrightStarCatalog"
 			else:
 				raise ValueError("No '%s' database." % dbType)
-	
-			self.name = dbType
+
+			self.setDb(db, tableName, dbType)
 
 		# Set the camera mapper
-		if (cameraType == self.LSST):
-			self.camera = LsstCamera()
-		elif (cameraType == self.COMCAM):
-			self.camera = ComCam()
-		else:
-			raise ValueError("No '%s' camera." % cameraType)
+		if (cameraType is not None):
 
-		self.camera.initializeDetectors()
+			if (cameraType == self.LSST):
+				camera = LsstCamera()
+			elif (cameraType == self.COMCAM):
+				camera = ComCam()
+			else:
+				raise ValueError("No '%s' camera." % cameraType)
 
-		# Set the camera MJD
-		self.cameraMJD = cameraMJD
+			self.setCamera(camera, cameraMJD=cameraMJD)
+
+		# Set the filter
+		if (aFilter is not None):
+			self.setFilter(aFilter)
 
 	def connect(self, *kwargs):
 		"""
@@ -127,9 +165,8 @@ class SourceSelector(object):
 		if (tableName is None):
 			if (self.name == self.LocalDb):
 				tableName = self.tableName + self.filter.getFilter().upper()
-
-			# Keep the same table name for remote database
-			elif (self.name == self.UWdb):
+			# Keep the same table name
+			else:
 				tableName = self.tableName
 
 		# Setup the boundary of magnitude based on the filter
@@ -455,49 +492,37 @@ class SourceSelectorTest(unittest.TestCase):
 	Test the source selector. 
 	"""
 
-	# Address of local database
-	dbAdress = "../test/bsc.db3"
-
-	# Remote database setting
-	databaseHost = "localhost:51433"
-	databaseUser = "LSST-2"
-	databasePassword = "L$$TUser"
-	databaseName = "LSSTCATSIM"
-
-	# Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-	pointing = (20.0, 30.0)
-
-	# Camera rotation
-	cameraRotation = 0.0
-
-	# Active filter type
-	aFilterType = "r"
-
-	# Camera type: "lsst" or "comcam"
-	cameraType = "comcam"
-
-	# Set the camera MJD
-	cameraMJD = 59580.0
-
-	# Camera orientation for ComCam ("center" or "corner" or "all")
-	# Camera orientation for LSSTcam ("corner" or "all")
-	orientation = "center"
-
 	def setUp(self):
-		
+
+		# Camera type: "lsst" or "comcam"
+		cameraType = "comcam"
+
+		# Active filter type
+		aFilterType = "r"
+
+		# Address of local database
+		dbAdress = "../test/bsc.db3"
+
+		# Remote database setting
+		databaseHost = "localhost:51433"
+		databaseUser = "LSST-2"
+		databasePassword = "L$$TUser"
+		databaseName = "LSSTCATSIM"
+
+
 		# Set the database
 		self.remoteDb = SourceSelector()
 		self.localDb = SourceSelector()
 
-		self.remoteDb.configSelector(self.cameraType, dbType="UWdb")
-		self.localDb.configSelector(self.cameraType, dbType="LocalDb")
+		self.remoteDb.configSelector(cameraType=cameraType, dbType="UWdb", aFilter=aFilterType)
+		self.localDb.configSelector(cameraType=cameraType, dbType="LocalDb", aFilter=aFilterType)
 
 		# Remote database infomation
-		remoteDbInfo = [self.databaseHost, self.databaseUser, self.databasePassword, self.databaseName]
+		remoteDbInfo = [databaseHost, databaseUser, databasePassword, databaseName]
 
 		# Connect to database
 		self.remoteDb.connect(*remoteDbInfo)
-		self.localDb.connect(self.dbAdress)
+		self.localDb.connect(dbAdress)
 
 	def tearDown(self):
 
@@ -506,6 +531,16 @@ class SourceSelectorTest(unittest.TestCase):
 		self.localDb.disconnect()
 
 	def testFunctions(self):
+
+		# Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
+		pointing = (20.0, 30.0)
+
+		# Camera rotation
+		cameraRotation = 0.0
+
+		# Camera orientation for ComCam ("center" or "corner" or "all")
+		# Camera orientation for LSSTcam ("corner" or "all")
+		orientation = "center"
 
 		# Maximum distance in units of radius one donut must be considered as a neighbor.
 		spacingCoefficient = 2.5
@@ -518,8 +553,8 @@ class SourceSelectorTest(unittest.TestCase):
 		self.localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99)
 
 		# Set the active filter
-		self.remoteDb.setFilter(self.aFilterType)
-		self.localDb.setFilter(self.aFilterType)
+		# self.remoteDb.setFilter(self.aFilterType)
+		# self.localDb.setFilter(self.aFilterType)
 
 		# Test to get the active filter
 		self.assertEqual(self.localDb.getFilter(), "r")
@@ -528,16 +563,16 @@ class SourceSelectorTest(unittest.TestCase):
 		self.assertEqual(self.localDb.getStddevSplit(), 20.0)
 
 		# Get the scientific target by querying the remote database
-		neighborStarMap, starMap, wavefrontSensors = self.remoteDb.getTargetStar(self.pointing, 
-															self.cameraRotation, orientation=self.orientation)
+		neighborStarMap, starMap, wavefrontSensors = self.remoteDb.getTargetStar(pointing, 
+														cameraRotation, orientation=orientation)
 
 		# Test to get at least one star
 		allStars = starMap["R:2,2 S:1,1"]
 		self.assertTrue(len(allStars.SimobjID)>=1)
 
 		# Get the scientific target by querying the local database
-		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = self.localDb.getTargetStar(self.pointing, 
-																		self.cameraRotation, orientation=self.orientation)
+		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = self.localDb.getTargetStar(pointing, 
+																	cameraRotation, orientation=orientation)
 
 		# Test the get the empty star map
 		allStarsLocal = starMapLocal["R:2,2 S:1,1"]
@@ -547,8 +582,8 @@ class SourceSelectorTest(unittest.TestCase):
 		self.localDb.insertToBSC(neighborStarMap)
 
 		# Query the local database again
-		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = self.localDb.getTargetStar(self.pointing, 
-																		self.cameraRotation, orientation=self.orientation)
+		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = self.localDb.getTargetStar(pointing, 
+																	cameraRotation, orientation=orientation)
 
 		# Test to get all neighboring stars
 		allNeighborStarLocal = neighborStarMapLocal["R:2,2 S:1,1"]

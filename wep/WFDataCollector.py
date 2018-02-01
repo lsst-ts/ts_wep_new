@@ -95,7 +95,7 @@ class WFDataCollector(object):
 		if (atype == "raw"):
 			phosimImage.config(rawDir=dataDir)
 			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=obsId, eVisit=obsId, 
-													aFilter=aFilter, atype=atype, overwrite=overwrite) 
+													aFilter=aFilter, atype=atype, overwrite=overwrite)
 		elif (atype == "bias"):
 			phosimImage.config(biasDir=dataDir)
 			ampImgName, elecImgName = phosimImage.rearrangeFileForButler(aVisit=0, atype=atype, 

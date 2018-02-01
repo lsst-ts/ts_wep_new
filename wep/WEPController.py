@@ -1,4 +1,4 @@
-import os
+import os, re
 import numpy as np
 
 from astropy.io import fits
@@ -150,8 +150,7 @@ class WEPController(object):
 
         self.isrWrapper.configWrapper(inputs=inputs, outputs=outputs)
 
-    def importPhoSimDataToButler(self, dataDir, obsId=None, aFilter=None, atype=None, 
-                                 overwrite=False):
+    def importPhoSimDataToButler(self, dataDir, atype="raw", overwrite=False):
         """
         
         Import the PhoSim simulated data to match with the data butler to use. This means the 
@@ -161,17 +160,36 @@ class WEPController(object):
             dataDir {[str]} -- PhoSim FITS data directory.
         
         Keyword Arguments:
-            obsId {[int]} -- Visit/ observation ID. (default: {None})
-            aFilter {[str]} -- Filter name (u, g, r, i, z, y). (default: {None})
-            atype {[str]} -- Dataset type. (default: {None})
+            atype {[str]} -- Dataset type. (default: {"raw"})
             overwrite {[boolean]} -- Overwrite the existed files or not. (default: {False})
         
         Raises:
             ValueError -- Not allowed type ("raw", "bias", "dark", "flat").
         """
 
-        self.dataCollector.importPhoSimDataToButler(dataDir=dataDir, obsId=obsId, aFilter=aFilter, 
-                                                                    atype=atype, overwrite=overwrite)
+        # Get all files in the directory
+        fullDataDir = os.path.join(self.dataCollector.pathOfRawData, dataDir)
+        fileList = [f for f in os.listdir(fullDataDir) if os.path.isfile(os.path.join(fullDataDir, f))]
+
+        # Find the obsId and aFilter
+        obsIdList = []
+        for fileName in fileList:
+            m = re.match(r"\S*_(\d*)_f(\d)_\S*", fileName)
+            if (m is not None):
+                obsIdList.append(m.groups())
+
+        # Get the unique list
+        obsIdList = list(set(obsIdList))
+        if (len(obsIdList) > 1):
+            raise RuntimeError("There are more than one unique ObdId and filter in directory.")
+        data = obsIdList[0]
+
+        # Import to butler
+        phosimFilterID = {"0": "u", "1": "g", "2": "r", "3": "i", "4": "z", "5": "y"}
+        obsId = int(data[0])
+        aFilter = phosimFilterID[data[1]]
+        self.dataCollector.importPhoSimDataToButler(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, 
+                                                    overwrite=overwrite)
 
     def getButlerData(self, datasetType, dataId=None, immediate=True):
         """
@@ -326,6 +344,11 @@ if __name__ == "__main__":
                                         pointing, cameraRotation, orientation="all", tableName="TempTable")
 
     # Import the PhoSim simulated image
+    dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
+    for dataDir in dataDirList:
+        wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
+
+
 
 
 

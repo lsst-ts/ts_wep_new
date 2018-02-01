@@ -132,24 +132,6 @@ class WEPController(object):
         
         return neighborStarMap, starMap, wavefrontSensors
 
-    def configIsrWrapper(self, inputs=None, outputs=None):
-        """
-        
-        Do the configuration of instrument signature remover (ISR) wrapper.
-        
-        Keyword Arguments:
-            inputs {[RepositoryArg or string]} -- Can be a single item or a list. Provides arguments 
-                    to load an existing repository (or repositories). String is assumed to be a URI 
-                    and is used as the cfgRoot (URI to the location of the cfg file). (Local file system 
-                    URI does not have to start with 'file://' and in this way can be a relative path).
-                    (default: {None})
-            outputs {[RepositoryArg or string]} -- Can be a single item or a list. Provides arguments to 
-                    load one or more existing repositories or create new ones. String is assumed to be a 
-                    URI and as used as the repository root.
-        """
-
-        self.isrWrapper.configWrapper(inputs=inputs, outputs=outputs)
-
     def importPhoSimDataToButler(self, dataDir, atype="raw", overwrite=False):
         """
         
@@ -273,7 +255,7 @@ class WEPController(object):
 
         return img
 
-    def doISR(self, visit, snap, raft, sensor, channel=None, fakeDatasetType="eimage", 
+    def doISR(self, visit, sensorName, snap=0, fakeDatasetType="eimage", 
                 outputDatasetType="postISRCCD"):
         """
         
@@ -281,12 +263,10 @@ class WEPController(object):
         
         Arguments:
             visit {[int]} -- Visit time.
-            snap {int} -- Snap time (0 or 1) means first/ second exposure.
-            raft {[str]} -- Raft name.
-            sensor {[str]} -- Sensor name.
+            sensorName {[str]} -- Sensor name. (e.g. "R:2,2 S:1,1")
         
         Keyword Arguments:
-            channel {[str]} -- Channel name. (default: {None})
+            snap {int} -- Snap time (0 or 1) means first/ second exposure. (default: {0})
             fakeDatasetType {[str]} -- Use this type of image supported by lsst camera mapper 
                                         to simulate the post-ISR image. (default: {"eimage"})
             outputDatasetType {[str]} -- Output data type supported by lsst camera mapper. 
@@ -296,16 +276,25 @@ class WEPController(object):
             [ExposureU] -- Exposure image after ISR.
         """
 
-        return self.isrWrapper.doISR(visit, snap, raft, sensor, channel=channel, 
-                    fakeDatasetType=fakeDatasetType, outputDatasetType=outputDatasetType)
+        # Use the regular expression to analyze the input name
+        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
+        if (m is not None):
+            raft, sensor = m.groups()[0:2]
+
+            # Do the ISR
+            self.isrWrapper.doISR(visit, snap, raft, sensor, channel=None, 
+                        fakeDatasetType=fakeDatasetType, outputDatasetType=outputDatasetType)
+        else:
+            raise RuntimeError("Sensor name: '%s' is not allowed." % sensorName)
 
 if __name__ == "__main__":
     
     # Instintiate the components
     sourSelc = SourceSelector()
     dataCollector = WFDataCollector()
+    isrWrapper = EimgIsrWrapper()
 
-    # Configure the source selector
+    # Configurate the source selector
     cameraType = "comcam"
     dbType = "LocalDb"
     aFilter = "g"
@@ -319,7 +308,7 @@ if __name__ == "__main__":
     spacingCoefficient = 2.5
     sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
 
-    # Configure the wfs data collector
+    # Configurate the wfs data collector
     pathOfRawData = "../test/phosimOutput"
     destinationPath = "../test"
     butlerInputs = "../test"
@@ -328,9 +317,12 @@ if __name__ == "__main__":
     dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
                 dbAdress=regisAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
 
+    # Configurate the ISR wrapper
+    isrWrapper.configWrapper(inputs=butlerInputs, outputs=butlerOutputs)
+
     # Initiate the WEP Controller
     wepCntlr = WEPController()
-    wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector)
+    wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper)
 
     # Set the database address
     dbAdress = "../test/bsc.db3"
@@ -345,8 +337,19 @@ if __name__ == "__main__":
 
     # Import the PhoSim simulated image
     dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
-    for dataDir in dataDirList:
-        wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
+    # for dataDir in dataDirList:
+    #     wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
+
+    # Do the ISR
+    extraObsId = 9007000
+    intraObsId = 9007001
+    obsIdList = [extraObsId, intraObsId]
+    sensorNameList = list(starMap.keys())
+    for obsId in obsIdList:
+        for sensorName in sensorNameList:
+            wepCntlr.doISR(obsId, sensorName)
+
+
 
 
 
@@ -358,12 +361,6 @@ if __name__ == "__main__":
     # intraObsId = 9007001
     # obsIdList = [extraObsId, intraObsId]
     # aFilter = "g"
-
-    # dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
-    # atype = "raw"
-    # for ii in range(2):
-    #     wepCntlr.importPhoSimDataToButler(dataDirList[ii], obsId=obsIdList[ii], aFilter=aFilter, 
-    #                                         atype=atype, overwrite=False)
 
     # # Set the sensor information
     # snap = 0

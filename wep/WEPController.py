@@ -7,10 +7,11 @@ from wep.WFDataCollector import WFDataCollector
 from wep.IsrWrapper import getImageData
 from wep.EimgIsrWrapper import EimgIsrWrapper
 from wep.SourceSelector import SourceSelector
-from wep.SourceProcessor import SourceProcessor
+from wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from wep.WFEstimator import WFEstimator
 
 from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
+from wep.DefocalImage import DefocalImage
 
 class WEPController(object):
 
@@ -150,8 +151,7 @@ class WEPController(object):
         """
 
         # Get all files in the directory
-        fullDataDir = os.path.join(self.dataCollector.pathOfRawData, dataDir)
-        fileList = [f for f in os.listdir(fullDataDir) if os.path.isfile(os.path.join(fullDataDir, f))]
+        fileList = self.__getRawFileList(dataDir)
 
         # Find the obsId and aFilter
         obsIdList = []
@@ -173,87 +173,23 @@ class WEPController(object):
         self.dataCollector.importPhoSimDataToButler(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, 
                                                     overwrite=overwrite)
 
-    def getButlerData(self, datasetType, dataId=None, immediate=True):
+    def __getRawFileList(self, dataDir):
         """
         
-        Retrieves a dataset given an input collection data id.
+        Get the raw file list in the directory.
         
         Arguments:
-            datasetType {[str]} -- The type of dataset to retrieve.
-        
-        Keyword Arguments:
-            dataId {[dict]} -- The data id. (default: {None})
-            immediate {bool} -- If False use a proxy for delayed loading. (default: {True})
+            dataDir {[str]} -- Data directory.
         
         Returns:
-            [ExposureU] -- Exposure data.
+            [list] -- File list.
         """
 
-        return self.dataCollector.butler.get(datasetType=datasetType, dataId=dataId, 
-                                             immediate=immediate)
+        # Get all files in the directory
+        fullDataDir = os.path.join(self.dataCollector.pathOfRawData, dataDir)
+        fileList = [f for f in os.listdir(fullDataDir) if os.path.isfile(os.path.join(fullDataDir, f))]
 
-    def getDefocalImg(self, snap, raft, sensor, intraObsId, extraObsId, datasetType="eimage", 
-                            immediate=True):
-        """
-        
-        Get the defocal images. The defocal images are based on the visits with different piston 
-        position.
-        
-        Arguments:
-            snap {[int]} -- Snap number.
-            raft {[str]} -- Raft name (e.g. "2,2").
-            sensor {[str]} -- Sensor name (e.g. "1,1").
-            intraObsId {[int]} -- Observation ID of intra-focal exposure.
-            extraObsId {[int]} -- Observation ID of extra-focal exposure.
-        
-        Keyword Arguments:
-            datasetType {str} -- The type of dataset to retrieve. (default: {"eimage"})
-            immediate {bool} -- If False use a proxy for delayed loading. (default: {True})
-        
-        Returns:
-            [ndarray] -- Intra-focal image.
-            [ndarray] -- Extra-focal image.
-        """
-
-        # Get the images
-        intraImg = self.__getImgData(intraObsId, snap, raft, sensor, datasetType=datasetType, 
-                                     immediate=immediate)
-        extraImg = self.__getImgData(extraObsId, snap, raft, sensor, datasetType=datasetType, 
-                                     immediate=immediate)
-
-        return intraImg, extraImg
-
-    def __getImgData(self, obsId, snap, raft, sensor, datasetType, immediate):
-        """
-        
-        Get the image data from exposure by data butler.
-        
-        Arguments:
-            obsId {[int]} -- Observation ID.
-            snap {[int]} -- Snap number.
-            raft {[str]} -- Raft name (e.g. "2,2").
-            sensor {[str]} -- Sensor name (e.g. "1,1").
-            datasetType {[str]} -- The type of dataset to retrieve.
-            immediate {[bool]} -- If False use a proxy for delayed loading.
-        
-        Returns:
-            [ndarray] -- Image data.
-        """
-        
-        # Enforce the number type
-        snap = int(snap)
-        obsId = int(obsId)
-
-        # Set the data Id
-        dataId = dict(visit=obsId, snap=snap, raft=raft, sensor=sensor)
-
-        # Get the exposure 
-        exposure = self.getButlerData(datasetType, dataId=dataId, immediate=immediate)
-
-        # Get the image
-        img = getImageData(exposure)
-
-        return img
+        return fileList
 
     def doISR(self, visit, sensorName, snap=0, fakeDatasetType="eimage", 
                 outputDatasetType="postISRCCD"):
@@ -277,15 +213,138 @@ class WEPController(object):
         """
 
         # Use the regular expression to analyze the input name
-        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
-        if (m is not None):
-            raft, sensor = m.groups()[0:2]
+        raft, sensor, channel = self.__getSensorInfo(sensorName)
+        if (raft is not None):
 
             # Do the ISR
             self.isrWrapper.doISR(visit, snap, raft, sensor, channel=None, 
                         fakeDatasetType=fakeDatasetType, outputDatasetType=outputDatasetType)
         else:
             raise RuntimeError("Sensor name: '%s' is not allowed." % sensorName)
+
+
+    def __getSensorInfo(self, sensorName):
+        """
+        
+        Get the sensor information.
+        
+        Arguments:
+            sensorName {[str]} -- Sensor name (e.g. "R:2,2 S:1,1" or "R:0,0 S:2,2,A")
+        
+        Returns:
+            [str] -- Raft.
+            [str] -- Sensor.
+            [str] -- Channel.
+        """
+
+        raft = sensor = channel = None
+        
+        # Use the regular expression to analyze the input name
+        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
+        if (m is not None):
+            raft, sensor, channel = m.groups()[0:3]
+
+        return raft, sensor, channel
+
+    def __searchFileName(self, fileList, matchName, snap=0):
+        """
+        
+        Search the file name in list.
+        
+        Arguments:
+            fileList {[list]} -- File name list.
+            matchName {[str]} -- Match name.
+
+        Keyword Arguments:
+            snap {int} -- Snap number (default: {0})
+        
+        Returns:
+            [str] -- Matched file name.
+        """
+
+        matchFileName = None
+        for fileName in fileList:
+            m = re.match(r"\S*%s_E00%d\S*" % (matchName, snap), fileName)
+
+            if (m is not None):
+                matchFileName = m.group()
+                break
+
+        return matchFileName
+
+    def getPostISRDefocalImgMap(self, sensorNameList, obsIdList=None, wfsDir=None, snap=0):
+        """
+        
+        Get the post-ISR defocal image map.
+        
+        Arguments:
+            sensorNameList {[list]} -- List of sensor name which is in the canonical form.
+        
+        Keyword Arguments:
+            obsIdList {[list]} -- Observation Id list in [intraObsId, extraObsId]. (default: {None})
+            wfsDir {[str]} -- Directory to wavefront sensor image data. (default: {None})
+            snap {int} -- Snap number (default: {0})
+        
+        Returns:
+            [dict] -- Post-ISR image map.
+        """
+
+        # Construct the dictionary 
+        wfsImgMap = {}
+
+        # Get the file list
+        if (wfsDir is not None):
+            # Get the file list
+            wfsFileList = self.__getRawFileList(wfsDir)
+
+        # Get the waveront image map
+        for sensorName in sensorNameList:
+
+            # Get the sensor name information
+            raft, sensor, channel = self.__getSensorInfo(sensorName)
+
+            # The intra/ extra defocal images are decided by obsId
+            if (obsIdList is not None):
+
+                imgList = []
+                for ii in range(2):
+                    dataId = dict(visit=obsIdList[ii], snap=snap, raft=raft, sensor=sensor)
+                    img = self.isrWrapper.butler.get(datasetType="postISRCCD", dataId=dataId, 
+                                                     immediate=True)
+                    imgList.append(getImageData(img))
+
+                wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0], extraImg=imgList[1])
+
+            # The intra/ extra defocal images are decided by physical configuration
+            # C0: intra, C1: extra
+            if (wfsDir is not None):
+                
+                # Get the abbreviated name
+                abbrevName = abbrevDectectorName(sensorName)
+
+                # Search for the file name
+                matchFileName = self.__searchFileName(wfsFileList, abbrevName, snap=snap)
+                
+                if (matchFileName is not None):
+                    
+                    # Get the file name
+                    fitsFilsPath = os.path.join(self.dataCollector.pathOfRawData, wfsDir, 
+                                                matchFileName)
+                    wfsImg = fits.getdata(fitsFilsPath)
+
+                    # Add image to map
+                    newSensorName = "R:%s S:%s" % (raft, sensor)
+                    if newSensorName not in wfsImgMap.keys():
+                        wfsImgMap[newSensorName] = DefocalImage()
+
+                    # "C0" = "A" = "Intra-focal image"
+                    if (channel=="A"):
+                        wfsImgMap[newSensorName].setImg(intraImg=wfsImg)
+                    # "C1" = "B" = "extra-focal image"
+                    elif (channel=="B"):
+                        wfsImgMap[newSensorName].setImg(extraImg=wfsImg)
+
+        return wfsImgMap
 
 if __name__ == "__main__":
     
@@ -343,37 +402,17 @@ if __name__ == "__main__":
     # Do the ISR
     extraObsId = 9007000
     intraObsId = 9007001
-    obsIdList = [extraObsId, intraObsId]
+    obsIdList = [intraObsId, extraObsId]
     sensorNameList = list(starMap.keys())
     for obsId in obsIdList:
         for sensorName in sensorNameList:
             wepCntlr.doISR(obsId, sensorName)
 
+    # Get the wfs images
+    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList)
 
-
-
-
-
-
-
-    # # Import the PhoSim simulated image
-    # extraObsId = 9007000
-    # intraObsId = 9007001
-    # obsIdList = [extraObsId, intraObsId]
-    # aFilter = "g"
-
-    # # Set the sensor information
-    # snap = 0
-    # raft = "2,2"
-    # sensor = "1,1"
-
-    # # Do the fake ISR
-    # wepCntlr.configIsrWrapper(inputs=butlerInputs, outputs=butlerOutputs)
-
-    # for ii in range(2):
-    #     wepCntlr.doISR(obsIdList[ii], snap, raft, sensor, fakeDatasetType="eimage", 
-    #                     outputDatasetType="postISRCCD")
-
-    # # Get the image data
-    # intraImg, extraImg = wepCntlr.getDefocalImg(snap, raft, sensor, intraObsId, extraObsId, 
-    #                                         datasetType="postISRCCD")
+    # Try the corner wavefront sensor
+    sensorNameList = ["R:0,0 S:2,2,A", "R:0,0 S:2,2,B", "R:0,4 S:2,0,A", "R:0,4 S:2,0,B", 
+                      "R:4,0 S:0,2,A", "R:4,0 S:0,2,B", "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
+    wfsDir = "realWfs/output"
+    cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)

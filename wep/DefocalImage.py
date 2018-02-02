@@ -1,8 +1,7 @@
 class DefocalImage(object):
 
-    def __init__(self, sensorName, intraImg, extraImg):
+    def __init__(self, intraImg, extraImg):
         
-        self.sensorName = sensorName
         self.intraImg = intraImg
         self.extraImg = extraImg
 

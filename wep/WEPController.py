@@ -1,5 +1,6 @@
 import os, re
 import numpy as np
+import matplotlib.pyplot as plt
 
 from astropy.io import fits
 
@@ -467,6 +468,43 @@ class WEPController(object):
 
         return donutMap
 
+def plotDonutImg(donutMap, saveToDir=None, dpi=None):
+
+    for sensorName, donutList in donutMap.items():
+        # Generate the image name
+        imgTitle = abbrevDectectorName(sensorName) + "_DonutImg"
+
+        # Plot the donut figure
+        fig = plt.figure()
+        for donutImg in donutList:
+            
+            if (donutImg.intraImg is not None):
+                img = donutImg.intraImg
+            elif (donutImg.extraImg is not None):
+                img = donutImg.extraImg
+                
+            addSubPlot(fig, img, donutImg.starId)
+
+        # Save the file or not
+        if (saveToDir is not None):
+            # Generate the filepath
+            imgFilePath = os.path.join(saveToDir, imgTitle+".png")
+            fig.savefig(imgFilePath, dpi=dpi)
+        else:
+            plt.show()
+
+def addSubPlot(fig, img, starId):
+
+    n = len(fig.axes)
+    if (n == 0):
+        ax = fig.add_subplot(1, 1, 1)
+    else:
+        for ii in range(n):
+            fig.axes[ii].change_geometry(n+1, 1, n+1)
+        ax = fig.add_subplot(n+1, 1, n+1)
+
+    ax.imshow(img)
+    
 if __name__ == "__main__":
     
     # Instintiate the components
@@ -556,3 +594,6 @@ if __name__ == "__main__":
             print(donutList[ii].intraImg.shape, np.sum(donutList[ii].intraImg))
             print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
 
+    # Plot the donut images
+    saveToDir = "../test/donutImg"
+    plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)

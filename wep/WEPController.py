@@ -34,6 +34,20 @@ class WEPController(object):
         self.__setVar(wfsEsti, "wfsEsti")
         self.__setVar(middleWare, "middleWare")
 
+    def getWfsList(self):
+        """
+        
+        Get the corner wavefront sensor (WFS) list in the canonical form.
+        
+        Returns:
+            [list] -- WFS name list.
+        """
+
+        wfsList = ["R:0,0 S:2,2,A", "R:0,0 S:2,2,B", "R:0,4 S:2,0,A", "R:0,4 S:2,0,B", 
+                   "R:4,0 S:0,2,A", "R:4,0 S:0,2,B", "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
+
+        return wfsList
+
     def __setVar(self, value, attrName):
         """
         
@@ -333,16 +347,14 @@ class WEPController(object):
                     wfsImg = fits.getdata(fitsFilsPath)
 
                     # Add image to map
-                    newSensorName = "R:%s S:%s" % (raft, sensor)
-                    if newSensorName not in wfsImgMap.keys():
-                        wfsImgMap[newSensorName] = DefocalImage()
+                    wfsImgMap[sensorName] = DefocalImage()
 
                     # "C0" = "A" = "Intra-focal image"
                     if (channel=="A"):
-                        wfsImgMap[newSensorName].setImg(intraImg=wfsImg)
+                        wfsImgMap[sensorName].setImg(intraImg=wfsImg)
                     # "C1" = "B" = "extra-focal image"
                     elif (channel=="B"):
-                        wfsImgMap[newSensorName].setImg(extraImg=wfsImg)
+                        wfsImgMap[sensorName].setImg(extraImg=wfsImg)
 
         return wfsImgMap
 
@@ -396,8 +408,8 @@ if __name__ == "__main__":
 
     # Import the PhoSim simulated image
     dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
-    # for dataDir in dataDirList:
-    #     wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
+    for dataDir in dataDirList:
+        wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
 
     # Do the ISR
     extraObsId = 9007000
@@ -412,7 +424,6 @@ if __name__ == "__main__":
     wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList)
 
     # Try the corner wavefront sensor
-    sensorNameList = ["R:0,0 S:2,2,A", "R:0,0 S:2,2,B", "R:0,4 S:2,0,A", "R:0,4 S:2,0,B", 
-                      "R:4,0 S:0,2,A", "R:4,0 S:0,2,B", "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
+    sensorNameList = wepCntlr.getWfsList()
     wfsDir = "realWfs/output"
     cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)

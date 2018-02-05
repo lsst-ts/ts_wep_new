@@ -11,7 +11,7 @@ from wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from wep.WFEstimator import WFEstimator
 
 from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
-from wep.DefocalImage import DefocalImage
+from wep.DefocalImage import DefocalImage, DonutImage
 
 class WEPController(object):
 
@@ -24,8 +24,8 @@ class WEPController(object):
         self.wfsEsti = None
         self.middleWare = None
 
-    def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, wfsEsti=None, 
-                middleWare=None):
+    def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, 
+                wfsEsti=None, middleWare=None):
 
         self.__setVar(sourSelc, "sourSelc")        
         self.__setVar(dataCollector, "dataCollector")
@@ -61,8 +61,8 @@ class WEPController(object):
         if (value is not None):
             setattr(self, attrName, value)
 
-    def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, orientation=None, 
-                            tableName="TempTable"):
+    def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, 
+                            orientation=None, tableName="TempTable"):
         """
         
         Get the target stars by querying the file.
@@ -78,10 +78,10 @@ class WEPController(object):
             tableName {[str]} -- Table name. (default: {None})
         
         Returns:
-            neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
-                                        the name of sensor as a list.
-            starMap {[list]} -- Information of stars with the name of sensor as a list.
-            wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
+            {[dict]} -- Information of neighboring stars and candidate stars with the name of 
+                        sensor as a dictionary.
+            {[dict]} -- Information of stars with the name of sensor as a dictionary.
+            {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
         """
 
         # Check the database name is local database
@@ -121,16 +121,16 @@ class WEPController(object):
         Analyze the star map and remove the sensor without bright stars.
         
         Arguments:
-            neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
-                                        the name of sensor as a list.
-            starMap {[list]} -- Information of stars with the name of sensor as a list.
-            wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
+            neighborStarMap {[dict]} -- Information of neighboring stars and candidate stars with 
+                                        the name of sensor as a dictionary.
+            starMap {[dict]} -- Information of stars with the name of sensor as a dictionary.
+            wavefrontSensors {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
         
         Returns:
-            neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
-                                        the name of sensor as a list.
-            starMap {[list]} -- Information of stars with the name of sensor as a list.
-            wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
+            {[dict]} -- Information of neighboring stars and candidate stars with the name 
+                        of sensor as a dictionary.
+            {[dict]} -- Information of stars with the name of sensor as a dictionary.
+            {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
         """
 
         # Collect the sensor list without the bright star
@@ -358,12 +358,122 @@ class WEPController(object):
 
         return wfsImgMap
 
+    def __searchDonutListId(self, donutList, starId):
+        """
+        
+        Search the bright star ID in the donut list.
+        
+        Arguments:
+            donutList {[list]} -- List of DonutImage object.
+            starId {[int]} -- Star ID.
+        
+        Returns:
+            [int] -- Index of donut image object with specific starId.
+        """
+
+        index = -1
+        for ii in range(len(donutList)):
+            if (donutList[ii].starId == int(starId)):
+                index = ii
+                break
+
+        return index
+
+    def getDonutMap(self, neighborStarMap, wfsImgMap, aFilter, doDeblending=False):
+        """
+        
+        Get the donut map on each wavefront sensor (WFS).
+        
+        Arguments:
+            neighborStarMap {[dict]} -- Information of neighboring stars and candidate stars with 
+                                        the name of sensor as a dictionary.
+            wfsImgMap {[dict]} --  Post-ISR image map.
+            aFilter {[str]} -- Active filter type ("u", "g", "r", "i", "z", "y").
+        
+        Keyword Arguments:
+            doDeblending {bool} -- Do the deblending or not. (default: {False})
+        
+        Returns:
+            [dict] -- Donut image map.
+        """
+        
+        donutMap = {}
+        for sensorName in wfsImgMap.keys():
+
+            # Configure the source processor
+            self.sourProc.config(sensorName=abbrevDectectorName(sensorName))
+
+            # Get the bright star id list on specific sensor
+            simobjIdList = list(neighborStarMap[sensorName].SimobjID.keys())
+
+            # Get the defocal images: [intra, extra]
+            defocalImgList = [wfsImgMap[sensorName].intraImg, wfsImgMap[sensorName].extraImg]
+
+            for ii in range(len(simobjIdList)):
+                
+                # Get the single star map
+                for jj in range(2):
+
+                    ccdImg = defocalImgList[jj]
+
+                    # Get the segment of image
+                    if (ccdImg is not None):
+                        singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
+                                                        self.sourProc.getSingleTargetImage(ccdImg, 
+                                                            neighborStarMap[sensorName], ii, aFilter)
+
+                        # Add the search algorithm here latter
+
+                        # Get the single donut/ deblended image
+                        imgDeblend = None
+                        realcx = None
+                        realcy = None
+                        if ((len(magRatio) == 1 and doDeblending) or (not doDeblending)):
+                            imgDeblend = singleSciNeiImg
+                            realcx = allStarPosX[0]
+                            realcy = allStarPosY[0]
+                        # Do the deblending or not
+                        elif (len(magRatio) == 2 and doDeblending):
+                            imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, 
+                                                                  allStarPosX, allStarPosY, magRatio)
+
+                        # Put the deblended image into the donut map
+                        if (imgDeblend is not None):
+
+                            if sensorName not in donutMap.keys():
+                                donutMap[sensorName] = []
+
+                            # Check the donut exists in the list or not
+                            starId = simobjIdList[ii]
+                            donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)                             
+
+                            # Create the donut object and put into the list if it is needed
+                            if (donutIndex < 0):
+                                donutImg = DonutImage(starId, realcx+offsetX, realcy+offsetY)
+                                donutMap[sensorName].append(donutImg)
+
+                                # Search for the donut index again
+                                donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)
+
+                            # Get the donut image list
+                            donutList = donutMap[sensorName]
+                        
+                            # Set the intra focal image
+                            if (jj == 0):
+                                donutList[donutIndex].setImg(intraImg=imgDeblend)
+                            # Set the extra focal image
+                            elif (jj == 1):
+                                donutList[donutIndex].setImg(extraImg=imgDeblend)
+
+        return donutMap
+
 if __name__ == "__main__":
     
     # Instintiate the components
     sourSelc = SourceSelector()
     dataCollector = WFDataCollector()
     isrWrapper = EimgIsrWrapper()
+    sourProc = SourceProcessor()
 
     # Configurate the source selector
     cameraType = "comcam"
@@ -391,9 +501,15 @@ if __name__ == "__main__":
     # Configurate the ISR wrapper
     isrWrapper.configWrapper(inputs=butlerInputs, outputs=butlerOutputs)
 
+    # Configurate the source processor
+    focalPlaneFolder = "../test"
+    donutRadiusInPixel=63
+    sourProc.config(donutRadiusInPixel=donutRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder)
+
     # Initiate the WEP Controller
     wepCntlr = WEPController()
-    wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper)
+    wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper, 
+                    sourProc=sourProc)
 
     # Set the database address
     dbAdress = "../test/bsc.db3"
@@ -427,3 +543,16 @@ if __name__ == "__main__":
     sensorNameList = wepCntlr.getWfsList()
     wfsDir = "realWfs/output"
     cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+
+    # Get the donut images
+    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=True)
+
+    # Check the donut
+    for aKey, aItem in donutMap.items():
+        donutList = aItem
+        for ii in range(len(donutList)):
+            print(aKey)
+            print(donutList[ii].starId, donutList[ii].pixelX, donutList[ii].pixelY)
+            print(donutList[ii].intraImg.shape, np.sum(donutList[ii].intraImg))
+            print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
+

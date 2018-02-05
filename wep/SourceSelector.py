@@ -149,10 +149,10 @@ class SourceSelector(object):
 	        tableName {[str]} -- Table name. (default: {None})
 		
 		Returns:
-	        neighborStarMap {[list]} -- Information of neighboring stars and candidate stars with 
-	                                   the name of sensor as a list.
-	        starMap {[list]} -- Information of stars with the name of sensor as a list.
-	        wavefrontSensors {[list]} -- Corners of sensor with the name of sensor as a list.
+            {[dict]} -- Information of neighboring stars and candidate stars with the name of 
+                        sensor as a dictionary.
+            {[dict]} -- Information of stars with the name of sensor as a dictionary.
+            {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
 		"""
 
 		# Filter type

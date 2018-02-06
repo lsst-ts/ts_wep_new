@@ -431,8 +431,8 @@ class WEPController(object):
                         realcy = None
                         if ((len(magRatio) == 1 and doDeblending) or (not doDeblending)):
                             imgDeblend = singleSciNeiImg
-                            realcx = allStarPosX[0]
-                            realcy = allStarPosY[0]
+                            realcx = allStarPosX[-1]
+                            realcy = allStarPosY[-1]
                         # Do the deblending or not
                         elif (len(magRatio) == 2 and doDeblending):
                             imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, 
@@ -675,19 +675,19 @@ if __name__ == "__main__":
     # Do the query
     pointing = (0,0)
     cameraRotation = 0.0
-    skyInfoFilePath = "../test/phosimOutput/realComCam/output/skyComCamInfo.txt"
+    skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
 
     neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
                                         pointing, cameraRotation, orientation="all", tableName="TempTable")
 
     # Import the PhoSim simulated image
-    dataDirList = ["realComCam/output/Extra", "realComCam/output/Intra"]
+    dataDirList = ["realComCam2/output/Extra", "realComCam2/output/Intra"]
     for dataDir in dataDirList:
         wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
 
     # Do the ISR
-    extraObsId = 9007000
-    intraObsId = 9007001
+    extraObsId = 9005000
+    intraObsId = 9005001
     obsIdList = [intraObsId, extraObsId]
     sensorNameList = list(starMap.keys())
     for obsId in obsIdList:
@@ -703,7 +703,7 @@ if __name__ == "__main__":
     cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images
-    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=True)
+    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False)
 
     # Check the donut
     for aKey, aItem in donutMap.items():

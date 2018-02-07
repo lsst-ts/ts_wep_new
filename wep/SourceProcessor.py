@@ -250,7 +250,7 @@ class SourceProcessor(object):
 		"""
 
 		# Get the euler angle in z direction (only consider the z rotatioin at this moment)
-		eulerZ = round(float(self.sensorEulerRot[sensorName][0]))
+		eulerZ = round(self.getEulerZinDeg(sensorName))
 
 		# Change the unit to radian
 		eulerZ = eulerZ/180.0*np.pi
@@ -264,6 +264,20 @@ class SourceProcessor(object):
 		newY = centerY + np.sin(eulerZ)*deltaX + np.cos(eulerZ)*deltaY
 
 		return newX, newY
+
+	def getEulerZinDeg(self, abbrevName):
+		"""
+		
+		Get the Euler Z angle of sensor in degree.
+		
+		Arguments:
+			abbrevName {[str]} -- Abbreviated sensor name.
+		
+		Returns:
+			[float] -- Euler Z angle in degree.
+		"""
+
+		return float(self.sensorEulerRot[abbrevName][0])
 
 	def dmXY2CamXY(self, pixelDmX, pixelDmY):
 		"""
@@ -759,6 +773,10 @@ class SourceProcessorTest(unittest.TestCase):
 		self.assertEqual(abbrevDectectorName(expandDetectorName(sciSensorName)), sciSensorName)
 		self.assertEqual(abbrevDectectorName(expandDetectorName(wfsSensorName)), wfsSensorName)
 
+		# Test the Euler Z angle
+		eulerZ = self.sourProc.getEulerZinDeg(wfsSensorName)
+		self.assertEqual(eulerZ, 90.004585)
+
 	def testCamXYtoFieldXY(self):
 
 		# Test the camera XY to field XY
@@ -835,10 +853,11 @@ class SourceProcessorTest(unittest.TestCase):
 		# Collect the data from bright star catalog
 
 		# Get the neighboring star map
-		localDb = SourceSelector("LocalDb", cameraType)
+		localDb = SourceSelector()
+		localDb.configSelector(cameraType=cameraType, dbType="LocalDb", aFilter=aFilterType)
+		localDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=1)
+		
 		localDb.connect(dbAdress)
-		localDb.config(starRadiusInPixel, spacingCoefficient, maxNeighboringStar=1)
-		localDb.setFilter(aFilterType)
 		neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = localDb.getTargetStar(pointing,
 																			cameraRotation, orientation=orientation)
 		localDb.disconnect()

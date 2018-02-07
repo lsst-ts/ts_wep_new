@@ -397,12 +397,19 @@ class WEPController(object):
         Returns:
             [dict] -- Donut image map.
         """
+
+        # Get the corner wavefront sensor names
+        wfsList = self.getWfsList()
         
+        # Collect the donut images and put into the map/ dictionary
         donutMap = {}
         for sensorName in wfsImgMap.keys():
 
+            # Get the abbraviated sensor name
+            abbrevName = abbrevDectectorName(sensorName)
+
             # Configure the source processor
-            self.sourProc.config(sensorName=abbrevDectectorName(sensorName))
+            self.sourProc.config(sensorName=abbrevName)
 
             # Get the bright star id list on specific sensor
             simobjIdList = list(neighborStarMap[sensorName].SimobjID.keys())
@@ -423,8 +430,6 @@ class WEPController(object):
                                                         self.sourProc.getSingleTargetImage(ccdImg, 
                                                             neighborStarMap[sensorName], ii, aFilter)
 
-                        # Add the search algorithm here latter
-
                         # Get the single donut/ deblended image
                         imgDeblend = None
                         realcx = None
@@ -437,6 +442,22 @@ class WEPController(object):
                         elif (len(magRatio) == 2 and doDeblending):
                             imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, 
                                                                   allStarPosX, allStarPosY, magRatio)
+
+                        # Add the search algorithm here latter
+                        
+                        # Rotate the image if the sensor is the corner wavefront sensor
+                        if sensorName in wfsList:
+
+                            # Get the Euler angle
+                            eulerZangle = round(self.sourProc.getEulerZinDeg(abbrevName))
+                            
+                            # Change the sign if the angle < 0
+                            if (eulerZangle < 0):
+                                eulerZangle += 360
+
+                            # Do the rotation of matrix
+                            numOfRot90 = eulerZangle//90
+                            imgDeblend = np.flipud(np.rot90(np.flipud(imgDeblend), numOfRot90))
 
                         # Put the deblended image into the donut map
                         if (imgDeblend is not None):
@@ -557,7 +578,7 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
             # Generate the filepath
             imgType = ".png"
             imgFilePath = os.path.join(saveToDir, imgTitle+imgType)
-            plt.savefig(imgFilePath, dpi=dpi)
+            plt.savefig(imgFilePath, bbox_inches="tight", dpi=dpi)
             plt.close()
         else:
             plt.show()
@@ -634,7 +655,8 @@ if __name__ == "__main__":
     sourProc = SourceProcessor()
 
     # Configurate the source selector
-    cameraType = "comcam"
+    # cameraType = "comcam"
+    cameraType = "lsst"
     dbType = "LocalDb"
     aFilter = "g"
     cameraMJD = 59580.0
@@ -675,32 +697,36 @@ if __name__ == "__main__":
     # Do the query
     pointing = (0,0)
     cameraRotation = 0.0
-    skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
+    # skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
+    skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
 
+    # camOrientation = "all"
+    camOrientation = "corner"
     neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
-                                        pointing, cameraRotation, orientation="all", tableName="TempTable")
+                                        pointing, cameraRotation, orientation=camOrientation, tableName="TempTable")
 
     # Import the PhoSim simulated image
     dataDirList = ["realComCam2/output/Extra", "realComCam2/output/Intra"]
-    for dataDir in dataDirList:
-        wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
+    # for dataDir in dataDirList:
+    #     wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
 
     # Do the ISR
     extraObsId = 9005000
     intraObsId = 9005001
     obsIdList = [intraObsId, extraObsId]
     sensorNameList = list(starMap.keys())
-    for obsId in obsIdList:
-        for sensorName in sensorNameList:
-            wepCntlr.doISR(obsId, sensorName)
+    # for obsId in obsIdList:
+    #     for sensorName in sensorNameList:
+    #         wepCntlr.doISR(obsId, sensorName)
 
     # Get the wfs images
-    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList)
+    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList)
 
     # Try the corner wavefront sensor
-    sensorNameList = wepCntlr.getWfsList()
+    # sensorNameList = wepCntlr.getWfsList()
     wfsDir = "realWfs/output"
-    cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    # cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images
     donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False)
@@ -711,8 +737,12 @@ if __name__ == "__main__":
         for ii in range(len(donutList)):
             print(aKey)
             print(donutList[ii].starId, donutList[ii].pixelX, donutList[ii].pixelY)
-            print(donutList[ii].intraImg.shape, np.sum(donutList[ii].intraImg))
-            print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
+
+            if (donutList[ii].intraImg is not None):
+                print(donutList[ii].intraImg.shape, np.sum(donutList[ii].intraImg))
+
+            if (donutList[ii].extraImg is not None):
+                print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
 
     # Plot the donut images
     saveToDir = "../test/donutImg"

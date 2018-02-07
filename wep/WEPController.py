@@ -1,6 +1,11 @@
 import os, re
 import numpy as np
+
+import matplotlib
+# Must be before importing matplotlib.pyplot or pylab!
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 from astropy.io import fits
 from scipy.ndimage.measurements import center_of_mass
 

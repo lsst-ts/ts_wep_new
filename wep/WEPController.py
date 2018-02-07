@@ -1,8 +1,8 @@
 import os, re
 import numpy as np
 import matplotlib.pyplot as plt
-
 from astropy.io import fits
+from scipy.ndimage.measurements import center_of_mass
 
 from wep.WFDataCollector import WFDataCollector
 from wep.IsrWrapper import getImageData
@@ -444,7 +444,11 @@ class WEPController(object):
                                                                   allStarPosX, allStarPosY, magRatio)
 
                         # Add the search algorithm here latter
-                        
+                        if (len(magRatio) == 1):
+
+                            # Calculate the center of mass first
+                            realcy, realcx = center_of_mass(imgDeblend)
+
                         # Rotate the image if the sensor is the corner wavefront sensor
                         if sensorName in wfsList:
 

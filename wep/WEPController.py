@@ -448,11 +448,9 @@ class WEPController(object):
                             imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, 
                                                                   allStarPosX, allStarPosY, magRatio)
 
-                        # Add the search algorithm here latter
+                        # Search the donut position on camera
                         if (len(magRatio) == 1):
-
-                            # Calculate the center of mass first
-                            realcy, realcx = center_of_mass(imgDeblend)
+                            realcy, realcx = searchDonutPos(imgDeblend)
 
                         # Rotate the image if the sensor is the corner wavefront sensor
                         if sensorName in wfsList:
@@ -500,6 +498,26 @@ class WEPController(object):
 
     def generateMasterImg(self, donutMap):
         pass
+
+
+def searchDonutPos(img):
+    """
+    
+    Search the position of donut on image.
+    
+    Arguments:
+        img {[ndarray]} -- Donut image.
+    
+    Returns:
+        [float] -- y position of donut center in pixel.
+        [float] -- x position of donut center in pixel.
+    """
+
+    # Search the donut position by the center of mass
+    # Need to update this method to the more robust one such as the convolution
+    realcy, realcx = center_of_mass(img)
+
+    return realcy, realcx
 
 def plotDonutImg(donutMap, saveToDir=None, dpi=None):
     """
@@ -740,7 +758,7 @@ if __name__ == "__main__":
     # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images
-    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=True)
+    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False)
 
     # Check the donut
     for aKey, aItem in donutMap.items():

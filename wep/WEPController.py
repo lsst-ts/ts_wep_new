@@ -496,8 +496,64 @@ class WEPController(object):
 
         return donutMap
 
-    def generateMasterImg(self, donutMap):
-        pass
+    def generateMasterImg(self, donutMap, solver="exp", defocalDisInMm=10, zcCol=np.zeros(22), 
+                            opticalModel="offAxis", pixel2Arcsec=0.2):
+
+        # Get the instrument name
+        instName = self.sourSelc.camera.name
+
+        # Add the defocal distance for ComCam
+        if (instName == "comcam"):
+            instName = instName + str(defocalDisInMm)
+
+        for sensorName, donutImgList in donutMap.items():
+
+            # Configure the source processor
+            abbrevName = abbrevDectectorName(sensorName)
+            self.sourProc.config(sensorName=abbrevName)
+
+            intraProjImgList = []
+            extraProjImgList = []
+
+            for donutImg in donutImgList:
+
+                # Get the field x, y
+                pixelX = donutImg.pixelX
+                pixelY = donutImg.pixelY
+
+                fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY, pixel2Arcsec=pixel2Arcsec)
+                fieldXY = (fieldX, fieldY)
+
+                # Set the image
+                if (donutImg.intraImg is not None):
+
+                    # Set the image
+                    self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
+
+                    # Configure the estimator
+                    self.wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
+
+                    # Get the distortion correction (offaxis)
+
+                    # Make the mask list
+
+                    # Make the mask
+
+                    # Do the image cocenter
+
+                    # Do the compensation/ projection
+
+                    # Collect the projected donut
+
+
+                if (donutImg.extraImg is not None):
+                    pass
+
+                # Generate the master donut
+
+                # Put the master donut to donut map
+
+
 
 
 def searchDonutPos(img):
@@ -676,12 +732,16 @@ def _collectDonutImgList(imgList, titleList, pixelXyList, img, starId, aType, pi
     return imgList, titleList, pixelXyList
     
 if __name__ == "__main__":
-    
+
     # Instintiate the components
     sourSelc = SourceSelector()
     dataCollector = WFDataCollector()
     isrWrapper = EimgIsrWrapper()
     sourProc = SourceProcessor()
+
+    instruFolderPath = "../instruData"
+    algoFolderPath = "../algo"
+    wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
     # Configurate the source selector
     cameraType = "comcam"
@@ -718,7 +778,7 @@ if __name__ == "__main__":
     # Initiate the WEP Controller
     wepCntlr = WEPController()
     wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper, 
-                    sourProc=sourProc)
+                    sourProc=sourProc, wfsEsti=wfsEsti)
 
     # Set the database address
     dbAdress = "../test/bsc.db3"
@@ -758,7 +818,7 @@ if __name__ == "__main__":
     # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images
-    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False)
+    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=True)
 
     # Check the donut
     for aKey, aItem in donutMap.items():
@@ -772,6 +832,12 @@ if __name__ == "__main__":
 
             if (donutList[ii].extraImg is not None):
                 print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
+
+    # Generate the master donut images
+    wepCntlr.generateMasterImg(donutMap)
+
+
+
 
     # Plot the donut images
     saveToDir = "../test/donutImg"

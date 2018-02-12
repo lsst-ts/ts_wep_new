@@ -53,10 +53,22 @@ class WFEstimator(object):
 							"comcam10", "comcam15", "comcam20"):
 			raise ValueError("Instrument can not be '%s'." % instName)
 		else:
-			if (not self.ImgIntra.sizeinPix):
-				raise ValueError("The intra-focal image does not be set yet.")
+			sizeinPix = None
+			try:
+				sizeinPix = self.ImgIntra.sizeinPix
+			except Exception as ValueError:
+				pass
+
+			if (sizeinPix is None):
+				try:
+					sizeinPix = self.ImgExtra.sizeinPix
+				except Exception as ValueError:
+					pass
+
+			if (sizeinPix is None):
+				raise ValueError("The de-focal image does not be set yet.")
 			else:
-				self.inst.config(instName, self.ImgIntra.sizeinPix)
+				self.inst.config(instName, sizeinPix)
 
 		if solver not in ("exp", "fft"):
 			raise ValueError("Poisson solver can not be '%s'." % solver)
@@ -92,9 +104,9 @@ class WFEstimator(object):
 
 		# Read the image and assign the type
 		if (defocalType == self.ImgIntra.INTRA):
-			self.ImgIntra.setImg(fieldXY, imageFile=imageFile, atype=defocalType)
+			self.ImgIntra.setImg(fieldXY, image=image, imageFile=imageFile, atype=defocalType)
 		elif (defocalType == self.ImgIntra.EXTRA):
-			self.ImgExtra.setImg(fieldXY, imageFile=imageFile, atype=defocalType)
+			self.ImgExtra.setImg(fieldXY, image=image, imageFile=imageFile, atype=defocalType)
 
 	def calWfsErr(self, tol=1e-3, showZer=False, showPlot=False):
 		"""

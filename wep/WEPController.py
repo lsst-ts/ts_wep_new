@@ -19,6 +19,8 @@ from wep.WFEstimator import WFEstimator
 from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
 from wep.DefocalImage import DefocalImage, DonutImage
 
+from cwfs.Tool import plotImage
+
 class WEPController(object):
 
     def __init__(self):
@@ -498,6 +500,26 @@ class WEPController(object):
 
     def generateMasterImg(self, donutMap, solver="exp", defocalDisInMm=10, zcCol=np.zeros(22), 
                             opticalModel="offAxis", pixel2Arcsec=0.2):
+        """
+        
+        Generate the master donut image map.
+        
+        Arguments:
+            donutMap {[dict]} -- Donut image map.
+        
+        Keyword Arguments:
+            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
+                              intensity equation (TIE). It can be "fft" or "exp" here. 
+                              (default: {"exp"})
+            defocalDisInMm {int} -- Defocal distance in mm. (default: {10})
+            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22). (default: {np.zeros(22)})
+            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", 
+                                    or "offAxis". (default: {"offAxis"})
+            pixel2Arcsec {float} -- Pixel to arcsec. (default: {0.2})
+        
+        Returns:
+            [dict] -- Master donut image map.
+        """
 
         # Get the instrument name
         instName = self.sourSelc.camera.name
@@ -505,7 +527,10 @@ class WEPController(object):
         # Add the defocal distance for ComCam
         if (instName == "comcam"):
             instName = instName + str(defocalDisInMm)
+        else:
+            raise RuntimeError("Only ComCam can generate the master images.")
 
+        masterDonutMap = {}
         for sensorName, donutImgList in donutMap.items():
 
             # Configure the source processor
@@ -527,34 +552,116 @@ class WEPController(object):
                 # Set the image
                 if (donutImg.intraImg is not None):
 
-                    # Set the image
-                    self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
-
-                    # Configure the estimator
-                    self.wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
-
-                    # Get the distortion correction (offaxis)
-
-                    # Make the mask list
-
-                    # Make the mask
-
-                    # Do the image cocenter
-
-                    # Do the compensation/ projection
+                    # Get the projected image
+                    projImg = self.__getProjImg(fieldXY, donutImg.intraImg, self.wfsEsti.ImgIntra.INTRA, 
+                                                instName, solver, zcCol, opticalModel)
 
                     # Collect the projected donut
-
+                    intraProjImgList.append(projImg)
 
                 if (donutImg.extraImg is not None):
-                    pass
+                    
+                    # Get the projected image
+                    projImg = self.__getProjImg(fieldXY, donutImg.extraImg, self.wfsEsti.ImgExtra.EXTRA, 
+                                                instName, solver, zcCol, opticalModel)
 
-                # Generate the master donut
+                    # Collect the projected donut
+                    extraProjImgList.append(projImg)
 
-                # Put the master donut to donut map
+            # Generate the master donut
+            stackIntraImg = self.__stackImg(intraProjImgList)
+            stackExtraImg = self.__stackImg(extraProjImgList)
 
+            # Put the master donut to donut map
+            masterDonut = DefocalImage(intraImg=stackIntraImg, extraImg=stackExtraImg)
+            masterDonutMap[sensorName] = masterDonut
 
+        return masterDonutMap
 
+    def __stackImg(self, imgList):
+        """
+        
+        Stack the images to generate the master image.
+        
+        Arguments:
+            imgList {[list]} -- Image list.
+        
+        Returns:
+            [ndarray] -- Stacked image.
+        """
+
+        if (len(imgList) == 0):
+            stackImg = None
+        else:
+            # Get the minimun image dimension
+            dimXlist = []
+            dimYlist = []
+            for img in imgList:
+                dy, dx = img.shape
+                dimXlist.append(dx)
+                dimYlist.append(dy)
+
+            dimX = np.min(dimXlist)
+            dimY = np.min(dimYlist)
+
+            deltaX = dimX//2
+            deltaY = dimY//2
+
+            # Stack the image by summation directly
+            stackImg = np.zeros([dimY, dimX])
+            for img in imgList:
+                dy, dx = img.shape
+                cy = int(dy/2)
+                cx = int(dx/2)
+                stackImg += img[cy-deltaY:cy+deltaY, cx-deltaX:cx+deltaX]
+
+        return stackImg
+
+    def __getProjImg(self, fieldXY, defocalImg, aType, instName, solver, zcCol, 
+                        opticalModel):
+        """
+        
+        Get the projected image on the pupil.
+        
+        Arguments:
+            fieldXY {[tuple]} -- Position of donut on the focal plane in degree for intra- and 
+                                 extra-focal images.
+            defocalImg {[ndarray]} -- Defocal image.
+            aType {[str]} -- Defocal type.
+            instName {[str]} -- Instrument name.
+            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
+                              intensity equation (TIE). It can be "fft" or "exp" here.
+            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22).
+            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", 
+                                    or "offAxis".
+        
+        Returns:
+            [ndarray] -- Projected image.
+        """
+        
+        # Set the image
+        self.wfsEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
+
+        # Configure the estimator
+        self.wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
+
+        # Get the distortion correction (offaxis)
+        offAxisCorrOrder = self.wfsEsti.algo.parameter["offAxisPolyOrder"]
+        instDir = os.path.dirname(self.wfsEsti.inst.filename)
+        if (aType == self.wfsEsti.ImgIntra.INTRA):
+            img = self.wfsEsti.ImgIntra
+        elif (aType == self.wfsEsti.ImgExtra.EXTRA):
+            img = self.wfsEsti.ImgExtra
+        img.getOffAxisCorr(instDir, offAxisCorrOrder)
+
+        # Do the image cocenter
+        img.imageCoCenter(self.wfsEsti.inst)
+
+        # Do the compensation/ projection
+        img.compensate(self.wfsEsti.inst, self.wfsEsti.algo, zcCol, opticalModel)
+
+        # Return the projected image
+        return img.image
 
 def searchDonutPos(img):
     """
@@ -834,11 +941,19 @@ if __name__ == "__main__":
                 print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
 
     # Generate the master donut images
-    wepCntlr.generateMasterImg(donutMap)
-
-
-
+    masterDonutMap = wepCntlr.generateMasterImg(donutMap)
 
     # Plot the donut images
     saveToDir = "../test/donutImg"
     plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
+
+    # Plot the master donut image
+    for sensorName, img in masterDonutMap.items():
+        fileName = abbrevDectectorName(sensorName)
+        
+        intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
+        plotImage(img.intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
+        
+        extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
+        plotImage(img.extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
+

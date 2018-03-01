@@ -58,7 +58,7 @@ ingestCalibs.py input R*.fits --validity 99999 --output input
 <br/>
 processSimCcd.py input --id --output output
 
-## 4. Use of Module
+## 5. Use of Module
 
 *1. Setup the DM environment:*
 <br/>
@@ -84,7 +84,7 @@ ssh -i $Position_of_SSH_key -L 51433:fatboy.phys.washington.edu:1433 simsuser@ga
 <br/>
 Keep this terminal open for the connection.
 
-## 5. Content
+## 6. Content
 
 *This module contains the following classes:*
 
@@ -97,7 +97,7 @@ Keep this terminal open for the connection.
 - *Middleware: Communicate with subsystems by software abstraction layer (SAL).*
 - *WEPController: High level class to use the WEP package.*
 
-## 6. Target for Future Release
+## 7. Target for Future Release
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*

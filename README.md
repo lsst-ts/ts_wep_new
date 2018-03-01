@@ -19,12 +19,44 @@
 ## 3. Needed Package
 
 - *lsst_sims*
+- *lsst_distrib*
 - *numpy*
 - *scipy*
 - *astropy*
 - *matplotlib*
 - *cython*
 - *scikit-image*
+
+## 4. Setup Tag and Use the obs_lsstSim
+
+- *0. Install the lsst_sims by "eups distrib install lsst_sims -t sims".*
+- *1. Install the lsst_distrib by "eups distrib install lsst_distrib -t sims".*
+- *2. Clone the repository (e.g. obs_lsstSim) in some other directory.*
+- *3. Declare that clone to eups by cd'ing into the directory and running "eups declare -r . package_name my_version -t my_tag". EUPS is restrictive about what names are valid for versions and tags. Your username is always legal, so "eups declare -r . obs_lsstSim ttsai -t ttsai" should work.*
+- *4. Setup the package. You will need to use something like "setup sims_catUtils -t ttsai -t sims".  That way, any package that does not have a "ttsai" tag available will be setup with the "sims" tag.*
+- *5. Use "scons" under the repository to build it.*
+<br/>
+*Use the obs_lsstSim*
+<br/>
+- make the input repository
+<br/>
+mkdir input
+<br/>
+echo 'lsst.obs.lsstSim.LsstSimMapper' > input/_mapper
+<br/>
+- ingest the images
+<br/>
+ingestSimImages.py input ../Raw/lsst_*.fits
+<br/>
+- the next two steps are time consuming and really only need to be done once.
+<br/>
+makeGainImages.py
+<br/>
+ingestCalibs.py input R*.fits --validity 99999 --output input
+<br/>
+- process the images
+<br/>
+processSimCcd.py input --id --output output
 
 ## 4. Use of Module
 

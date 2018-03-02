@@ -498,6 +498,83 @@ class WEPController(object):
 
         return donutMap
 
+    def genMasterImgSglCcd(self, sensorName, donutImgList, solver="exp", defocalDisInMm=10, 
+                               zcCol=np.zeros(22), opticalModel="offAxis", pixel2Arcsec=0.2):
+        """
+        
+        Generate the master donut image on signle CCD.
+        
+        Arguments:
+            sensorName {[str]} -- Sensor name.
+            donutImgList {[list]} -- List of donut images.
+        
+        Keyword Arguments:
+            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
+                              intensity equation (TIE). It can be "fft" or "exp" here. 
+                              (default: {"exp"})
+            defocalDisInMm {int} -- Defocal distance in mm. (default: {10})
+            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22). (default: {np.zeros(22)})
+            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", 
+                                    or "offAxis". (default: {"offAxis"})
+            pixel2Arcsec {float} -- Pixel to arcsec. (default: {0.2})
+        
+        Returns:
+            [DefocalImage] -- Master donut image.
+        """
+
+        # Get the instrument name
+        instName = self.sourSelc.camera.name
+
+        # Add the defocal distance for ComCam
+        if (instName == "comcam"):
+            instName = instName + str(defocalDisInMm)
+        else:
+            raise RuntimeError("Only ComCam can generate the master images.")
+
+        # Configure the source processor
+        abbrevName = abbrevDectectorName(sensorName)
+        self.sourProc.config(sensorName=abbrevName)
+
+        intraProjImgList = []
+        extraProjImgList = []
+
+        for donutImg in donutImgList:
+
+            # Get the field x, y
+            pixelX = donutImg.pixelX
+            pixelY = donutImg.pixelY
+
+            fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY, pixel2Arcsec=pixel2Arcsec)
+            fieldXY = (fieldX, fieldY)
+
+            # Set the image
+            if (donutImg.intraImg is not None):
+
+                # Get the projected image
+                projImg = self.__getProjImg(fieldXY, donutImg.intraImg, self.wfsEsti.ImgIntra.INTRA, 
+                                            instName, solver, zcCol, opticalModel)
+
+                # Collect the projected donut
+                intraProjImgList.append(projImg)
+
+            if (donutImg.extraImg is not None):
+                
+                # Get the projected image
+                projImg = self.__getProjImg(fieldXY, donutImg.extraImg, self.wfsEsti.ImgExtra.EXTRA, 
+                                            instName, solver, zcCol, opticalModel)
+
+                # Collect the projected donut
+                extraProjImgList.append(projImg)
+
+        # Generate the master donut
+        stackIntraImg = self.__stackImg(intraProjImgList)
+        stackExtraImg = self.__stackImg(extraProjImgList)
+
+        # Put the master donut to donut map
+        masterDonut = DefocalImage(intraImg=stackIntraImg, extraImg=stackExtraImg)
+
+        return masterDonut
+
     def generateMasterImg(self, donutMap, solver="exp", defocalDisInMm=10, zcCol=np.zeros(22), 
                             opticalModel="offAxis", pixel2Arcsec=0.2):
         """
@@ -521,59 +598,15 @@ class WEPController(object):
             [dict] -- Master donut image map.
         """
 
-        # Get the instrument name
-        instName = self.sourSelc.camera.name
-
-        # Add the defocal distance for ComCam
-        if (instName == "comcam"):
-            instName = instName + str(defocalDisInMm)
-        else:
-            raise RuntimeError("Only ComCam can generate the master images.")
-
         masterDonutMap = {}
         for sensorName, donutImgList in donutMap.items():
 
-            # Configure the source processor
-            abbrevName = abbrevDectectorName(sensorName)
-            self.sourProc.config(sensorName=abbrevName)
-
-            intraProjImgList = []
-            extraProjImgList = []
-
-            for donutImg in donutImgList:
-
-                # Get the field x, y
-                pixelX = donutImg.pixelX
-                pixelY = donutImg.pixelY
-
-                fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY, pixel2Arcsec=pixel2Arcsec)
-                fieldXY = (fieldX, fieldY)
-
-                # Set the image
-                if (donutImg.intraImg is not None):
-
-                    # Get the projected image
-                    projImg = self.__getProjImg(fieldXY, donutImg.intraImg, self.wfsEsti.ImgIntra.INTRA, 
-                                                instName, solver, zcCol, opticalModel)
-
-                    # Collect the projected donut
-                    intraProjImgList.append(projImg)
-
-                if (donutImg.extraImg is not None):
-                    
-                    # Get the projected image
-                    projImg = self.__getProjImg(fieldXY, donutImg.extraImg, self.wfsEsti.ImgExtra.EXTRA, 
-                                                instName, solver, zcCol, opticalModel)
-
-                    # Collect the projected donut
-                    extraProjImgList.append(projImg)
-
-            # Generate the master donut
-            stackIntraImg = self.__stackImg(intraProjImgList)
-            stackExtraImg = self.__stackImg(extraProjImgList)
+            # Get the master donut on single CCD
+            masterDonut = self.genMasterImgSglCcd(sensorName, donutImgList, solver=solver, 
+                                                defocalDisInMm=defocalDisInMm, zcCol=zcCol, 
+                                        opticalModel=opticalModel, pixel2Arcsec=pixel2Arcsec)
 
             # Put the master donut to donut map
-            masterDonut = DefocalImage(intraImg=stackIntraImg, extraImg=stackExtraImg)
             masterDonutMap[sensorName] = masterDonut
 
         return masterDonutMap

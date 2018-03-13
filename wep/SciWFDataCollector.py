@@ -1,8 +1,28 @@
 import os, subprocess, unittest
 
-from wep.WFDataCollector import WFDataCollector
+class SciWFDataCollector(object):
 
-class SciWFDataCollector(WFDataCollector):
+    def __init__(self):
+        """
+        
+        Initialize the SciWFDataCollector class.
+        """
+        
+        self.pathOfRawData = None
+        self.destinationPath = None
+
+    def config(self, pathOfRawData=None, destinationPath=None):
+        """
+        
+        Do the configuration.
+        
+        Keyword Arguments:
+            pathOfRawData {[str]} -- Path of raw data. (default: {None})
+            destinationPath {[str]} -- Path to the destination. (default: {None})
+        """
+        
+        self.pathOfRawData = pathOfRawData
+        self.destinationPath = destinationPath
 
     def setMapper(self):
         """
@@ -10,7 +30,8 @@ class SciWFDataCollector(WFDataCollector):
         Set the camera mapper as LsstSimMapper.
         """
 
-        try:
+        if (self.destinationPath is not None):
+
             command = "echo"
 
             # Set the camera mapper as LsstSimMapper
@@ -19,17 +40,18 @@ class SciWFDataCollector(WFDataCollector):
             # Execute the command from shell
             runProgram(command, argstring=argstring)
 
-        except Exception as AttributeError:
+        else:
             print("Can not set _mapper becasue of no destination directory path.")
 
-    def ingestCalib(self):
+    def ingestCalibs(self):
         """
         
         Make the faked flat files and ingest them as the calibration files. This step is 
-        time-
+        time-consuming and only needs to do once.
         """
         
-        try:
+        if (self.destinationPath is not None):
+
             # Make the gain image files
             command = "makeGainImages.py"
             runProgram(command)
@@ -42,33 +64,31 @@ class SciWFDataCollector(WFDataCollector):
                                                                      self.destinationPath)
             runProgram(command, argstring=argstring)
 
-        except Exception as AttributeError:
+        else:
             print("Can not ingest calibration files becasue of no destination directory path.")
 
-    def importPhoSimDataToButler(self, dataDir, fitsFileArg="lsst_*.fits.gz"):
+    def ingestSimImages(self, fitsFileArg="lsst_*.fits.gz"):
         """
         
         Import the PhoSim simulated data to match with the data butler to use. This means the 
         registry.sqlite3 repo will be inserted with the meta data if necessary.
         
-        Arguments:
-            dataDir {[str]} -- PhoSim FITS data directory.
-        
         Keyword Arguments:
             fitsFileArg {[str]} -- Fits file argument. (default: {"lsst_*.fits.gz"})
         """
         
-        try:
+        if (self.pathOfRawData is not None) and (self.destinationPath is not None):
+
             # Ingest the simulation images
             command = "ingestSimImages.py"
 
             # Set the input directory and phosim raw data
-            argstring = "%s %s" % (self.destinationPath, os.path.join(dataDir, fitsFileArg))
+            argstring = "%s %s" % (self.destinationPath, os.path.join(self.pathOfRawData, fitsFileArg))
 
             # Execute the command from shell
             runProgram(command, argstring=argstring)
             
-        except Exception as AttributeError:
+        else:
             print("Can not ingest fits files becasue of no destination directory path.")
 
 def runProgram(command, binDir=None, argstring=None):
@@ -123,16 +143,16 @@ class SciWFDataCollectorTest(unittest.TestCase):
         # Test to create the _mapper file
         sciWfDataCollector.setMapper()
 
-        # Do the importPhoSimDataToButler()
-
-        # Do the ingestCalib()
-
         # Check the file content
         aFile = open(os.path.join(self.tempDir, "_mapper"), "r")
         content = aFile.read()
         aFile.close()
         answer = "lsst.obs.lsstSim.LsstSimMapper"
         self.assertEqual(content.split()[0], answer)
+
+        # Do the ingestSimImages()
+
+        # Do the ingestCalibs()
 
         # Remove the file and directory
         argstring = "-rf %s" % self.tempDir
@@ -142,22 +162,3 @@ if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
-
-    # # Define the path
-    # destinationPath = "/home/ttsai/Document/phosimObsData/input"
-    # phosimRawDir = "/home/ttsai/Document/phosimObsData/raw"
-
-    # # Initiate the collector object
-    # sciWfDataCollector = SciWFDataCollector()
-
-    # # Do the configuration
-    # sciWfDataCollector.config(destinationPath=destinationPath)
-
-    # # Set the mapper in the directory
-    # sciWfDataCollector.setMapper()
-
-    # # Ingest the phosim images
-    # # sciWfDataCollector.importPhoSimDataToButler(phosimRawDir)
-
-    # # Do the calibration
-    # sciWfDataCollector.ingestCalib()

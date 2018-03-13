@@ -5,16 +5,18 @@ import lsst.daf.persistence as dafPersistence
 from isr.PhoSimImgAdaptor import PhoSimImgAdaptor
 from isr.LocalDatabase import LocalDatabase
 
-class WFDataCollector(object):
+from wep.SciWFDataCollector import SciWFDataCollector
+
+# This class will be removed when SciWFDataCollector support corner WFS.
+class WFDataCollector(SciWFDataCollector):
 
 	def __init__(self):
 		"""
 		
 		Initialize the WFDataCollector class.
 		"""
-		
-		self.pathOfRawData = None
-		self.destinationPath = None
+
+		super(WFDataCollector, self).__init__()
 		self.db = None
 		self.dbAdress = None
 		self.butler = None
@@ -61,10 +63,10 @@ class WFDataCollector(object):
 		if (value is not None):
 			setattr(self, attrName, value)
 
-	def importPhoSimDataToButler(self, dataDir, obsId=None, aFilter=None, atype=None, overwrite=False):
+	def ingestSimImages(self, dataDir, obsId=None, aFilter=None, atype=None, overwrite=False):
 		"""
 		
-		Import the PhoSim simulated data to match with the data butler to use. This means the registry.sqlite3 
+		Ingest the PhoSim simulated data to match with the data butler to use. This means the registry.sqlite3 
 		repo will be inserted with the meta data if necessary.
 		
 		Arguments:
@@ -251,7 +253,7 @@ class WFDataCollectorTest(unittest.TestCase):
 		# Import the PhoSim simulated image
 		dataDir = "real/output"
 		atype = "raw"
-		self.wfDataCollector.importPhoSimDataToButler(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, overwrite=False)
+		self.wfDataCollector.ingestSimImages(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, overwrite=False)
 
 		# Search the visit id again
 		self.wfDataCollector.db.connect(self.wfDataCollector.dbAdress)

@@ -5,6 +5,10 @@ from wep.SciWFDataCollector import runProgram
 class SciIsrWrapper(object):
 
     def __init__(self):
+        """
+        
+        Initialize the SciIsrWrapper class.        
+        """
 
         self.pathData = None
         self.outputPath = None

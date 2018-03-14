@@ -43,7 +43,31 @@ class SciWFDataCollector(object):
         else:
             print("Can not set _mapper becasue of no destination directory path.")
 
-    def ingestCalibs(self):
+    def getCalibsData(self, destDir):
+        """
+        
+        Get the calibration products. At this moment, it uses the DM cammand line task 
+        (makeGainImages.py) to simulate this process and there is only the bias calibration
+        products. This step is time-consuming and only needs to do once.
+        
+        Arguments:
+            destDir {[str]} -- Destination directory for calibration products.
+        """
+
+        # Get the working directory now
+        workDir = os.getcwd()
+
+        # Change to the destination directory
+        os.chdir(destDir)
+
+        # Use the DM command line task to simulate the gain images
+        command = "makeGainImages.py"
+        runProgram(command)
+
+        # Change back to the correct working directory
+        os.chdir(workDir)
+
+    def ingestCalibs(self, calibsDir):
         """
         
         Make the faked flat files and ingest them as the calibration files. This step is 
@@ -52,16 +76,15 @@ class SciWFDataCollector(object):
         
         if (self.destinationPath is not None):
 
-            # Make the gain image files
-            command = "makeGainImages.py"
-            runProgram(command)
-
             # Ingest the calibration files
             command = "ingestCalibs.py"
 
+            # Calibration products filepath
+            calibsDataPath = os.path.join(calibsDir, "R*.fits")
+
             # Set the argument to ingest the calibration files
-            argstring = "%s R*.fits --validity 99999 --output %s" % (self.destinationPath, 
-                                                                     self.destinationPath)
+            argstring = "%s %s --validity 99999 --output %s" % (self.destinationPath, 
+                                                    calibsDataPath, self.destinationPath)
             runProgram(command, argstring=argstring)
 
         else:
@@ -152,6 +175,8 @@ class SciWFDataCollectorTest(unittest.TestCase):
 
         # Do the ingestSimImages()
 
+        # Do the getCalibsData()
+
         # Do the ingestCalibs()
 
         # Remove the file and directory
@@ -162,3 +187,28 @@ if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
+
+    # # Directory
+    # pathOfRawData = "/home/ttsai/Document/phosimObsData/raw"
+    # destinationPath = "/home/ttsai/Document/phosimObsData/input"
+    # calibDestDir = "/home/ttsai/Document/phosimObsData/calibs"
+
+    # # Instantiate
+    # sciWfDataCollector = SciWFDataCollector()
+    # sciWfDataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
+
+    # # Get the mapper
+    # # sciWfDataCollector.setMapper()
+
+    # # Import the raw data
+    # # sciWfDataCollector.ingestSimImages()
+
+    # # Get the calibration products
+    # # sciWfDataCollector.getCalibsData(calibDestDir)
+
+    # # Ingest the calibration products
+    # # sciWfDataCollector.ingestCalibs(calibDestDir)
+
+
+
+

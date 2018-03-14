@@ -9,7 +9,7 @@ from deblend.BlendedImageDecorator import BlendedImageDecorator
 from isr.changePhoSimInstrument import readData
 
 from wep.SourceSelector import SourceSelector
-from wep.IsrWrapper import poltExposureImage
+from wep.SciIsrWrapper import poltExposureImage
 
 class SourceProcessor(object):
 

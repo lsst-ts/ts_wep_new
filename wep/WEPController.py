@@ -9,9 +9,12 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from scipy.ndimage.measurements import center_of_mass
 
+from wep.SciWFDataCollector import SciWFDataCollector
 from wep.WFDataCollector import WFDataCollector
-from wep.IsrWrapper import getImageData
+
+from wep.SciIsrWrapper import SciIsrWrapper, getImageData
 from wep.EimgIsrWrapper import EimgIsrWrapper
+
 from wep.SourceSelector import SourceSelector
 from wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from wep.WFEstimator import WFEstimator
@@ -155,16 +158,15 @@ class WEPController(object):
         
         return neighborStarMap, starMap, wavefrontSensors
 
-    def importPhoSimDataToButler(self, dataDir, atype="raw", overwrite=False):
+    def ingestSimImages(self, fitsFileArg="lsst_*.fits.gz", dataDir=None, atype="raw", overwrite=False):
         """
         
         Import the PhoSim simulated data to match with the data butler to use. This means the 
         registry.sqlite3 repo will be inserted with the meta data if necessary.
         
-        Arguments:
-            dataDir {[str]} -- PhoSim FITS data directory.
-        
         Keyword Arguments:
+            fitsFileArg {[str]} -- Fits file argument. (default: {"lsst_*.fits.gz"})
+            dataDir {[str]} -- PhoSim FITS data directory. (default: {None})
             atype {[str]} -- Dataset type. (default: {"raw"})
             overwrite {[boolean]} -- Overwrite the existed files or not. (default: {False})
         
@@ -172,28 +174,33 @@ class WEPController(object):
             ValueError -- Not allowed type ("raw", "bias", "dark", "flat").
         """
 
-        # Get all files in the directory
-        fileList = self.__getRawFileList(dataDir)
+        if (isinstance(self.dataCollector, SciWFDataCollector)):
+            self.dataCollector.ingestSimImages(fitsFileArg=fitsFileArg)
 
-        # Find the obsId and aFilter
-        obsIdList = []
-        for fileName in fileList:
-            m = re.match(r"\S*_(\d*)_f(\d)_\S*", fileName)
-            if (m is not None):
-                obsIdList.append(m.groups())
+        elif (isinstance(self.dataCollector, WFDataCollector)):
 
-        # Get the unique list
-        obsIdList = list(set(obsIdList))
-        if (len(obsIdList) > 1):
-            raise RuntimeError("There are more than one unique ObdId and filter in directory.")
-        data = obsIdList[0]
+            # Get all files in the directory
+            fileList = self.__getRawFileList(dataDir)
 
-        # Import to butler
-        phosimFilterID = {"0": "u", "1": "g", "2": "r", "3": "i", "4": "z", "5": "y"}
-        obsId = int(data[0])
-        aFilter = phosimFilterID[data[1]]
-        self.dataCollector.importPhoSimDataToButler(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, 
-                                                    overwrite=overwrite)
+            # Find the obsId and aFilter
+            obsIdList = []
+            for fileName in fileList:
+                m = re.match(r"\S*_(\d*)_f(\d)_\S*", fileName)
+                if (m is not None):
+                    obsIdList.append(m.groups())
+
+            # Get the unique list
+            obsIdList = list(set(obsIdList))
+            if (len(obsIdList) > 1):
+                raise RuntimeError("There are more than one unique ObdId and filter in directory.")
+            data = obsIdList[0]
+
+            # Import to butler
+            phosimFilterID = {"0": "u", "1": "g", "2": "r", "3": "i", "4": "z", "5": "y"}
+            obsId = int(data[0])
+            aFilter = phosimFilterID[data[1]]
+            self.dataCollector.ingestSimImages(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, 
+                                                        overwrite=overwrite)
 
     def __getRawFileList(self, dataDir):
         """
@@ -239,8 +246,11 @@ class WEPController(object):
         if (raft is not None):
 
             # Do the ISR
-            self.isrWrapper.doISR(visit, snap, raft, sensor, channel=None, 
-                        fakeDatasetType=fakeDatasetType, outputDatasetType=outputDatasetType)
+            if (isinstance(self.isrWrapper, SciIsrWrapper)):
+                self.isrWrapper.doISR(visit, snap, raft, sensor)
+            else:
+                self.isrWrapper.doISR(visit, snap, raft, sensor, channel=None, 
+                            fakeDatasetType=fakeDatasetType, outputDatasetType=outputDatasetType)
         else:
             raise RuntimeError("Sensor name: '%s' is not allowed." % sensorName)
 
@@ -875,8 +885,8 @@ if __name__ == "__main__":
 
     # Instintiate the components
     sourSelc = SourceSelector()
-    dataCollector = WFDataCollector()
-    isrWrapper = EimgIsrWrapper()
+    dataCollector = SciWFDataCollector()
+    isrWrapper = SciIsrWrapper()
     sourProc = SourceProcessor()
 
     instruFolderPath = "../instruData"
@@ -884,8 +894,8 @@ if __name__ == "__main__":
     wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
     # Configurate the source selector
-    cameraType = "comcam"
-    # cameraType = "lsst"
+    # cameraType = "comcam"
+    cameraType = "lsst"
     dbType = "LocalDb"
     aFilter = "g"
     cameraMJD = 59580.0
@@ -899,20 +909,27 @@ if __name__ == "__main__":
     sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
 
     # Configurate the wfs data collector
-    pathOfRawData = "../test/phosimOutput"
-    destinationPath = "../test"
-    butlerInputs = "../test"
-    butlerOutputs = "../test"
-    regisAdress = "../test/registry.sqlite3"
-    dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
-                dbAdress=regisAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
+
+    # pathOfRawData = "../test/phosimOutput"
+    # destinationPath = "../test"
+    # butlerInputs = "../test"
+    # butlerOutputs = "../test"
+    # regisAdress = "../test/registry.sqlite3"
+    # dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
+    #             dbAdress=regisAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
+
+    pathOfRawData = "/home/ttsai/Document/phosimObsData/raw"
+    destinationPath = "/home/ttsai/Document/phosimObsData/input"
+    dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
 
     # Configurate the ISR wrapper
-    isrWrapper.configWrapper(inputs=butlerInputs, outputs=butlerOutputs)
+    postIsrImgDir = "/home/ttsai/Document/phosimObsData/output"
+    isrWrapper.configWrapper(inputs=destinationPath, outputs=postIsrImgDir)
+    isrWrapper.configBulter(postIsrImgDir)
 
     # Configurate the source processor
     focalPlaneFolder = "../test"
-    donutRadiusInPixel=63
+    donutRadiusInPixel = 63
     sourProc.config(donutRadiusInPixel=donutRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder)
 
     # Initiate the WEP Controller
@@ -926,7 +943,8 @@ if __name__ == "__main__":
     # Do the query
     pointing = (0,0)
     cameraRotation = 0.0
-    skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
+    skyInfoFilePath = "/home/ttsai/Document/phosimObsData/skyInfo/skyLsstFamInfo.txt"
+    # skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
     # skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
 
     camOrientation = "all"
@@ -934,59 +952,64 @@ if __name__ == "__main__":
     neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
                                         pointing, cameraRotation, orientation=camOrientation, tableName="TempTable")
 
-    # Import the PhoSim simulated image
-    dataDirList = ["realComCam2/output/Extra", "realComCam2/output/Intra"]
-    for dataDir in dataDirList:
-        wepCntlr.importPhoSimDataToButler(dataDir, atype="raw", overwrite=False)
-
-    # Do the ISR
+    # Observation IDs
     extraObsId = 9005000
     intraObsId = 9005001
-    obsIdList = [intraObsId, extraObsId]
+
+    # Import the PhoSim simulated image
+    # for obsId in [extraObsId, intraObsId]:
+    #     fitsFileArg = "lsst_*%d*.fits.gz" % obsId
+    #     wepCntlr.ingestSimImages(fitsFileArg=fitsFileArg)
+
+    # dataDirList = ["realComCam2/output/Extra", "realComCam2/output/Intra"]
+    # for dataDir in dataDirList:
+    #     wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
+
+    # Do the ISR
     sensorNameList = list(starMap.keys())
-    for obsId in obsIdList:
+    for obsId in [intraObsId, extraObsId]:
         for sensorName in sensorNameList:
             wepCntlr.doISR(obsId, sensorName)
 
-    # Get the wfs images
-    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList)
+    # # Get the wfs images
+    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList)
 
-    # Try the corner wavefront sensor
-    # sensorNameList = wepCntlr.getWfsList()
-    # wfsDir = "realWfs/output"
-    # cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    # # Try the corner wavefront sensor
+    # # sensorNameList = wepCntlr.getWfsList()
+    # # wfsDir = "realWfs/output"
+    # # cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    # # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
-    # Get the donut images
-    donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=True)
+    # # Get the donut images
+    # donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=True)
 
-    # Check the donut
-    for aKey, aItem in donutMap.items():
-        donutList = aItem
-        for ii in range(len(donutList)):
-            print(aKey)
-            print(donutList[ii].starId, donutList[ii].pixelX, donutList[ii].pixelY)
+    # # Check the donut
+    # for aKey, aItem in donutMap.items():
+    #     donutList = aItem
+    #     for ii in range(len(donutList)):
+    #         print(aKey)
+    #         print(donutList[ii].starId, donutList[ii].pixelX, donutList[ii].pixelY)
 
-            if (donutList[ii].intraImg is not None):
-                print(donutList[ii].intraImg.shape, np.sum(donutList[ii].intraImg))
+    #         if (donutList[ii].intraImg is not None):
+    #             print(donutList[ii].intraImg.shape, np.sum(donutList[ii].intraImg))
 
-            if (donutList[ii].extraImg is not None):
-                print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
+    #         if (donutList[ii].extraImg is not None):
+    #             print(donutList[ii].extraImg.shape, np.sum(donutList[ii].extraImg))
 
-    # Generate the master donut images
-    masterDonutMap = wepCntlr.generateMasterImg(donutMap)
+    # # Generate the master donut images
+    # masterDonutMap = wepCntlr.generateMasterImg(donutMap)
 
-    # Plot the donut images
-    saveToDir = "../test/donutImg"
-    plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
+    # # Plot the donut images
+    # saveToDir = "../test/donutImg"
+    # plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
 
-    # Plot the master donut image
-    for sensorName, img in masterDonutMap.items():
-        fileName = abbrevDectectorName(sensorName)
+    # # Plot the master donut image
+    # for sensorName, img in masterDonutMap.items():
+    #     fileName = abbrevDectectorName(sensorName)
         
-        intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
-        plotImage(img.intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
+    #     intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
+    #     plotImage(img.intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
         
-        extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
-        plotImage(img.extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
+    #     extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
+    #     plotImage(img.extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
 

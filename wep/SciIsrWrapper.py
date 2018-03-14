@@ -139,7 +139,7 @@ def getImageData(image):
     # Return the data in numpy array
     return data
 
-def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None, vmax=None):
+def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None, vmax=None, saveFilePath=None):
     """
     
     Plot the exposure image.
@@ -148,11 +148,12 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None, vm
         exposure {[exposure]} -- Data butler of exposure image.
     
     Keyword Arguments:
-        name {string} -- Image title name (default: {""}).
-        scale {string} -- Scale of image map (log or linear) (default: {"log"}).
-        cmap {string} -- Color map definition (default: {"gray"}).
-        vmin {[float]} -- Mininum value to show. This normalizes the luminance data (default: {None}).
-        vmax {[float]} -- Maximum value to show. This normalizes the luminance data (default: {None}).      
+        name {[str]} -- Image title name. (default: {""})
+        scale {[str]} -- Scale of image map (log or linear). (default: {"log"})
+        cmap {[str]} -- Color map definition. (default: {"gray"})
+        vmin {[float]} -- Mininum value to show. This normalizes the luminance data. (default: {None})
+        vmax {[float]} -- Maximum value to show. This normalizes the luminance data. (default: {None})
+        saveFilePath {[str]} -- Save image to file path. (default: {None})
     """
     # Get the image data
     img = getImageData(exposure)
@@ -176,9 +177,14 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None, vm
     plt.imshow(img, cmap=cmap, origin="lower", norm=plotNorm, vmin=vmin, vmax=vmax)
     plt.colorbar()
     plt.title(name)
-    plt.show()
 
-def plotHist(exposure, name="", numOfBin=1000, log=False):
+    if (saveFilePath is not None):
+        plt.savefig(saveFilePath, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
+
+def plotHist(exposure, name="", numOfBin=1000, log=False, saveFilePath=None):
     """
     
     Plot the histogram.
@@ -191,6 +197,7 @@ def plotHist(exposure, name="", numOfBin=1000, log=False):
         numOfBin {int} -- Number of bins (default: {1000}).
         log {bool} -- The histogram axis will be set to a log scale if log=True 
                       (default: {False}).
+        saveFilePath {[str]} -- Save image to file path. (default: {None})
     """
 
     # Get the image data
@@ -200,7 +207,12 @@ def plotHist(exposure, name="", numOfBin=1000, log=False):
     plt.figure()
     plt.hist(img.flatten(), bins=int(numOfBin), log=log)
     plt.title(name)
-    plt.show()
+
+    if (saveFilePath is not None):
+        plt.savefig(saveFilePath, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
 
 class SciIsrWrapperTest(unittest.TestCase):
 
@@ -236,6 +248,19 @@ class SciIsrWrapperTest(unittest.TestCase):
         isrWrapper.configBulter(self.pathData)
         butlerDataRaw = isrWrapper.getButlerData(obsId, snap, raft, sensor, channel=channel, atype="raw")
         self.assertEqual(butlerDataRaw.getMetadata().get("GAIN"), 1.83546)
+
+        # Test to get the images
+        saveFilePath1 = os.path.join(self.outputPath, "testImg1.png")
+        poltExposureImage(getImageData(butlerDataRaw), saveFilePath=saveFilePath1)
+
+        saveFilePath2 = os.path.join(self.outputPath, "testImg2.png")
+        plotHist(getImageData(butlerDataRaw), saveFilePath=saveFilePath2)
+
+        self.assertTrue(os.path.isfile(saveFilePath1))
+        self.assertTrue(os.path.isfile(saveFilePath2))
+
+        os.remove(saveFilePath1)
+        os.remove(saveFilePath2)
 
         # Test to get the image data
         data = getImageData(butlerDataRaw)

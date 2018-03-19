@@ -31,7 +31,7 @@ class DefocalImage(object):
 
 class DonutImage(DefocalImage):
 
-    def __init__(self, starId, pixelX, pixelY, intraImg=None, extraImg=None):
+    def __init__(self, starId, pixelX, pixelY, fieldX, fieldY, intraImg=None, extraImg=None):
         """
         
         Initialize the DonutImage class.
@@ -40,6 +40,8 @@ class DonutImage(DefocalImage):
             starId {[int]} -- star ID.
             pixelX {[float]} -- Pixel x.
             pixelY {[float]} -- Pixel y.
+            fieldX {[float]} -- Field x in degree.
+            fieldY {[float]} -- Field y in degree.
         
         Keyword Arguments:
             intraImg {[ndarray]} -- Intra-defocal image. (default: {None})
@@ -49,6 +51,8 @@ class DonutImage(DefocalImage):
         self.starId = int(starId)
         self.pixelX = pixelX
         self.pixelY = pixelY
+        self.fieldX = fieldX
+        self.fieldY = fieldY
         super(DonutImage, self).__init__(intraImg=intraImg, extraImg=extraImg)
 
 if __name__ == "__main__":

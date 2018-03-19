@@ -48,12 +48,12 @@ class DonutImage(DefocalImage):
             extraImg {[ndarray]} -- Extra-defocal image. (default: {None})
         """
 
+        super(DonutImage, self).__init__(intraImg=intraImg, extraImg=extraImg)
         self.starId = int(starId)
         self.pixelX = pixelX
         self.pixelY = pixelY
         self.fieldX = fieldX
         self.fieldY = fieldY
-        super(DonutImage, self).__init__(intraImg=intraImg, extraImg=extraImg)
 
 if __name__ == "__main__":
     pass

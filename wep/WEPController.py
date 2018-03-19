@@ -1,4 +1,4 @@
-import os, re
+import os, re, time
 import numpy as np
 
 import matplotlib
@@ -740,17 +740,29 @@ class WEPController(object):
             instName = instName + str(int(10*defocalDisInMm))
 
         # Configure the wavefront estimator
-        wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
+        self.wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
 
         # Calculate the wavefront error
         for sensorName, donutImgList in donutMap.items():
 
-            pass
+            for donutImg in donutImgList:
 
-            # Configure the source processor
-            # abbrevName = abbrevDectectorName(sensorName)
-            # self.sourProc.config(sensorName=abbrevName)
+                # Field XY position
+                fieldXY = [donutImg.fieldX, donutImg.fieldY]
 
+                # Set the images
+                self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
+                self.wfsEsti.setImg(fieldXY, image=donutImg.extraImg, defocalType="extra")
+
+                # Calculate the wavefront error
+                t0 = time.time()
+                zer4UpNm = self.wfsEsti.calWfsErr()
+                t1 = time.time()
+                print("Calculation time is %.3f sec." % (t1-t0))
+
+                print(sensorName)
+                print(donutImg.starId)
+                print(zer4UpNm)
 
 
 def searchDonutPos(img):
@@ -1063,4 +1075,4 @@ if __name__ == "__main__":
         plotImage(img.extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
 
     # Calculate the wavefront error
-    # wepCntlr.calcWfErr(donutMap, solver="exp", opticalModel="offAxis", defocalDisInMm=1.0)
+    wepCntlr.calcWfErr(donutMap, solver="exp", opticalModel="offAxis", defocalDisInMm=1.0)

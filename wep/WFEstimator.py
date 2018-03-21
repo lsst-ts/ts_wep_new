@@ -13,8 +13,8 @@ class WFEstimator(object):
         Initialize the WFEstimator class.
 
         Arguments:
-        	instruFolderPath {[str]} -- Path to instrument directory.
-        	algoFolderPath {[str]} -- Path to algorithm directory.
+            instruFolderPath {[str]} -- Path to instrument directory.
+            algoFolderPath {[str]} -- Path to algorithm directory.
         """
 
         self.algo = Algorithm(algoFolderPath)
@@ -23,6 +23,8 @@ class WFEstimator(object):
         self.ImgExtra = CompensationImageDecorator()
         self.opticalModel = None
 
+        self.sizeInPix = None
+
     def reset(self):
         """
         
@@ -30,52 +32,48 @@ class WFEstimator(object):
         """
         self.algo.reset()
 
-    def config(self, solver="exp", instName="lsst", opticalModel="offAxis", debugLevel=0):
+    def config(self, solver="exp", instName="lsst", opticalModel="offAxis", defocalDisInMm=None, 
+                sizeInPix=120, debugLevel=0):
         """
-
+        
         Configure the TIE solver.
-
+        
         Keyword Arguments:
-        	solver {str} -- Algorithm to solve the Poisson's equation in the transport of 
-        					intensity equation (TIE). It can be "fft" or "exp" here. 
-        					(default: {"exp"})
-        	instName {str} -- Instrument name. It is "lsst" in the baseline. (default: {"lsst"})
-        	opticalModel {str} -- Optical model. It can be "paraxial", "onAxis", or "offAxis". 
-        						  (default: {"offAxis"})
-        	debugLevel {number} -- Show the information under the running. If the value is higher, 
-        						   the information shows more. It can be 0, 1, 2, or 3. 
-        						   (default: {0})
+            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
+                            intensity equation (TIE). It can be "fft" or "exp" here. 
+                            (default: {"exp"})
+            instName {[str]} -- Instrument name. It is "lsst" in the baseline. (default: {"lsst"})
+            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis". 
+                                    (default: {"offAxis"})
+            defocalDisInMm {[float]} -- Defocal distance in mm. (default: {None})
+            sizeInPix {[int]} -- Wavefront image pixel size. (default: {120}) 
+            debugLevel {[int]} -- Show the information under the running. If the value is higher, 
+                                    the information shows more. It can be 0, 1, 2, or 3. 
+                                    (default: {0})
 
         Raises:
-        	ValueError -- Wrong instrument name.
-        	ValueError -- No intra-focal image.
-        	ValueError -- Wrong Poisson solver name.
-        	ValueError -- Wrong optical model.
+            ValueError -- Wrong instrument name.
+            ValueError -- No intra-focal image.
+            ValueError -- Wrong Poisson solver name.
+            ValueError -- Wrong optical model.
         """
 
         # Check the inputs and assign the parameters used in the TIE
-        # Need to change the way to hole the classes of Instrument and Algorithm
+        # Need to change the way to hold the instance of Instrument and Algorithm
 
-        if instName not in ("lsst", "lsst05", "lsst10", "lsst15", "lsst20", "lsst25", 
-                            "comcam10", "comcam15", "comcam20"):
+        # Update the isnstrument name
+        if (defocalDisInMm is not None):
+            instName = instName + str(int(10*defocalDisInMm))
+
+        if instName not in ("lsst", "lsst05", "lsst10", "lsst15", "lsst20", "lsst25", "comcam10", 
+                            "comcam15", "comcam20"):
             raise ValueError("Instrument can not be '%s'." % instName)
-        else:
-            sizeinPix = None
-            try:
-                sizeinPix = self.ImgIntra.sizeinPix
-            except Exception as ValueError:
-                pass
 
-            if (sizeinPix is None):
-                try:
-                    sizeinPix = self.ImgExtra.sizeinPix
-                except Exception as ValueError:
-                    pass
+        # Set the available wavefront image size (n x n)
+        self.sizeInPix = int(sizeInPix)
 
-            if (sizeinPix is None):
-                raise ValueError("The de-focal image does not be set yet.")
-            else:
-                self.inst.config(instName, sizeinPix)
+        # Configurate the instrument
+        self.inst.config(instName, self.sizeInPix)
 
         if solver not in ("exp", "fft"):
             raise ValueError("Poisson solver can not be '%s'." % solver)
@@ -93,16 +91,17 @@ class WFEstimator(object):
         Set the wavefront image.
 
         Arguments:
-        	fieldXY {[float]} -- Position of donut on the focal plane in degree for intra- and extra-focal
-                             	 images.
+            fieldXY {[float]} -- Position of donut on the focal plane in degree for intra- 
+                                 and extra-focal images.
 
         Keyword Arguments:
-        	image {[float]} -- Array of image. (default: {None})
-        	imageFile {[str]} -- Path of image file. (default: {None})
-        	defocalType {[str]} -- Type of image. It should be "intra" or "extra". (default: {None})
+            image {[float]} -- Array of image. (default: {None})
+            imageFile {[str]} -- Path of image file. (default: {None})
+            defocalType {[str]} -- Type of image. It should be "intra" or "extra". 
+                                    (default: {None})
 
         Raises:
-        	ValueError -- Wrong defocal type.
+            ValueError -- Wrong defocal type.
         """
 
         # Check the defocal type
@@ -121,14 +120,22 @@ class WFEstimator(object):
         Calculate the wavefront error.
 
         Keyword Arguments:
-        	tol {number} -- Tolerance of difference of coefficients of Zk polynomials compared with
-                            the previours iteration. (default: {1e-3})
-        	showZer {bool} -- Decide to show the annular Zernike polynomails or not. (default: {False})
-        	showPlot {bool} -- Decide to show the plot or not. (default: {False})
+            tol {number} -- Tolerance of difference of coefficients of Zk polynomials compared 
+                            with the previours iteration. (default: {1e-3})
+            showZer {bool} -- Decide to show the annular Zernike polynomails or not. 
+                                (default: {False})
+            showPlot {bool} -- Decide to show the plot or not. (default: {False})
 
         Returns:
-        	[float] -- Coefficients of Zernike polynomials (z4 - z22).
+            [float] -- Coefficients of Zernike polynomials (z4 - z22).
         """
+
+        # Check the image size
+        for img in (self.ImgIntra,  self.ImgExtra):
+            d1, d2 = img.image.shape
+            if (d1 != self.sizeInPix) or (d2 != self.sizeInPix):
+                raise RuntimeError("Input image shape is (%d, %d), not required (%d, %d)" % 
+                                    (d1, d2, self.sizeInPix, self.sizeInPix))
 
         # Calculate the wavefront error.
         # Run cwfs
@@ -144,7 +151,7 @@ class WFEstimator(object):
         """
 
         Put the information of images, instrument, and algorithm on terminal or file.
-        	    
+
         Keyword Arguments:
             filename {[str]} -- Name of output file. (default: {None})
         """
@@ -160,13 +167,15 @@ class WFEstimator(object):
             fout.write("Intra image: \t %s\n" % self.ImgIntra.name)
 
         if (self.ImgIntra.fieldX is not None):
-            fout.write("Intra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgIntra.fieldX, self.ImgIntra.fieldY))
+            fout.write("Intra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgIntra.fieldX, 
+                                                                        self.ImgIntra.fieldY))
 
         if (self.ImgExtra.name is not None):
             fout.write("Extra image: \t %s\n" % self.ImgExtra.name)
 
         if (self.ImgExtra.fieldX is not None):
-            fout.write("Extra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgExtra.fieldX, self.ImgExtra.fieldY))
+            fout.write("Extra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgExtra.fieldX, 
+                                                                        self.ImgExtra.fieldY))
 
         if (self.opticalModel is not None):
             fout.write("Using optical model:\t %s\n" % self.opticalModel)
@@ -190,7 +199,8 @@ class WFEstimator(object):
         
         Arguments:
             fout {[file]} -- File instance.
-            config {[metadata]} -- Instance of configuration. It is Instrument or Algorithm here.
+            config {[metadata]} -- Instance of configuration. It is Instrument or Algorithm 
+                                   here.
             configName {[str]} -- Name of configuration.
         """
 
@@ -254,8 +264,16 @@ class WFEsitmatorTest(unittest.TestCase):
         self.assertEqual(self.wfsEst.ImgExtra.atype, self.wfsEst.ImgExtra.EXTRA)
 
         # Setup the configuration
+
+        # Try to catch the error 
+        try:
+            self.wfsEst.config(solver="exp", defocalDisInMm=3, debugLevel=0)
+        except ValueError:
+            print("Catch the wrong instrument.")
+
         # If the configuration is reset, the images are needed to be set again.
-        self.wfsEst.config(solver="exp", debugLevel=0)
+        self.wfsEst.config(solver="exp", instName="lsst", sizeInPix=120, 
+                            opticalModel="offAxis", debugLevel=0)
 
         # Test the setting of algorithm and instrument
         self.assertEqual(self.wfsEst.inst.instName, "lsst")

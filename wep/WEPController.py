@@ -27,6 +27,10 @@ from cwfs.Tool import plotImage
 class WEPController(object):
 
     def __init__(self):
+        """
+        
+        Instantiate the WEP (wavefront estimation pipeline) controller.
+        """
         
         self.sourSelc = None
         self.dataCollector = None
@@ -37,6 +41,19 @@ class WEPController(object):
 
     def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, 
                 wfsEsti=None, middleWare=None):
+        """
+        
+        Configurate the WEPController.
+        
+        Keyword Arguments:
+            sourProc {[SourceProcessor]} -- Source Processor. (default: {None})
+            dataCollector {[WFDataCollector]} -- Wavefront data collector. (default: {None})
+            isrWrapper {[SciIsrWrapper]} -- ISR (instrument signature removal) wrapper. 
+                                            (default: {None})
+            sourSelc {[SourceSelector]} -- Source selector. (default: {None})
+            wfsEsti {[WFEstimator]} -- Wavefront estimator. (default: {None})
+            middleWare {[Middleware]} -- Middle ware. (default: {None})
+        """
 
         self.__setVar(sourSelc, "sourSelc")        
         self.__setVar(dataCollector, "dataCollector")
@@ -512,7 +529,7 @@ class WEPController(object):
                                 # Calculate the field X, Y
                                 pixelX = realcx+offsetX
                                 pixelY = realcy+offsetY
-                                fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY, pixel2Arcsec=0.2)
+                                fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
 
                                 # Instantiate the DonutImage class
                                 donutImg = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
@@ -523,6 +540,12 @@ class WEPController(object):
 
                             # Get the donut image list
                             donutList = donutMap[sensorName]
+
+                            # Extract the donut image with the required dimension
+                            x0 = np.floor(realcx-self.wfsEsti.sizeInPix/2).astype("int")
+                            y0 = np.floor(realcy-self.wfsEsti.sizeInPix/2).astype("int")
+                            imgDeblend = imgDeblend[y0:y0+self.wfsEsti.sizeInPix, 
+                                                    x0:x0+self.wfsEsti.sizeInPix]
                         
                             # Set the intra focal image
                             if (jj == 0):
@@ -533,8 +556,7 @@ class WEPController(object):
 
         return donutMap
 
-    def genMasterImgSglCcd(self, sensorName, donutImgList, solver="exp", defocalDisInMm=1, 
-                               zcCol=np.zeros(22), opticalModel="offAxis", pixel2Arcsec=0.2):
+    def genMasterImgSglCcd(self, sensorName, donutImgList, zcCol=np.zeros(22)):
         """
         
         Generate the master donut image on signle CCD.
@@ -544,27 +566,11 @@ class WEPController(object):
             donutImgList {[list]} -- List of donut images.
         
         Keyword Arguments:
-            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
-                              intensity equation (TIE). It can be "fft" or "exp" here. 
-                              (default: {"exp"})
-            defocalDisInMm {int} -- Defocal distance in mm. (default: {1})
             zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22). (default: {np.zeros(22)})
-            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", 
-                                    or "offAxis". (default: {"offAxis"})
-            pixel2Arcsec {float} -- Pixel to arcsec. (default: {0.2})
         
         Returns:
             [DefocalImage] -- Master donut image.
         """
-
-        # Get the instrument name
-        instName = self.sourSelc.camera.name
-
-        # Add the defocal distance for ComCam
-        if (instName == "comcam"):
-            instName = instName + str(int(10*defocalDisInMm))
-        else:
-            raise RuntimeError("Only ComCam can generate the master images.")
 
         # Configure the source processor
         abbrevName = abbrevDectectorName(sensorName)
@@ -579,15 +585,15 @@ class WEPController(object):
             pixelX = donutImg.pixelX
             pixelY = donutImg.pixelY
 
-            fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY, pixel2Arcsec=pixel2Arcsec)
+            fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
             fieldXY = (fieldX, fieldY)
 
             # Set the image
             if (donutImg.intraImg is not None):
 
                 # Get the projected image
-                projImg = self.__getProjImg(fieldXY, donutImg.intraImg, self.wfsEsti.ImgIntra.INTRA, 
-                                            instName, solver, zcCol, opticalModel)
+                projImg = self.__getProjImg(fieldXY, donutImg.intraImg, 
+                                            self.wfsEsti.ImgIntra.INTRA, zcCol)
 
                 # Collect the projected donut
                 intraProjImgList.append(projImg)
@@ -595,8 +601,8 @@ class WEPController(object):
             if (donutImg.extraImg is not None):
                 
                 # Get the projected image
-                projImg = self.__getProjImg(fieldXY, donutImg.extraImg, self.wfsEsti.ImgExtra.EXTRA, 
-                                            instName, solver, zcCol, opticalModel)
+                projImg = self.__getProjImg(fieldXY, donutImg.extraImg, 
+                                            self.wfsEsti.ImgExtra.EXTRA, zcCol)
 
                 # Collect the projected donut
                 extraProjImgList.append(projImg)
@@ -606,12 +612,12 @@ class WEPController(object):
         stackExtraImg = self.__stackImg(extraProjImgList)
 
         # Put the master donut to donut map
-        masterDonut = DefocalImage(intraImg=stackIntraImg, extraImg=stackExtraImg)
+        masterDonut = DonutImage(0, None, None, 0, 0, intraImg=stackIntraImg, 
+                                    extraImg=stackExtraImg)
 
         return masterDonut
 
-    def generateMasterImg(self, donutMap, solver="exp", defocalDisInMm=1, zcCol=np.zeros(22), 
-                            opticalModel="offAxis", pixel2Arcsec=0.2):
+    def generateMasterImg(self, donutMap, zcCol=np.zeros(22)):
         """
         
         Generate the master donut image map.
@@ -620,14 +626,9 @@ class WEPController(object):
             donutMap {[dict]} -- Donut image map.
         
         Keyword Arguments:
-            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
-                              intensity equation (TIE). It can be "fft" or "exp" here. 
-                              (default: {"exp"})
-            defocalDisInMm {int} -- Defocal distance in mm. (default: {1})
-            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22). (default: {np.zeros(22)})
-            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", 
-                                    or "offAxis". (default: {"offAxis"})
-            pixel2Arcsec {float} -- Pixel to arcsec. (default: {0.2})
+            defocalDisInMm {float} -- Defocal distance in mm. (default: {1})
+            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22) in m. 
+                                 (default: {np.zeros(22)})
         
         Returns:
             [dict] -- Master donut image map.
@@ -637,12 +638,10 @@ class WEPController(object):
         for sensorName, donutImgList in donutMap.items():
 
             # Get the master donut on single CCD
-            masterDonut = self.genMasterImgSglCcd(sensorName, donutImgList, solver=solver, 
-                                                defocalDisInMm=defocalDisInMm, zcCol=zcCol, 
-                                        opticalModel=opticalModel, pixel2Arcsec=pixel2Arcsec)
+            masterDonut = self.genMasterImgSglCcd(sensorName, donutImgList, zcCol=zcCol)
 
             # Put the master donut to donut map
-            masterDonutMap[sensorName] = masterDonut
+            masterDonutMap[sensorName] = [masterDonut]
 
         return masterDonutMap
 
@@ -685,8 +684,7 @@ class WEPController(object):
 
         return stackImg
 
-    def __getProjImg(self, fieldXY, defocalImg, aType, instName, solver, zcCol, 
-                        opticalModel):
+    def __getProjImg(self, fieldXY, defocalImg, aType, zcCol):
         """
         
         Get the projected image on the pupil.
@@ -696,12 +694,7 @@ class WEPController(object):
                                  extra-focal images.
             defocalImg {[ndarray]} -- Defocal image.
             aType {[str]} -- Defocal type.
-            instName {[str]} -- Instrument name.
-            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
-                              intensity equation (TIE). It can be "fft" or "exp" here.
             zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22).
-            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", 
-                                    or "offAxis".
         
         Returns:
             [ndarray] -- Projected image.
@@ -709,9 +702,6 @@ class WEPController(object):
         
         # Set the image
         self.wfsEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
-
-        # Configure the estimator
-        self.wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
 
         # Get the distortion correction (offaxis)
         offAxisCorrOrder = self.wfsEsti.algo.parameter["offAxisPolyOrder"]
@@ -726,22 +716,23 @@ class WEPController(object):
         img.imageCoCenter(self.wfsEsti.inst)
 
         # Do the compensation/ projection
-        img.compensate(self.wfsEsti.inst, self.wfsEsti.algo, zcCol, opticalModel)
+        img.compensate(self.wfsEsti.inst, self.wfsEsti.algo, zcCol, self.wfsEsti.opticalModel)
 
         # Return the projected image
         return img.image
 
-    def calcWfErr(self, donutMap, solver="exp", opticalModel="offAxis", defocalDisInMm=None):
+    def calcWfErr(self, donutMap):
+        """
         
-        # Get the instrument name
-        instName = self.sourSelc.camera.name
-
-        if (defocalDisInMm is not None):
-            instName = instName + str(int(10*defocalDisInMm))
-
-        # Configure the wavefront estimator
-        self.wfsEsti.config(solver=solver, instName=instName, opticalModel=opticalModel)
-
+        Calculate the wavefront error in annular Zernike polynomials (z4-z22).
+        
+        Arguments:
+            donutMap {[dict]} -- Donut image map.
+        
+        Returns:
+            [dict] -- Donut image map with calculated wavefront error.
+        """
+        
         # Calculate the wavefront error
         for sensorName, donutImgList in donutMap.items():
 
@@ -754,16 +745,16 @@ class WEPController(object):
                 self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
                 self.wfsEsti.setImg(fieldXY, image=donutImg.extraImg, defocalType="extra")
 
+                # Reset the wavefront estimator
+                self.wfsEsti.reset()
+
                 # Calculate the wavefront error
-                t0 = time.time()
                 zer4UpNm = self.wfsEsti.calWfsErr()
-                t1 = time.time()
-                print("Calculation time is %.3f sec." % (t1-t0))
 
-                print(sensorName)
-                print(donutImg.starId)
-                print(zer4UpNm)
+                # Put the value to the donut image
+                donutImg.setWfErr(zer4UpNm)
 
+        return donutMap
 
 def searchDonutPos(img):
     """
@@ -992,10 +983,14 @@ if __name__ == "__main__":
 
     # Configurate the source processor
     focalPlaneFolder = "../test"
-    donutRadiusInPixel = 63
-    sourProc.config(donutRadiusInPixel=donutRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder)
+    sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
+                    pixel2Arcsec=0.2)
 
     # Configurate the wavefront estimator
+    defocalDisInMm = 1
+    sizeInPix = 120
+    wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
+                    defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
 
     # Initiate the WEP Controller
     wepCntlr = WEPController()
@@ -1040,8 +1035,10 @@ if __name__ == "__main__":
             wepCntlr.doISR(obsId, sensorName)
 
     # Get the wfs images
-    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, expInDmCoor=True)
-    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, expInDmCoor=False)
+    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
+    #                                              expInDmCoor=True)
+    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
+                                                 expInDmCoor=False)
 
     # Check the defocal images
     # temp1 = wfsImgMap["R:2,2 S:1,0"]
@@ -1069,10 +1066,22 @@ if __name__ == "__main__":
         fileName = abbrevDectectorName(sensorName)
 
         intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
-        plotImage(img.intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
+        plotImage(img[0].intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
         
         extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
-        plotImage(img.extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
+        plotImage(img[0].extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
 
-    # Calculate the wavefront error
-    wepCntlr.calcWfErr(donutMap, solver="exp", opticalModel="offAxis", defocalDisInMm=1.0)
+    # Calculate the wavefront error for the individual donut
+    donutMap = wepCntlr.calcWfErr(donutMap)
+    for sensorName, donutImgList in donutMap.items():
+        for donutImg in donutImgList:
+            print(sensorName)
+            print(donutImg.starId)
+            print(donutImg.zer4UpNm)
+
+    # Calculate the wavefront error for the master donut
+    masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
+    for sensorName, masterDonutImg in masterDonutMap.items():
+        print(sensorName)
+        print(masterDonutImg[0].zer4UpNm)
+

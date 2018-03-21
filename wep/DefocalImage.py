@@ -10,6 +10,7 @@ class DefocalImage(object):
             extraImg {[ndarray]} -- Extra-defocal image. (default: {None})
         """
         
+        # Defocal images
         self.intraImg = intraImg
         self.extraImg = extraImg
 
@@ -54,6 +55,20 @@ class DonutImage(DefocalImage):
         self.pixelY = pixelY
         self.fieldX = fieldX
         self.fieldY = fieldY
+
+        # Wavefront eror in annular Zk in nm (z4-z22)
+        self.zer4UpNm = None
+
+    def setWfErr(self, zer4UpNm):
+        """
+        
+        Set the wavefront error in annular Zk in nm (z4-z22).
+        
+        Arguments:
+            zer4UpNm {[ndarray]} -- z4 to z22 in nm.
+        """
+
+        self.zer4UpNm = zer4UpNm
 
 if __name__ == "__main__":
     pass

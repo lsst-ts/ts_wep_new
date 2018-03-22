@@ -735,26 +735,88 @@ class WEPController(object):
         
         # Calculate the wavefront error
         for sensorName, donutImgList in donutMap.items():
-
             for donutImg in donutImgList:
-
-                # Field XY position
-                fieldXY = [donutImg.fieldX, donutImg.fieldY]
-
-                # Set the images
-                self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
-                self.wfsEsti.setImg(fieldXY, image=donutImg.extraImg, defocalType="extra")
-
-                # Reset the wavefront estimator
-                self.wfsEsti.reset()
-
-                # Calculate the wavefront error
-                zer4UpNm = self.wfsEsti.calWfsErr()
-
-                # Put the value to the donut image
-                donutImg.setWfErr(zer4UpNm)
+                donutImg = self.calcSglWfErr(donutImg)
 
         return donutMap
+
+    def calcSglWfErr(self, donutImg):
+        """
+        
+        Calculate the wavefront error in annular Zernike polynomials (z4-z22) for 
+        single donut.
+        
+        Arguments:
+            donutImg {[DonutImage]} -- Donut image.
+        
+        Returns:
+            [DonutImage] -- Donut image with calculated wavefront error.
+        """
+
+        # Field XY position
+        fieldXY = [donutImg.fieldX, donutImg.fieldY]
+
+        # Set the images
+        self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
+        self.wfsEsti.setImg(fieldXY, image=donutImg.extraImg, defocalType="extra")
+
+        # Reset the wavefront estimator
+        self.wfsEsti.reset()
+
+        # Calculate the wavefront error
+        zer4UpNm = self.wfsEsti.calWfsErr()
+
+        # Put the value to the donut image
+        donutImg.setWfErr(zer4UpNm)
+
+        return donutImg
+
+    def calcSglAvgWfErr(self, donutImgList):
+        """
+        
+        Calculate the average of wavefront error on single CCD.
+        
+        Arguments:
+            donutImgList {[list]} -- List of donut images.
+        
+        Returns:
+            [ndarray] -- Average of wavefront error.
+        """
+
+        # Calculate the weighting of donut image
+        weightingRatio = calcWeiRatio(donutImgList)
+
+        # Calculate the mean wavefront error
+        numOfZk = len(donutImgList[0].zer4UpNm)
+        avgErr = np.zeros(numOfZk)
+        for ii in range(len(donutImgList)):
+            donutImg = donutImgList[ii]
+            avgErr = avgErr + weightingRatio[ii]*donutImg.zer4UpNm
+        avgErr = avgErr/np.sum(weightingRatio)
+
+        return avgErr
+
+    def publishWfsErr(self, sensorName, wfsErr):
+
+        pass
+
+def calcWeiRatio(donutImgList):
+    """
+    
+    Calculate the weighting ratio of donut image in the list.
+    
+    Arguments:
+        donutImgList {[list]} -- List of donut images.
+    
+    Returns:
+        [ndarray] -- Array of Weighting ratio of image donut.
+    """
+
+    # Weighting of donut image. Use the simple average at this moment.
+    # Need to consider the S/N and other factors in the future
+    weightingRatio = np.ones(len(donutImgList))
+
+    return weightingRatio
 
 def searchDonutPos(img):
     """
@@ -1084,4 +1146,10 @@ if __name__ == "__main__":
     for sensorName, masterDonutImg in masterDonutMap.items():
         print(sensorName)
         print(masterDonutImg[0].zer4UpNm)
+
+    # Calculate the average wavefront error
+    for sensorName, donutImgList in donutMap.items():
+        avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
+        print(sensorName)
+        print(avgErr)
 

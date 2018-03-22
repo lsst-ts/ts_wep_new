@@ -22,6 +22,8 @@ from wep.WFEstimator import WFEstimator
 from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
 from wep.DefocalImage import DefocalImage, DonutImage
 
+from wep.Middleware import Middleware
+
 from cwfs.Tool import plotImage
 
 class WEPController(object):
@@ -37,10 +39,11 @@ class WEPController(object):
         self.isrWrapper = None
         self.sourProc = None
         self.wfsEsti = None
-        self.middleWare = None
+        self.middleWare = dict()
+        self.topicList = dict()
 
     def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, 
-                wfsEsti=None, middleWare=None):
+                wfsEsti=None):
         """
         
         Configurate the WEPController.
@@ -52,7 +55,6 @@ class WEPController(object):
                                             (default: {None})
             sourSelc {[SourceSelector]} -- Source selector. (default: {None})
             wfsEsti {[WFEstimator]} -- Wavefront estimator. (default: {None})
-            middleWare {[Middleware]} -- Middle ware. (default: {None})
         """
 
         self.__setVar(sourSelc, "sourSelc")        
@@ -60,7 +62,32 @@ class WEPController(object):
         self.__setVar(isrWrapper, "isrWrapper")
         self.__setVar(sourProc, "sourProc")
         self.__setVar(wfsEsti, "wfsEsti")
-        self.__setVar(middleWare, "middleWare")
+
+    def setMiddleWare(self, topicList, moduleName="tcsWEP"):
+
+        if moduleName not in list(self.topicList.keys()):
+            self.topicList[moduleName] = np.array(topicList)
+            middleWareList = []
+            for ii in range(len(topicList)):
+                middleWareList.append(Middleware(moduleName))
+            self.middleWare[moduleName] = middleWareList
+
+    def shutDownMiddleWare(self):
+
+        for moduleName, middleWareList in self.middleWare.items():
+            print("Turn off SAL module: %s" % moduleName)
+            for middleWare in middleWareList:
+                middleWare.shutDownSal()
+
+    def issueEvent(self, topic, newData, moduleName="tcsWEP"):
+
+        idx = np.where(self.topicList[moduleName] == topic)[0][0]        
+        self.middleWare[moduleName][idx].issueEvent(topic, newData)
+
+    def issueTelemetry(self, topic, newData, moduleName="tcsWEP"):
+
+        idx = np.where(self.topicList[moduleName] == topic)[0][0]  
+        self.middleWare[moduleName][idx].issueTelemetry(topic, newData)
 
     def getWfsList(self):
         """
@@ -1059,6 +1086,10 @@ if __name__ == "__main__":
     wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper, 
                     sourProc=sourProc, wfsEsti=wfsEsti)
 
+    # Set the middle ware
+    topicList = ["WavefrontErrorCalculated", "WavefrontError"]
+    wepCntlr.setMiddleWare(topicList)
+
     # Set the database address
     dbAdress = "../test/bsc.db3"
 
@@ -1135,21 +1166,42 @@ if __name__ == "__main__":
 
     # Calculate the wavefront error for the individual donut
     donutMap = wepCntlr.calcWfErr(donutMap)
-    for sensorName, donutImgList in donutMap.items():
-        for donutImg in donutImgList:
-            print(sensorName)
-            print(donutImg.starId)
-            print(donutImg.zer4UpNm)
+    # for sensorName, donutImgList in donutMap.items():
+    #     for donutImg in donutImgList:
+    #         print(sensorName)
+    #         print(donutImg.starId)
+    #         print(donutImg.zer4UpNm)
 
     # Calculate the wavefront error for the master donut
     masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
-    for sensorName, masterDonutImg in masterDonutMap.items():
-        print(sensorName)
-        print(masterDonutImg[0].zer4UpNm)
+    # for sensorName, masterDonutImg in masterDonutMap.items():
+    #     print(sensorName)
+    #     print(masterDonutImg[0].zer4UpNm)
 
     # Calculate the average wavefront error
     for sensorName, donutImgList in donutMap.items():
         avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
-        print(sensorName)
-        print(avgErr)
+
+        # print(sensorName)
+        # print(avgErr)
+
+        # Issue the event
+        timestamp = time.time()
+        priority = 1
+        eventData = {"sensorID": sensorName,
+                     "timestamp": timestamp,
+                     "priority": priority}
+        wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
+        time.sleep(1)
+
+        # Publish the result
+        timestamp = time.time()
+        telData = {"sensorID": sensorName,
+                   "annularZerikePolynomials": avgErr,
+                   "timestamp": timestamp}
+        wepCntlr.issueTelemetry("WavefrontError", telData)
+        time.sleep(1)
+
+    time.sleep(20)
+    wepCntlr.shutDownMiddleWare()
 

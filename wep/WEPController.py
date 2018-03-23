@@ -817,29 +817,46 @@ class WEPController(object):
         # Calculate the wavefront error
         for donutImgList in donutMap.values():
             for donutImg in donutImgList:
-                donutImg = self.calcSglWfErr(donutImg)
+
+                # Get the field X, Y position
+                intraFieldXY = (donutImg.fieldX, donutImg.fieldY)
+                extraFieldXY = (donutImg.fieldX, donutImg.fieldY)
+
+                # Get the defocal images
+                intraImg = donutImg.intraImg
+                extraImg = donutImg.extraImg
+
+                zer4UpNm = self.calcSglWfErr(intraImg, extraImg, intraFieldXY, extraFieldXY)
+
+                # Put the value to the donut image
+                donutImg.setWfErr(zer4UpNm)
 
         return donutMap
 
-    def calcSglWfErr(self, donutImg):
+    def calcSglWfErr(self, intraImg, extraImg, intraFieldXY, extraFieldXY):
         """
         
         Calculate the wavefront error in annular Zernike polynomials (z4-z22) for 
         single donut.
         
         Arguments:
-            donutImg {[DonutImage]} -- Donut image.
+            intraImg {[ndarray]} -- Intra-focal donut image.
+            extraImg {[ndarray]} -- Extra-focal donut image.
+            intraFieldXY {[tuple]} -- Field x, y in degree of intra-focal donut image.
+            extraFieldXY {[tuple]} -- Field x, y in degree of extra-focal donut image.
         
         Returns:
-            [DonutImage] -- Donut image with calculated wavefront error.
+            [ndarray] -- Coefficients of Zernike polynomials (z4 - z22) in nm.
         """
 
         # Field XY position
-        fieldXY = [donutImg.fieldX, donutImg.fieldY]
+        # fieldXY = [donutImg.fieldX, donutImg.fieldY]
 
         # Set the images
-        self.wfsEsti.setImg(fieldXY, image=donutImg.intraImg, defocalType="intra")
-        self.wfsEsti.setImg(fieldXY, image=donutImg.extraImg, defocalType="extra")
+        self.wfsEsti.setImg(intraFieldXY, image=intraImg, 
+                            defocalType=self.wfsEsti.ImgIntra.INTRA)
+        self.wfsEsti.setImg(extraFieldXY, image=extraImg, 
+                            defocalType=self.wfsEsti.ImgExtra.EXTRA)
 
         # Reset the wavefront estimator
         self.wfsEsti.reset()
@@ -847,10 +864,7 @@ class WEPController(object):
         # Calculate the wavefront error
         zer4UpNm = self.wfsEsti.calWfsErr()
 
-        # Put the value to the donut image
-        donutImg.setWfErr(zer4UpNm)
-
-        return donutImg
+        return zer4UpNm
 
     def calcSglAvgWfErr(self, donutImgList):
         """
@@ -876,6 +890,9 @@ class WEPController(object):
         avgErr = avgErr/np.sum(weightingRatio)
 
         return avgErr
+
+    def sortDonut(self, donutMap):
+        pass
 
 def calcWeiRatio(donutImgList):
     """

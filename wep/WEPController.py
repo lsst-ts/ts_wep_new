@@ -559,26 +559,36 @@ class WEPController(object):
                                                             neighborStarMap[sensorName], ii, aFilter)
 
                         # Check the single donut or not based on the bright star catalog only
+                        # This method should be updated in the future
                         if (sglDonutOnly):
-                            if (len(magRatio) > 1):
+                            if (len(magRatio) != 1):
                                 continue
 
                         # Get the single donut/ deblended image
-                        imgDeblend = None
-                        realcx = None
-                        realcy = None
-                        if ((len(magRatio) == 1 and doDeblending) or (not doDeblending)):
+                        if (len(magRatio) == 1) or (not doDeblending):
                             imgDeblend = singleSciNeiImg
-                            realcx = allStarPosX[-1]
-                            realcy = allStarPosY[-1]
+
+                            if (len(magRatio) == 1):
+                                realcx, realcy = searchDonutPos(imgDeblend)
+                            else:                               
+                                realcx = allStarPosX[-1]
+                                realcy = allStarPosY[-1]
                         # Do the deblending or not
                         elif (len(magRatio) == 2 and doDeblending):
                             imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, 
                                                                   allStarPosX, allStarPosY, magRatio)
+                            # Update the magnitude ratio
+                            magRatio = [1]
 
-                        # Search the donut position on camera
+                        else:
+                            continue
+
+                        # Extract the image
                         if (len(magRatio) == 1):
-                            realcy, realcx = searchDonutPos(imgDeblend)
+                            x0 = np.floor(realcx-self.wfsEsti.sizeInPix/2).astype("int")
+                            y0 = np.floor(realcy-self.wfsEsti.sizeInPix/2).astype("int")
+                            imgDeblend = imgDeblend[y0:y0+self.wfsEsti.sizeInPix, 
+                                                    x0:x0+self.wfsEsti.sizeInPix]
 
                         # Rotate the image if the sensor is the corner wavefront sensor
                         if sensorName in wfsList:
@@ -595,45 +605,37 @@ class WEPController(object):
                             imgDeblend = np.flipud(np.rot90(np.flipud(imgDeblend), numOfRot90))
 
                         # Put the deblended image into the donut map
-                        if (imgDeblend is not None):
+                        if sensorName not in donutMap.keys():
+                            donutMap[sensorName] = []
 
-                            if sensorName not in donutMap.keys():
-                                donutMap[sensorName] = []
+                        # Check the donut exists in the list or not
+                        starId = simobjIdList[ii]
+                        donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)                             
 
-                            # Check the donut exists in the list or not
-                            starId = simobjIdList[ii]
-                            donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)                             
+                        # Create the donut object and put into the list if it is needed
+                        if (donutIndex < 0):
 
-                            # Create the donut object and put into the list if it is needed
-                            if (donutIndex < 0):
+                            # Calculate the field X, Y
+                            pixelX = realcx+offsetX
+                            pixelY = realcy+offsetY
+                            fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
 
-                                # Calculate the field X, Y
-                                pixelX = realcx+offsetX
-                                pixelY = realcy+offsetY
-                                fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
+                            # Instantiate the DonutImage class
+                            donutImg = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
+                            donutMap[sensorName].append(donutImg)
 
-                                # Instantiate the DonutImage class
-                                donutImg = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
-                                donutMap[sensorName].append(donutImg)
+                            # Search for the donut index again
+                            donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)
 
-                                # Search for the donut index again
-                                donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)
-
-                            # Get the donut image list
-                            donutList = donutMap[sensorName]
-
-                            # Extract the donut image with the required dimension
-                            x0 = np.floor(realcx-self.wfsEsti.sizeInPix/2).astype("int")
-                            y0 = np.floor(realcy-self.wfsEsti.sizeInPix/2).astype("int")
-                            imgDeblend = imgDeblend[y0:y0+self.wfsEsti.sizeInPix, 
-                                                    x0:x0+self.wfsEsti.sizeInPix]
-                        
-                            # Set the intra focal image
-                            if (jj == 0):
-                                donutList[donutIndex].setImg(intraImg=imgDeblend)
-                            # Set the extra focal image
-                            elif (jj == 1):
-                                donutList[donutIndex].setImg(extraImg=imgDeblend)
+                        # Get the donut image list
+                        donutList = donutMap[sensorName]
+                    
+                        # Set the intra focal image
+                        if (jj == 0):
+                            donutList[donutIndex].setImg(intraImg=imgDeblend)
+                        # Set the extra focal image
+                        elif (jj == 1):
+                            donutList[donutIndex].setImg(extraImg=imgDeblend)
 
         return donutMap
 
@@ -921,15 +923,15 @@ def searchDonutPos(img):
         img {[ndarray]} -- Donut image.
     
     Returns:
-        [float] -- y position of donut center in pixel.
         [float] -- x position of donut center in pixel.
+        [float] -- y position of donut center in pixel.
     """
 
     # Search the donut position by the center of mass
     # Need to update this method to the more robust one such as the convolution
     realcy, realcx = center_of_mass(img)
 
-    return realcy, realcx
+    return realcx, realcy
 
 def plotDonutImg(donutMap, saveToDir=None, dpi=None):
     """
@@ -1102,8 +1104,8 @@ if __name__ == "__main__":
     wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
     # Configurate the source selector
-    cameraType = "comcam"
-    # cameraType = "lsst"
+    # cameraType = "comcam"
+    cameraType = "lsst"
     dbType = "LocalDb"
     aFilter = "g"
     cameraMJD = 59580.0
@@ -1143,7 +1145,8 @@ if __name__ == "__main__":
                     pixel2Arcsec=0.2)
 
     # Configurate the wavefront estimator
-    defocalDisInMm = 1
+    # defocalDisInMm = 1
+    defocalDisInMm = None
     sizeInPix = 120
     wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
                     defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
@@ -1153,9 +1156,9 @@ if __name__ == "__main__":
     wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper, 
                     sourProc=sourProc, wfsEsti=wfsEsti)
 
-    # Set the middle ware
-    topicList = ["WavefrontErrorCalculated", "WavefrontError"]
-    wepCntlr.setMiddleWare(topicList)
+    # # Set the middle ware
+    # topicList = ["WavefrontErrorCalculated", "WavefrontError"]
+    # wepCntlr.setMiddleWare(topicList)
 
     # Set the database address
     dbAdress = "../test/bsc.db3"
@@ -1164,51 +1167,50 @@ if __name__ == "__main__":
     pointing = (0,0)
     cameraRotation = 0.0
     # skyInfoFilePath = "/home/ttsai/Document/phosimObsData/skyInfo/skyLsstFamInfo.txt"
-    skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
-    # skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
+    # skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
+    skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
 
-    camOrientation = "all"
-    # camOrientation = "corner"
+    # camOrientation = "all"
+    camOrientation = "corner"
     neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
                                         pointing, cameraRotation, orientation=camOrientation, tableName="TempTable")
 
     # Get the available sensor name list
     sensorNameList = list(starMap.keys())
 
-    # Observation IDs
-    extraObsId = 9005000
-    intraObsId = 9005001
-    obsIdList = [intraObsId, extraObsId]
+    # # Observation IDs
+    # extraObsId = 9005000
+    # intraObsId = 9005001
+    # obsIdList = [intraObsId, extraObsId]
 
-    # Import the PhoSim simulated image
+    # # Import the PhoSim simulated image
+    # # for obsId in obsIdList:
+    # #     fitsFileArg = "lsst_*%d*.fits.gz" % obsId
+    # #     wepCntlr.ingestSimImages(fitsFileArg=fitsFileArg)
+
+    # dataDirList = ["realComCam2/output/Intra", "realComCam2/output/Extra"]
+    # for dataDir in dataDirList:
+    #     wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
+
+    # # Do the ISR
     # for obsId in obsIdList:
-    #     fitsFileArg = "lsst_*%d*.fits.gz" % obsId
-    #     wepCntlr.ingestSimImages(fitsFileArg=fitsFileArg)
+    #     for sensorName in sensorNameList:
+    #         wepCntlr.doISR(obsId, sensorName)
 
-    dataDirList = ["realComCam2/output/Intra", "realComCam2/output/Extra"]
-    for dataDir in dataDirList:
-        wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
-
-    # Do the ISR
-    for obsId in obsIdList:
-        for sensorName in sensorNameList:
-            wepCntlr.doISR(obsId, sensorName)
-
-    # Get the wfs images
+    # # Get the wfs images
+    # # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
+    # #                                              expInDmCoor=True)
     # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-    #                                              expInDmCoor=True)
-    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-                                                 expInDmCoor=False)
+    #                                              expInDmCoor=False)
 
     # Check the defocal images
     # temp1 = wfsImgMap["R:2,2 S:1,0"]
     # poltExposureImage(temp1.intraImg, saveFilePath="../test/donutImg/testImg.png")
 
-    # # Try the corner wavefront sensor
-    # # sensorNameList = wepCntlr.getWfsList()
-    # # wfsDir = "realWfs/output"
-    # # cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-    # # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    # Try the corner wavefront sensor
+    wfsDir = "realWfs/output"
+    cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images
     donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False, 
@@ -1218,57 +1220,57 @@ if __name__ == "__main__":
     saveToDir = "../test/donutImg"
     plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
 
-    # Generate the master donut images
-    masterDonutMap = wepCntlr.generateMasterImg(donutMap)
+    # # Generate the master donut images
+    # masterDonutMap = wepCntlr.generateMasterImg(donutMap)
 
-    # Plot the master donut image
-    for sensorName, img in masterDonutMap.items():
-        fileName = abbrevDectectorName(sensorName)
+    # # Plot the master donut image
+    # for sensorName, img in masterDonutMap.items():
+    #     fileName = abbrevDectectorName(sensorName)
 
-        intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
-        plotImage(img[0].intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
+    #     intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
+    #     plotImage(img[0].intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
         
-        extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
-        plotImage(img[0].extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
+    #     extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
+    #     plotImage(img[0].extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
 
-    # Calculate the wavefront error for the individual donut
-    donutMap = wepCntlr.calcWfErr(donutMap)
+    # # Calculate the wavefront error for the individual donut
+    # donutMap = wepCntlr.calcWfErr(donutMap)
+    # # for sensorName, donutImgList in donutMap.items():
+    # #     for donutImg in donutImgList:
+    # #         print(sensorName)
+    # #         print(donutImg.starId)
+    # #         print(donutImg.zer4UpNm)
+
+    # # Calculate the wavefront error for the master donut
+    # masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
+    # # for sensorName, masterDonutImg in masterDonutMap.items():
+    # #     print(sensorName)
+    # #     print(masterDonutImg[0].zer4UpNm)
+
+    # # Calculate the average wavefront error
     # for sensorName, donutImgList in donutMap.items():
-    #     for donutImg in donutImgList:
-    #         print(sensorName)
-    #         print(donutImg.starId)
-    #         print(donutImg.zer4UpNm)
+    #     avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
 
-    # Calculate the wavefront error for the master donut
-    masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
-    # for sensorName, masterDonutImg in masterDonutMap.items():
-    #     print(sensorName)
-    #     print(masterDonutImg[0].zer4UpNm)
+    #     # print(sensorName)
+    #     # print(avgErr)
 
-    # Calculate the average wavefront error
-    for sensorName, donutImgList in donutMap.items():
-        avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
+    #     # Issue the event
+    #     timestamp = time.time()
+    #     priority = 1
+    #     eventData = {"sensorID": sensorName,
+    #                  "timestamp": timestamp,
+    #                  "priority": priority}
+    #     wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
+    #     time.sleep(1)
 
-        # print(sensorName)
-        # print(avgErr)
+    #     # Publish the result
+    #     timestamp = time.time()
+    #     telData = {"sensorID": sensorName,
+    #                "annularZerikePolynomials": avgErr,
+    #                "timestamp": timestamp}
+    #     wepCntlr.issueTelemetry("WavefrontError", telData)
+    #     time.sleep(1)
 
-        # Issue the event
-        timestamp = time.time()
-        priority = 1
-        eventData = {"sensorID": sensorName,
-                     "timestamp": timestamp,
-                     "priority": priority}
-        wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
-        time.sleep(1)
-
-        # Publish the result
-        timestamp = time.time()
-        telData = {"sensorID": sensorName,
-                   "annularZerikePolynomials": avgErr,
-                   "timestamp": timestamp}
-        wepCntlr.issueTelemetry("WavefrontError", telData)
-        time.sleep(1)
-
-    time.sleep(20)
-    wepCntlr.shutDownSal()
+    # time.sleep(20)
+    # wepCntlr.shutDownSal()
 

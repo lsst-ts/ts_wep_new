@@ -815,23 +815,53 @@ class WEPController(object):
         Returns:
             [dict] -- Donut image map with calculated wavefront error.
         """
-        
-        # Calculate the wavefront error
-        for donutImgList in donutMap.values():
-            for donutImg in donutImgList:
+
+        for sensorName, donutList in donutMap.items():
+
+            for ii in range(len(donutList)):
+
+                # Get the intra- and extra-focal donut images
+
+                # Check the sensor is the corner WFS or not. Only consider "A"
+                # Intra: C0 -> A; Extra: C1 -> B
+
+                # Look for the intra-focal image
+                if sensorName.endswith("A"):
+                    intraDonut = donutList[ii]
+
+                    # Get the extra-focal sensor name
+                    extraFocalSensorName = sensorName.replace("A", "B")
+
+                    # Get the donut list of extra-focal sensor
+                    extraDonutList = donutMap[extraFocalSensorName]
+                    if (ii < len(extraDonutList)):
+                        extraDonut = extraDonutList[ii]
+                    else:
+                        continue
+
+                # Pass the extra-focal image
+                elif sensorName.endswith("B"):
+                    continue
+                # Scientific sensor
+                else:
+                    intraDonut = extraDonut = donutList[ii]
+
+                # Calculate the wavefront error
 
                 # Get the field X, Y position
-                intraFieldXY = (donutImg.fieldX, donutImg.fieldY)
-                extraFieldXY = (donutImg.fieldX, donutImg.fieldY)
+                intraFieldXY = (intraDonut.fieldX, intraDonut.fieldY)
+                extraFieldXY = (extraDonut.fieldX, extraDonut.fieldY)
 
                 # Get the defocal images
-                intraImg = donutImg.intraImg
-                extraImg = donutImg.extraImg
+                intraImg = intraDonut.intraImg
+                extraImg = extraDonut.extraImg
 
+                # Calculate the wavefront error
                 zer4UpNm = self.calcSglWfErr(intraImg, extraImg, intraFieldXY, extraFieldXY)
 
                 # Put the value to the donut image
-                donutImg.setWfErr(zer4UpNm)
+                intraDonut.setWfErr(zer4UpNm)
+                extraDonut.setWfErr(zer4UpNm)
 
         return donutMap
 
@@ -877,23 +907,31 @@ class WEPController(object):
             donutImgList {[list]} -- List of donut images.
         
         Returns:
-            [ndarray] -- Average of wavefront error.
+            [ndarray] -- Average of wavefront error in nm.
         """
 
         # Calculate the weighting of donut image
         weightingRatio = calcWeiRatio(donutImgList)
 
-        # Calculate the mean wavefront error
-        numOfZk = len(donutImgList[0].zer4UpNm)
+        # Calculate the mean wavefront error (z4 - z22)
+        numOfZk = self.wfsEsti.algo.parameter["numTerms"] - 3
         avgErr = np.zeros(numOfZk)
         for ii in range(len(donutImgList)):
             donutImg = donutImgList[ii]
-            avgErr = avgErr + weightingRatio[ii]*donutImg.zer4UpNm
-        avgErr = avgErr/np.sum(weightingRatio)
+
+            # Get the zer4UpNm
+            if (donutImg.zer4UpNm is not None):
+                zer4UpNm = donutImg.zer4UpNm
+            else:
+                zer4UpNm = 0
+
+            avgErr = avgErr + weightingRatio[ii]*zer4UpNm
 
         return avgErr
 
-    def sortDonut(self, donutMap):
+    def sortDonut(self, donutList):
+
+        # This function is to sort the donut images in list from high S/N to low.
         pass
 
 def calcWeiRatio(donutImgList):
@@ -905,12 +943,23 @@ def calcWeiRatio(donutImgList):
         donutImgList {[list]} -- List of donut images.
     
     Returns:
-        [ndarray] -- Array of Weighting ratio of image donut.
+        [ndarray] -- Array of Weighting ratio of image donuts.
     """
 
     # Weighting of donut image. Use the simple average at this moment.
     # Need to consider the S/N and other factors in the future
-    weightingRatio = np.ones(len(donutImgList))
+
+    # Check the available zk and give the ratio
+    weightingRatio = []
+    for donutImg in donutImgList:
+        if (donutImg.zer4UpNm is not None):
+            weightingRatio.append(1)
+        else:
+            weightingRatio.append(0)
+
+    # Do the normalization
+    weightingRatio = np.array(weightingRatio)
+    weightingRatio = weightingRatio/np.sum(weightingRatio)
 
     return weightingRatio
 
@@ -1104,8 +1153,8 @@ if __name__ == "__main__":
     wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
     # Configurate the source selector
-    # cameraType = "comcam"
-    cameraType = "lsst"
+    cameraType = "comcam"
+    # cameraType = "lsst"
     dbType = "LocalDb"
     aFilter = "g"
     cameraMJD = 59580.0
@@ -1145,9 +1194,10 @@ if __name__ == "__main__":
                     pixel2Arcsec=0.2)
 
     # Configurate the wavefront estimator
-    # defocalDisInMm = 1
-    defocalDisInMm = None
-    sizeInPix = 120
+    defocalDisInMm = 1
+    # defocalDisInMm = None
+    sizeInPix = 120 # eimage
+    # sizeInPix = 160 # amp image
     wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
                     defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
 
@@ -1167,50 +1217,50 @@ if __name__ == "__main__":
     pointing = (0,0)
     cameraRotation = 0.0
     # skyInfoFilePath = "/home/ttsai/Document/phosimObsData/skyInfo/skyLsstFamInfo.txt"
-    # skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
-    skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
+    skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
+    # skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
 
-    # camOrientation = "all"
-    camOrientation = "corner"
+    camOrientation = "all"
+    # camOrientation = "corner"
     neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
                                         pointing, cameraRotation, orientation=camOrientation, tableName="TempTable")
 
     # Get the available sensor name list
     sensorNameList = list(starMap.keys())
 
-    # # Observation IDs
-    # extraObsId = 9005000
-    # intraObsId = 9005001
-    # obsIdList = [intraObsId, extraObsId]
+    # Observation IDs
+    extraObsId = 9005000
+    intraObsId = 9005001
+    obsIdList = [intraObsId, extraObsId]
 
     # # Import the PhoSim simulated image
     # # for obsId in obsIdList:
     # #     fitsFileArg = "lsst_*%d*.fits.gz" % obsId
     # #     wepCntlr.ingestSimImages(fitsFileArg=fitsFileArg)
 
-    # dataDirList = ["realComCam2/output/Intra", "realComCam2/output/Extra"]
-    # for dataDir in dataDirList:
-    #     wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
+    dataDirList = ["realComCam2/output/Intra", "realComCam2/output/Extra"]
+    for dataDir in dataDirList:
+        wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
 
-    # # Do the ISR
-    # for obsId in obsIdList:
-    #     for sensorName in sensorNameList:
-    #         wepCntlr.doISR(obsId, sensorName)
+    # Do the ISR
+    for obsId in obsIdList:
+        for sensorName in sensorNameList:
+            wepCntlr.doISR(obsId, sensorName)
 
-    # # Get the wfs images
-    # # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-    # #                                              expInDmCoor=True)
+    # Get the wfs images
     # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-    #                                              expInDmCoor=False)
+    #                                              expInDmCoor=True)
+    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
+                                                 expInDmCoor=False)
 
     # Check the defocal images
     # temp1 = wfsImgMap["R:2,2 S:1,0"]
     # poltExposureImage(temp1.intraImg, saveFilePath="../test/donutImg/testImg.png")
 
-    # Try the corner wavefront sensor
-    wfsDir = "realWfs/output"
-    cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-    wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    # # Try the corner wavefront sensor
+    # wfsDir = "realWfs/output"
+    # cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images
     donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False, 
@@ -1220,56 +1270,58 @@ if __name__ == "__main__":
     saveToDir = "../test/donutImg"
     plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
 
-    # # Generate the master donut images
-    # masterDonutMap = wepCntlr.generateMasterImg(donutMap)
+    # Generate the master donut images
+    masterDonutMap = wepCntlr.generateMasterImg(donutMap)
 
-    # # Plot the master donut image
-    # for sensorName, img in masterDonutMap.items():
-    #     fileName = abbrevDectectorName(sensorName)
+    # Plot the master donut image
+    for sensorName, img in masterDonutMap.items():
+        fileName = abbrevDectectorName(sensorName)
 
-    #     intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
-    #     plotImage(img[0].intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
+        intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
+        plotImage(img[0].intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
         
-    #     extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
-    #     plotImage(img[0].extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
+        extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
+        plotImage(img[0].extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
 
-    # # Calculate the wavefront error for the individual donut
-    # donutMap = wepCntlr.calcWfErr(donutMap)
-    # # for sensorName, donutImgList in donutMap.items():
-    # #     for donutImg in donutImgList:
-    # #         print(sensorName)
-    # #         print(donutImg.starId)
-    # #         print(donutImg.zer4UpNm)
+    # Calculate the wavefront error for the individual donut
+    donutMap = wepCntlr.calcWfErr(donutMap)
+    for sensorName, donutImgList in donutMap.items():
+        for donutImg in donutImgList:
+            if (donutImg.zer4UpNm is not None):
+                print(sensorName)
+                print(donutImg.starId)
+                print(donutImg.zer4UpNm)
 
-    # # Calculate the wavefront error for the master donut
-    # masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
-    # # for sensorName, masterDonutImg in masterDonutMap.items():
-    # #     print(sensorName)
-    # #     print(masterDonutImg[0].zer4UpNm)
+    # Calculate the wavefront error for the master donut
+    masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
+    for sensorName, masterDonutImg in masterDonutMap.items():
+        print(sensorName)
+        print(masterDonutImg[0].zer4UpNm)
 
-    # # Calculate the average wavefront error
-    # for sensorName, donutImgList in donutMap.items():
-    #     avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
+    # Calculate the average wavefront error
+    for sensorName, donutImgList in donutMap.items():
+        if (not sensorName.endswith("B")):
+            avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
 
-    #     # print(sensorName)
-    #     # print(avgErr)
+            print(sensorName)
+            print(avgErr)
 
-    #     # Issue the event
-    #     timestamp = time.time()
-    #     priority = 1
-    #     eventData = {"sensorID": sensorName,
-    #                  "timestamp": timestamp,
-    #                  "priority": priority}
-    #     wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
-    #     time.sleep(1)
+    #         # Issue the event
+    #         timestamp = time.time()
+    #         priority = 1
+    #         eventData = {"sensorID": sensorName,
+    #                      "timestamp": timestamp,
+    #                      "priority": priority}
+    #         wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
+    #         time.sleep(1)
 
-    #     # Publish the result
-    #     timestamp = time.time()
-    #     telData = {"sensorID": sensorName,
-    #                "annularZerikePolynomials": avgErr,
-    #                "timestamp": timestamp}
-    #     wepCntlr.issueTelemetry("WavefrontError", telData)
-    #     time.sleep(1)
+    #         # Publish the result
+    #         timestamp = time.time()
+    #         telData = {"sensorID": sensorName,
+    #                    "annularZerikePolynomials": avgErr,
+    #                    "timestamp": timestamp}
+    #         wepCntlr.issueTelemetry("WavefrontError", telData)
+    #         time.sleep(1)
 
     # time.sleep(20)
     # wepCntlr.shutDownSal()

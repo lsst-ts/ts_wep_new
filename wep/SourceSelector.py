@@ -1,6 +1,6 @@
-import unittest
+import os, unittest
 import numpy as np
-from astropy.io import fits
+from astropy.io.fits import getheader
 
 from lsst.sims.utils import ObservationMetaData
 
@@ -485,6 +485,56 @@ class SourceSelector(object):
             if (trimmedCandidateStarNum != 0):
                 print("Trimmed candidate stars on %s: %d." % (detector, trimmedCandidateStarNum))
 
+def calcPixPos(fitsFilePath, raList, decList, extLayer=0):
+    """
+    
+    Calculate the pixel positions based on the FITS header data. The working formula
+    is provided by John.
+    
+    Arguments:
+        fitsFilePath {[str]} -- FITS file path.
+        raList {[list]} -- List of RA in degree.
+        decList {[list]} -- List of Dec in degree.
+    
+    Keyword Arguments:
+        extLayer {int} -- Extension layer in degree. (default: {0})
+    
+    Returns:
+        [list] -- List of x position in pixel.
+        [list] -- List of y position in pixel.
+    """
+
+    # Get the header data
+    hdr = getheader(fitsFilePath, int(extLayer))
+
+    # Get the needed parameters
+    crval1 = hdr["CRVAL1"]
+    crval2 = hdr["CRVAL2"]
+    cd1_1 = hdr["CD1_1"]
+    cd1_2 = hdr["CD1_2"]
+    cd2_1 = hdr["CD2_1"]
+    cd2_2 = hdr["CD2_2"]
+    crpix1 = hdr["CRPIX1"]
+    crpix2 = hdr["CRPIX2"]
+
+    # Calculate the pixel position
+    xPosList = []
+    yPosList = []
+    for ra, dec in zip(raList, decList):
+
+        # Change the direction. RA is in (-180, 180).
+        if (ra > 180):
+            ra = ra - 360
+
+        # Calculate the pixel position based on the formula provided by John
+        xPos = crpix1 + ( (ra-crval1)*cd2_2 - (dec-crval2)*cd1_2 ) / (cd2_2*cd1_1 - cd1_2*cd2_1)
+        yPos = crpix2 + ( (ra-crval1)*cd2_1 - (dec-crval2)*cd1_1 ) / (cd1_2*cd2_1 - cd2_2*cd1_1)
+
+        xPosList.append(xPos)
+        yPosList.append(yPos)
+
+    return xPosList, yPosList
+
 class SourceSelectorTest(unittest.TestCase):
     """
     Test the source selector. 
@@ -499,7 +549,7 @@ class SourceSelectorTest(unittest.TestCase):
         aFilterType = "r"
 
         # Address of local database
-        dbAdress = "../test/bsc.db3"
+        dbAdress = os.path.join("..", "test", "bsc.db3")
 
         # Remote database setting
         databaseHost = "localhost:51433"
@@ -602,6 +652,14 @@ class SourceSelectorTest(unittest.TestCase):
         # Delete all data in local database
         allStarList = np.arange(1,len(allNeighborStarLocal.RaDecl)+1)
         self.localDb.db.deleteData(self.localDb.getFilter(), allStarList.tolist())
+
+    def testCoorFun(self):
+        fitsFilePath = os.path.join("..", "test", "eimage", "v99999999-fr", "E000", "R22", 
+                                    "eimage_99999999_R22_S11_E000.fits.gz")
+        raList = [0]
+        decList = [0]
+        xPosList, yPosList = calcPixPos(fitsFilePath, raList, decList)
+        self.assertEqual((xPosList[0], yPosList[0]), (2000, 2036))
 
 if __name__ == "__main__":
 

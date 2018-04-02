@@ -150,7 +150,7 @@ class SciWFDataCollectorTest(unittest.TestCase):
     
     def setUp(self):
         
-        self.tempDir = "../test/temp"
+        self.tempDir = os.path.join("..", "test", "temp")
 
     def testFunction(self):
         
@@ -187,28 +187,3 @@ if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
-
-    # # Directory
-    # pathOfRawData = "/home/ttsai/Document/phosimObsData/raw"
-    # destinationPath = "/home/ttsai/Document/phosimObsData/input"
-    # calibDestDir = "/home/ttsai/Document/phosimObsData/calibs"
-
-    # # Instantiate
-    # sciWfDataCollector = SciWFDataCollector()
-    # sciWfDataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
-
-    # # Get the mapper
-    # # sciWfDataCollector.setMapper()
-
-    # # Import the raw data
-    # # sciWfDataCollector.ingestSimImages()
-
-    # # Get the calibration products
-    # # sciWfDataCollector.getCalibsData(calibDestDir)
-
-    # # Ingest the calibration products
-    # # sciWfDataCollector.ingestCalibs(calibDestDir)
-
-
-
-

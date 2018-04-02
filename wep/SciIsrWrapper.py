@@ -246,7 +246,8 @@ class SciIsrWrapperTest(unittest.TestCase):
         sensor = "1,1"
         channel = "1,4"
         isrWrapper.configBulter(self.pathData)
-        butlerDataRaw = isrWrapper.getButlerData(obsId, snap, raft, sensor, channel=channel, atype="raw")
+        butlerDataRaw = isrWrapper.getButlerData(obsId, snap, raft, sensor, channel=channel, 
+                                                 atype="raw")
         self.assertEqual(butlerDataRaw.getMetadata().get("GAIN"), 1.83546)
 
         # Test to get the images
@@ -270,22 +271,3 @@ if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
-    
-    # # Path
-    # pathData = "/home/ttsai/Document/phosimObsData/input"
-    # outputPath = "/home/ttsai/Document/phosimObsData/output"
-
-    # # Instantiate the isr wrapper
-    # isrWrapper = SciIsrWrapper()
-
-    # # Configurate the path
-    # isrWrapper.configWrapper(inputs=pathData, outputs=outputPath)
-
-    # # Do the isr
-    # visit = 9006000
-    # snap = 0
-    # raft = "2,2"
-    # sensor = "1,1"
-    # # isrWrapper.doISR(visit, snap, raft, sensor)
-    # isrWrapper.configBulter(outputPath)
-    # butlerData = isrWrapper.getButlerData(visit, snap, raft, sensor, atype="postISRCCD")

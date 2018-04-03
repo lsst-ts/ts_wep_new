@@ -9,22 +9,13 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from scipy.ndimage.measurements import center_of_mass
 
-from wep.SciWFDataCollector import SciWFDataCollector
 from wep.WFDataCollector import WFDataCollector
-
-from wep.SciIsrWrapper import SciIsrWrapper, getImageData, poltExposureImage
-from wep.EimgIsrWrapper import EimgIsrWrapper
-
+from wep.SciIsrWrapper import SciIsrWrapper, getImageData
 from wep.SourceSelector import SourceSelector
 from wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from wep.WFEstimator import WFEstimator
-
-from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
 from wep.DefocalImage import DefocalImage, DonutImage
-
 from wep.Middleware import Middleware
-
-from cwfs.Tool import plotImage
 
 class WEPController(object):
 
@@ -886,9 +877,6 @@ class WEPController(object):
             [ndarray] -- Coefficients of Zernike polynomials (z4 - z22) in nm.
         """
 
-        # Field XY position
-        # fieldXY = [donutImg.fieldX, donutImg.fieldY]
-
         # Set the images
         self.wfsEsti.setImg(intraFieldXY, image=intraImg, 
                             defocalType=self.wfsEsti.ImgIntra.INTRA)
@@ -1203,11 +1191,126 @@ class WEPControllerTest(unittest.TestCase):
         self.assertAlmostEqual(np.sum(self.middlewareClient.retData["annularZerikePolynomials"]), 
                             np.sum(zkList))
 
-    def testFunction(self):
+    def testCornerWfsFunction(self):
 
         # Test to get the list of corner wavefront sensors
         wfsList = self.wepCntlr.getWfsList()
         self.assertEqual(len(wfsList), 8)
+
+        # Instintiate the components
+        sourSelc = SourceSelector()
+        dataCollector = WFDataCollector()
+        sourProc = SourceProcessor()
+
+        instruFolderPath = os.path.join("..", "instruData")
+        algoFolderPath = os.path.join("..", "algo")
+        wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
+
+        # Configurate the source selector
+        cameraType = "lsst"
+        dbType = "LocalDb"
+        aFilter = "g"
+        cameraMJD = 59580.0
+
+        sourSelc.configSelector(cameraType=cameraType, dbType=dbType, aFilter=aFilter, 
+                                cameraMJD=cameraMJD)
+
+        # Set the criteria of neighboring stars
+        starRadiusInPixel = 63
+        spacingCoefficient = 2.5
+        sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
+
+        # Configurate the WFS data collector
+        # Data butler does not support the corner WFS at this moment.
+        pathOfRawData = os.path.join("..", "test", "phosimOutput")
+        destinationPath = butlerInputs = butlerOutputs = os.path.join(".", "test")
+        dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
+
+        # Configurate the source processor
+        focalPlaneFolder = os.path.join("..", "test")
+        sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
+                        pixel2Arcsec=0.2)
+
+        # Configurate the wavefront estimator
+        defocalDisInMm = None
+        
+        # Size of donut in pixel for corner WFS
+        sizeInPix = 120
+        wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
+                        defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
+
+        # Configurate the WEP controller
+        self.wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, 
+                            sourProc=sourProc, wfsEsti=wfsEsti)
+
+        # Test the configuration
+        self.assertTrue(isinstance(self.wepCntlr.wfsEsti, WFEstimator))
+
+        # Get the target stars by file
+
+        # Set the database address
+        dbAdress = os.path.join("..", "test", "bsc.db3")
+
+        # Do the query
+        pointing = (0,0)
+        cameraRotation = 0.0
+        skyInfoFilePath = os.path.join("..", "test", "phosimOutput", "realWfs", "output", 
+                                       "skyWfsInfo.txt")
+
+        camOrientation = "corner"
+        neighborStarMap, starMap, wavefrontSensors = self.wepCntlr.getTargetStarByFile(dbAdress, 
+                                                        skyInfoFilePath, pointing, cameraRotation, 
+                                                orientation=camOrientation, tableName="TempTable")
+        self.assertEqual(len(starMap), 8)
+
+        starData = starMap["R:0,0 S:2,2,A"]
+        self.assertEqual(len(starData.SimobjID), 2)
+
+        # Get the available sensor name list
+        sensorNameList = list(starMap.keys())
+
+        # Get the eimage
+        wfsDir = os.path.join("realWfs", "output")
+        wfsImgMap = self.wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
+
+        wfsImg = wfsImgMap["R:0,0 S:2,2,A"]
+        self.assertNotEqual(np.sum(wfsImg.intraImg), None)
+        self.assertEqual(wfsImg.extraImg, None)
+
+        # Get the donut map
+        donutMap = self.wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, 
+                                            doDeblending=False, sglDonutOnly=True)
+        
+        donutList = donutMap["R:0,0 S:2,2,A"]
+        self.assertEqual(len(donutList), 2)
+
+        donutImg = donutList[0]
+        self.assertNotEqual(np.sum(donutImg.intraImg), None)
+        self.assertEqual(donutImg.extraImg, None)
+        self.assertEqual(donutImg.starId, 6)
+        self.assertEqual(int(donutImg.pixelX), 506)
+        self.assertEqual(int(donutImg.pixelY), 1008)
+
+        # Calculate the wavefront error for the individual donut
+        partDonutMap = dict()
+        partDonutMap["R:0,0 S:2,2,A"] = donutMap["R:0,0 S:2,2,A"]
+        partDonutMap["R:0,0 S:2,2,B"] = donutMap["R:0,0 S:2,2,B"]
+        
+        partDonutMap = self.wepCntlr.calcWfErr(partDonutMap)
+        
+        donutList = partDonutMap["R:0,0 S:2,2,A"]
+        donutImg = donutList[0]
+        self.assertEqual(len(donutImg.zer4UpNm), 19)
+
+        # Test the weighting ratio
+        weightingRatio = calcWeiRatio(donutList)
+        self.assertEqual(np.sum(weightingRatio), 1)
+        self.assertEqual(weightingRatio[0], 0.5)
+
+        # Test to calculate the average wavefront error
+        avgErr = self.wepCntlr.calcSglAvgWfErr(donutList)
+        ans = donutList[0].zer4UpNm*weightingRatio[0] + donutList[1].zer4UpNm*weightingRatio[1]
+        self.assertEqual(np.sum(avgErr), np.sum(ans))
 
     def tearDown(self):
 
@@ -1219,192 +1322,3 @@ if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
-
-    # # Instintiate the components
-    # sourSelc = SourceSelector()
-    # dataCollector = SciWFDataCollector()
-    # isrWrapper = SciIsrWrapper()
-    # # dataCollector = WFDataCollector()
-    # # isrWrapper = EimgIsrWrapper()
-    # sourProc = SourceProcessor()
-
-    # instruFolderPath = "../instruData"
-    # algoFolderPath = "../algo"
-    # wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
-
-    # # Configurate the source selector
-    # cameraType = "comcam"
-    # # cameraType = "lsst"
-    # dbType = "LocalDb"
-    # aFilter = "g"
-    # cameraMJD = 59580.0
-
-    # sourSelc.configSelector(cameraType=cameraType, dbType=dbType, aFilter=aFilter, 
-    #                         cameraMJD=cameraMJD)
-
-    # # Set the criteria of neighboring stars
-    # starRadiusInPixel = 63
-    # spacingCoefficient = 2.5
-    # sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
-
-    # # Configurate the WFS data collector
-    # # pathOfRawData = "../test/phosimOutput"
-    # # destinationPath = "../test"
-    # # butlerInputs = "../test"
-    # # butlerOutputs = "../test"
-    # # regisAdress = "../test/registry.sqlite3"
-    # # dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
-    # #             dbAdress=regisAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
-
-    # pathOfRawData = "/home/ttsai/Document/phosimObsData/raw"
-    # destinationPath = "/home/ttsai/Document/phosimObsData/input"
-    # dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
-
-    # # Configurate the ISR wrapper
-    # postIsrImgDir = "/home/ttsai/Document/phosimObsData/output"
-    # isrWrapper.configWrapper(inputs=destinationPath, outputs=postIsrImgDir)
-    # isrWrapper.configBulter(postIsrImgDir)
-
-    # # isrWrapper.configWrapper(inputs=butlerInputs, outputs=butlerOutputs)
-    # # isrWrapper.configBulter(butlerInputs, outputs=butlerOutputs)
-
-    # # Configurate the source processor
-    # focalPlaneFolder = "../test"
-    # sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
-    #                 pixel2Arcsec=0.2)
-
-    # # Configurate the wavefront estimator
-    # # defocalDisInMm = 1
-    # defocalDisInMm = 1.5
-    # # defocalDisInMm = None
-    # # sizeInPix = 120 # defocal distance = 1 mm
-    # sizeInPix = 160 # defocal distance = 1.5 mm
-    # wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
-    #                 defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
-
-    # # Initiate the WEP Controller
-    # wepCntlr = WEPController()
-    # wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, isrWrapper=isrWrapper, 
-    #                 sourProc=sourProc, wfsEsti=wfsEsti)
-
-    # # Set the middle ware
-    # topicList = ["WavefrontErrorCalculated", "WavefrontError"]
-    # wepCntlr.setMiddleWare(topicList)
-
-    # # Set the database address
-    # dbAdress = "../test/bsc.db3"
-
-    # # Do the query
-    # pointing = (0,0)
-    # cameraRotation = 0.0
-    # skyInfoFilePath = "/home/ttsai/Document/phosimObsData/skyInfo/skyLsstFamInfo.txt"
-    # # skyInfoFilePath = "../test/phosimOutput/realComCam2/output/skyComCamInfo.txt"
-    # # skyInfoFilePath = "../test/phosimOutput/realWfs/output/skyWfsInfo.txt"
-
-    # camOrientation = "all"
-    # # camOrientation = "corner"
-
-    # neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, skyInfoFilePath, 
-    #                                     pointing, cameraRotation, orientation=camOrientation, tableName="TempTable")
-
-    # # Get the available sensor name list
-    # sensorNameList = list(starMap.keys())
-
-    # # Observation IDs
-    # extraObsId = 9005000
-    # intraObsId = 9005001
-    # obsIdList = [intraObsId, extraObsId]
-
-    # # # Import the PhoSim simulated image
-    # # # for obsId in obsIdList:
-    # # #     fitsFileArg = "lsst_*%d*.fits.gz" % obsId
-    # # #     wepCntlr.ingestSimImages(fitsFileArg=fitsFileArg)
-
-    # # dataDirList = ["realComCam2/output/Intra", "realComCam2/output/Extra"]
-    # # for dataDir in dataDirList:
-    # #     wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
-
-    # # Do the ISR
-    # for obsId in obsIdList:
-    #     for sensorName in sensorNameList:
-    #         wepCntlr.doISR(obsId, sensorName)
-
-    # # Get the wfs images
-    # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-    #                                              expInDmCoor=True)
-    # # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-    # #                                              expInDmCoor=False)
-
-    # # Check the defocal images
-    # # temp1 = wfsImgMap["R:2,2 S:1,0"]
-    # # poltExposureImage(temp1.intraImg, saveFilePath="../test/donutImg/testImg.png")
-
-    # # # Try the corner wavefront sensor
-    # # wfsDir = "realWfs/output"
-    # # cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-    # # wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-
-    # # Get the donut images
-    # donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False, 
-    #                                 sglDonutOnly=True)
-
-    # # Plot the donut images
-    # saveToDir = "../test/donutImg"
-    # plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
-
-    # # Generate the master donut images
-    # # masterDonutMap = wepCntlr.generateMasterImg(donutMap)
-
-    # # Plot the master donut image
-    # # for sensorName, img in masterDonutMap.items():
-    # #     fileName = abbrevDectectorName(sensorName)
-
-    # #     intraFilePath = os.path.join(saveToDir, fileName + "_intra.png")
-    # #     plotImage(img[0].intraImg, title=fileName+"_intra", show=False, saveFilePath=intraFilePath)
-        
-    # #     extraFilePath = os.path.join(saveToDir, fileName + "_extra.png")
-    # #     plotImage(img[0].extraImg, title=fileName+"_extra", show=False, saveFilePath=extraFilePath)
-
-    # # Calculate the wavefront error for the individual donut
-    # donutMap = wepCntlr.calcWfErr(donutMap)
-    # for sensorName, donutImgList in donutMap.items():
-    #     for donutImg in donutImgList:
-    #         if (donutImg.zer4UpNm is not None):
-    #             print(sensorName)
-    #             print(donutImg.starId)
-    #             print(donutImg.zer4UpNm)
-
-    # # Calculate the wavefront error for the master donut
-    # # masterDonutMap = wepCntlr.calcWfErr(masterDonutMap)
-    # # for sensorName, masterDonutImg in masterDonutMap.items():
-    # #     print(sensorName)
-    # #     print(masterDonutImg[0].zer4UpNm)
-
-    # # Calculate the average wavefront error
-    # for sensorName, donutImgList in donutMap.items():
-    #     if (not sensorName.endswith("B")):
-    #         avgErr = wepCntlr.calcSglAvgWfErr(donutImgList)
-
-    #         print(sensorName)
-    #         print(avgErr)
-
-    #         # Issue the event
-    #         timestamp = time.time()
-    #         priority = 1
-    #         eventData = {"sensorID": sensorName,
-    #                      "timestamp": timestamp,
-    #                      "priority": priority}
-    #         wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
-    #         time.sleep(1)
-
-    #         # Publish the result
-    #         timestamp = time.time()
-    #         telData = {"sensorID": sensorName,
-    #                    "annularZerikePolynomials": avgErr,
-    #                    "timestamp": timestamp}
-    #         wepCntlr.issueTelemetry("WavefrontError", telData)
-    #         time.sleep(1)
-
-    # time.sleep(20)
-    # wepCntlr.shutDownSal()
-

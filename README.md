@@ -120,7 +120,7 @@ Keep this terminal open for the connection.
 - **DonutImage**: Container for the donut images.
 - **WEPController**: High level class to use the WEP package.
 
-## 8. Target for Future Release
+## 9. Target for Future Release
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*

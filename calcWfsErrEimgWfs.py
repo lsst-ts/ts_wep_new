@@ -81,7 +81,6 @@ if __name__ == "__main__":
     # Because the data butler does not support the corner WFS at this moment,
     # the steps related to it such as doISR() have been ignored.
     wfsDir = os.path.join("realWfs", "output")
-    cornerWfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
     wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
 
     # Get the donut images

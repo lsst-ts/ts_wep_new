@@ -96,7 +96,7 @@ Keep this terminal open for the connection.
 
 ## 7. Integrate with SAL
 
-*Some environment paths defined ts_sal/setup.env in  need to be modified to use lsst stack with SAL.*
+*Some environment paths defined in ts_sal/setup.env need to be modified to use lsst stack with SAL.*
 
 *1. PYTHON_BUILD_LOCATION=$lsst_stack_python_directory. e.g. PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21*
 
@@ -120,7 +120,15 @@ Keep this terminal open for the connection.
 - **DonutImage**: Container for the donut images.
 - **WEPController**: High level class to use the WEP package.
 
-## 9. Target for Future Release
+## 9. Example Script
+
+- **doCmdCalib.py**: Generate the calibration products and do the ingestion. This step is time-consuming and only needs to do once.
+- **wfsCommu.py**: Use the WEPController to issue the event and publish the telemetry.
+- **calcWfsErrAmp.py**: Ingest the amplifier images (LSST central raft), do the ISR by DM cmd task, do the source selection, and calculate the wavefront error.
+- **calcWfsErrEimgComcam.py**: Ingest the ComCam eimages, do the fake ISR, do the source selection, and calculate the wavefront error.
+- **calcWfsErrEimgWfs.py**: Get the corner WFS eimages (data butler does not support this at this moment), do the source selection, and calculate the wavefront error.
+
+## 10. Target for Future Release
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*

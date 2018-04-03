@@ -281,7 +281,7 @@ class Middleware(object):
 
 		# Wait for the command to complete, otherwise to abort
 		waitFuncName = "waitForCompletion_" + topic
-		if (self.timeOut >0):
+		if (self.timeOut > 0):
 			getattr(self.salMiddleware, waitFuncName)(cmdId, self.timeOut)
 		else:
 			# Set the default timeOut

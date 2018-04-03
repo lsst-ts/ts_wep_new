@@ -1154,19 +1154,66 @@ class WEPControllerTest(unittest.TestCase):
         self.topicList = ["WavefrontErrorCalculated", "WavefrontError"]
         self.moduleName = "tcsWEP"
 
+        # Instantiate the WEP controller
+        self.wepCntlr = WEPController()
+
+        # Set another middleware client
+        self.middlewareClient = Middleware(self.moduleName)
+
     def testSalFunction(self):
 
-        # Instantiate the WEP controller
-        wepCntlr = WEPController()
-
         # Set the middle ware
-        wepCntlr.setMiddleWare(self.topicList, moduleName=self.moduleName)
-        self.assertEqual(list(wepCntlr.topicList.keys())[0], self.moduleName)
-        self.assertEqual(len(wepCntlr.topicList[self.moduleName]), 2)
+        self.wepCntlr.setMiddleWare(self.topicList, moduleName=self.moduleName)
+        self.assertEqual(list(self.wepCntlr.topicList.keys())[0], self.moduleName)
+        self.assertEqual(len(self.wepCntlr.topicList[self.moduleName]), 2)
 
+        # Issue the event
+        sensorName = "R:2,2 S:1,1"
+        timestamp = time.time()
+        priority = 1
+        eventData = {"sensorID": sensorName,
+                     "timestamp": timestamp,
+                     "priority": priority}
+        self.wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
+
+        # Issue the telemetry
+        zkList = np.random.rand(19)
+        telData = {"sensorID": sensorName,
+                   "annularZerikePolynomials": zkList,
+                   "timestamp": timestamp}
+        self.wepCntlr.issueTelemetry("WavefrontError", telData)
+
+        # Sleep 1 second
+        time.sleep(1)
+
+        # Accept the event
+        self.middlewareClient.getEvent("WavefrontErrorCalculated")
+
+        # Check the value
+        self.assertEqual(self.middlewareClient.retData["sensorID"], sensorName)
+
+        # Accept the telemetry
+        self.middlewareClient.getEvent("WavefrontErrorCalculated")
+
+        # Reset the topic
+        self.middlewareClient.resetTopic()
+        self.middlewareClient.getTelemetry("WavefrontError")
+
+        # Check the value
+        self.assertAlmostEqual(np.sum(self.middlewareClient.retData["annularZerikePolynomials"]), 
+                            np.sum(zkList))
 
     def testFunction(self):
-        pass
+
+        # Test to get the list of corner wavefront sensors
+        wfsList = self.wepCntlr.getWfsList()
+        self.assertEqual(len(wfsList), 8)
+
+    def tearDown(self):
+
+        # Turn off the sal
+        self.wepCntlr.shutDownSal()
+        self.middlewareClient.shutDownSal()
 
 if __name__ == "__main__":
 

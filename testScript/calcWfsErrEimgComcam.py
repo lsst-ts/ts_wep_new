@@ -2,30 +2,29 @@ import os
 
 from lsst.ts.wep.WEPController import WEPController, plotDonutImg
 
-from lsst.ts.wep.SciWFDataCollector import SciWFDataCollector
-from lsst.ts.wep.SciIsrWrapper import SciIsrWrapper
+from lsst.ts.wep.WFDataCollector import WFDataCollector
+from lsst.ts.wep.EimgIsrWrapper import EimgIsrWrapper
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from lsst.ts.wep.WFEstimator import WFEstimator
+from lsst.ts.wep.Utility import getModulePath
 
 from cwfs.Tool import plotImage
 
 if __name__ == "__main__":
-
-    # This script is to calculate the wavefront error from the amplifier images.
-    # DM team only supports the LSST FAM mode and SE only supports the ComCam and 
-    # WFS at this moment.
-    # Therefore, in this script, the WFS data is LSST central raft and the parameters 
-    # of calculating the wavefront error is in the ComCam 1.5 mm condition.
+    
+    # This script is to calculate the wavefront error from the eimages of ComCam.
+    # This helps the evaluation of wavefront error without the silicon model.
     
     # Instintiate the components
     sourSelc = SourceSelector()
-    dataCollector = SciWFDataCollector()
-    isrWrapper = SciIsrWrapper()
+    dataCollector = WFDataCollector()
+    isrWrapper = EimgIsrWrapper()
     sourProc = SourceProcessor()
 
-    instruFolderPath = os.path.join(".", "instruData")
-    algoFolderPath = os.path.join(".", "algo")
+    modulePath = getModulePath()
+    instruFolderPath = os.path.join(modulePath, "algoData", "cwfs", "instruData")
+    algoFolderPath = os.path.join(modulePath, "algoData", "cwfs", "algo")
     wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
     # Configurate the source selector
@@ -43,26 +42,26 @@ if __name__ == "__main__":
     sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
 
     # Configurate the WFS data collector
-    homeDir = os.path.expanduser("~")
-    pathOfRawData = os.path.join(homeDir, "Document", "phosimObsData", "raw")
-    destinationPath = os.path.join(homeDir, "Document", "phosimObsData", "input")
-    dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
+    pathOfRawData = os.path.join(modulePath, "test", "phosimOutput")
+    destinationPath = butlerInputs = butlerOutputs = os.path.join(modulePath, "test")
+    regisAdress = os.path.join(modulePath, "test", "registry.sqlite3")
+    dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath, 
+                dbAdress=regisAdress, butlerInputs=butlerInputs, butlerOutputs=butlerOutputs)
 
     # Configurate the ISR wrapper
-    postIsrImgDir = os.path.join(homeDir, "Document", "phosimObsData", "output")
-    isrWrapper.configWrapper(inputs=destinationPath, outputs=postIsrImgDir)
-    isrWrapper.configBulter(postIsrImgDir)
+    isrWrapper.configWrapper(inputs=butlerInputs, outputs=butlerOutputs)
+    isrWrapper.configBulter(butlerInputs, outputs=butlerOutputs)
 
     # Configurate the source processor
-    focalPlaneFolder = os.path.join(".", "test")
+    focalPlaneFolder = os.path.join(modulePath, "test")
     sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
                     pixel2Arcsec=0.2)
 
     # Configurate the wavefront estimator
-    defocalDisInMm = 1.5
+    defocalDisInMm = 1
     
-    # Size of donut in pixel if defocal distance = 1.5 mm
-    sizeInPix = 160
+    # Size of donut in pixel if defocal distance = 1 mm
+    sizeInPix = 120
     wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
                     defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
 
@@ -72,12 +71,13 @@ if __name__ == "__main__":
                     sourProc=sourProc, wfsEsti=wfsEsti)
 
     # Set the database address
-    dbAdress = os.path.join(".", "test", "bsc.db3")
+    dbAdress = os.path.join(modulePath, "test", "bsc.db3")
 
     # Do the query
     pointing = (0,0)
     cameraRotation = 0.0
-    skyInfoFilePath = os.path.join(homeDir, "Document", "phosimObsData", "skyInfo", "skyLsstFamInfo.txt")
+    skyInfoFilePath = os.path.join(modulePath, "test", "phosimOutput", "realComCam2", "output", 
+                                   "skyComCamInfo.txt")
 
     camOrientation = "all"
     neighborStarMap, starMap, wavefrontSensors = wepCntlr.getTargetStarByFile(dbAdress, 
@@ -93,13 +93,11 @@ if __name__ == "__main__":
     obsIdList = [intraObsId, extraObsId]
 
     # Import the PhoSim simulated image
-    # The data butler can only import the unique data id for one time
-    for obsId in obsIdList:
-        fitsFileArg = "lsst_*%d*.fits.gz" % obsId
-        try:
-            wepCntlr.ingestSimImages(fitsFileArg=fitsFileArg)
-        except RuntimeError:
-            print("Data is registered in the data butler already.")
+    intraImgDir = os.path.join("realComCam2", "output", "Intra")
+    extraImgDir = os.path.join("realComCam2", "output", "Extra")
+    dataDirList = [intraImgDir, extraImgDir]
+    for dataDir in dataDirList:
+        wepCntlr.ingestSimImages(dataDir=dataDir, atype="raw", overwrite=False)
 
     # Do the ISR
     for obsId in obsIdList:
@@ -107,17 +105,16 @@ if __name__ == "__main__":
             wepCntlr.doISR(obsId, sensorName)
 
     # Get the wfs images
-    # It is noted that the image of assembled CCD is in DM coordinate.
-    # Therefor, set "expInDmCoor=True" to rotate to camera team coordinate.
+    # It is noted that the eimage is in camera team coordinate
     wfsImgMap = wepCntlr.getPostISRDefocalImgMap(sensorNameList, obsIdList=obsIdList, 
-                                                 expInDmCoor=True)
+                                                 expInDmCoor=False)
 
     # Get the donut images
     donutMap = wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, doDeblending=False, 
                                     sglDonutOnly=True)
 
     # Plot the donut images
-    saveToDir = os.path.join(".", "test", "donutImg")
+    saveToDir = os.path.join(modulePath, "test", "donutImg")
     plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
 
     # Calculate the wavefront error for the individual donut

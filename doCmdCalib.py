@@ -1,6 +1,6 @@
 import os
 
-from wep.SciWFDataCollector import SciWFDataCollector
+from lsst.ts.wep.SciWFDataCollector import SciWFDataCollector
 
 if __name__ == "__main__":
 

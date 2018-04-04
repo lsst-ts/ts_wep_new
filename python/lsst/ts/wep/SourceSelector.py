@@ -8,7 +8,8 @@ from bsc.BrightStarDatabase import BrightStarDatabase
 from bsc.CameraData import LsstCamera, ComCam 
 from bsc.Filter import Filter
 
-from wep.LocalDatabaseDecorator import LocalDatabaseDecorator
+from lsst.ts.wep.LocalDatabaseDecorator import LocalDatabaseDecorator
+from lsst.ts.wep.Utility import getModulePath
 
 class SourceSelector(object):
 
@@ -542,6 +543,9 @@ class SourceSelectorTest(unittest.TestCase):
 
     def setUp(self):
 
+        # Get the path of module
+        self.modulePath = getModulePath()
+
         # Camera type: "lsst" or "comcam"
         cameraType = "comcam"
 
@@ -549,7 +553,7 @@ class SourceSelectorTest(unittest.TestCase):
         aFilterType = "r"
 
         # Address of local database
-        dbAdress = os.path.join("..", "test", "bsc.db3")
+        dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
 
         # Remote database setting
         databaseHost = "localhost:51433"
@@ -654,7 +658,7 @@ class SourceSelectorTest(unittest.TestCase):
         self.localDb.db.deleteData(self.localDb.getFilter(), allStarList.tolist())
 
     def testCoorFun(self):
-        fitsFilePath = os.path.join("..", "test", "eimage", "v99999999-fr", "E000", "R22", 
+        fitsFilePath = os.path.join(self.modulePath, "test", "eimage", "v99999999-fr", "E000", "R22", 
                                     "eimage_99999999_R22_S11_E000.fits.gz")
         raList = [0]
         decList = [0]

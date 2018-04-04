@@ -8,8 +8,9 @@ from lsst.obs.lsstSim import LsstSimMapper
 from deblend.BlendedImageDecorator import BlendedImageDecorator
 from isr.changePhoSimInstrument import readData
 
-from wep.SourceSelector import SourceSelector
-from wep.SciIsrWrapper import poltExposureImage
+from lsst.ts.wep.SourceSelector import SourceSelector
+from lsst.ts.wep.SciIsrWrapper import poltExposureImage
+from lsst.ts.wep.Utility import getModulePath
 
 class SourceProcessor(object):
 
@@ -751,8 +752,11 @@ class SourceProcessorTest(unittest.TestCase):
 
     def setUp(self):
 
+        # Get the path of module
+        self.modulePath = getModulePath()
+
         # CCD focal plane file
-        focalPlaneFolder = os.path.join("..", "test")
+        focalPlaneFolder = os.path.join(self.modulePath, "test")
 
         # Set the source processor
         self.sourProc = SourceProcessor()
@@ -835,7 +839,7 @@ class SourceProcessorTest(unittest.TestCase):
 
         # Define the database and get the neighboring star map
         # Address of local database
-        dbAdress = os.path.join("..", "test", "bsc.db3")
+        dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
 
         # Use the focal plane as a reference to double check the DM XY to Camera XY
         # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
@@ -925,7 +929,7 @@ class SourceProcessorTest(unittest.TestCase):
     def testDeblending(self):
 
         # Donut image folder
-        imageFolder = os.path.join("..", "test", "testImages")
+        imageFolder = os.path.join(self.modulePath, "test", "testImages")
         donutImageFolder = "LSST_C_SN26"
 
         # Give the path to the image folder

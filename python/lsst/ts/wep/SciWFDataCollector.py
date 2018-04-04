@@ -1,5 +1,7 @@
 import os, subprocess, unittest
 
+from lsst.ts.wep.Utility import getModulePath
+
 class SciWFDataCollector(object):
 
     def __init__(self):
@@ -150,7 +152,8 @@ class SciWFDataCollectorTest(unittest.TestCase):
     
     def setUp(self):
         
-        self.tempDir = os.path.join("..", "test", "temp")
+        modulePath = getModulePath()
+        self.tempDir = os.path.join(modulePath, "test", "temp")
 
     def testFunction(self):
         

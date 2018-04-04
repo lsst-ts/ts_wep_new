@@ -1,6 +1,7 @@
 import os, shutil, unittest
 
-from wep.IsrWrapper import IsrWrapper
+from lsst.ts.wep.IsrWrapper import IsrWrapper
+from lsst.ts.wep.Utility import getModulePath
 
 class EimgIsrWrapper(IsrWrapper):
 
@@ -51,8 +52,11 @@ class EimgIsrWrapperTest(unittest.TestCase):
 
 	def setUp(self):
 
+		# Get the path of module
+		self.modulePath = getModulePath()
+
 		# Path of data folder
-		dataFolderPath = "../test"
+		dataFolderPath = os.path.join(self.modulePath, "test")
 		self.dataFolderPath = dataFolderPath
 
 	def testEimageWfsIsrTask(self):

@@ -81,7 +81,7 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_deblend
 <br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_isr
 <br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep_python
 
 *3. Connect to fatboy server:*
 <br/>

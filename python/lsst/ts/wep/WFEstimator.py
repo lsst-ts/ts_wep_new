@@ -5,6 +5,8 @@ from cwfs.Instrument import Instrument
 from cwfs.Algorithm import Algorithm
 from cwfs.CompensationImageDecorator import CompensationImageDecorator
 
+from lsst.ts.wep.Utility import getModulePath
+
 class WFEstimator(object):
 
     def __init__(self, instruFolderPath, algoFolderPath):
@@ -230,11 +232,14 @@ class WFEsitmatorTest(unittest.TestCase):
 
     def setUp(self):
 
+        # Get the path of module
+        self.modulePath = getModulePath()
+
         # Define the instrument folder
-        instruFolderPath = "../instruData"
+        instruFolderPath = os.path.join(self.modulePath, "instruData")
 
         # Define the algorithm folder
-        algoFolderPath = "../algo"
+        algoFolderPath = os.path.join(self.modulePath, "algo")
 
         # Decalre the WFEsitmator
         self.wfsEst = WFEstimator(instruFolderPath, algoFolderPath)
@@ -244,7 +249,7 @@ class WFEsitmatorTest(unittest.TestCase):
         # Define the image folder and image names
         # Image data -- Don't know the final image format.
         # It is noted that image.readFile inuts is based on the txt file.
-        imageFolderPath = "../test/testImages/LSST_NE_SN25"
+        imageFolderPath = os.path.join(self.modulePath, "test", "testImages", "LSST_NE_SN25")
         intra_image_name = "z11_0.25_intra.txt"
         extra_image_name = "z11_0.25_extra.txt"
 

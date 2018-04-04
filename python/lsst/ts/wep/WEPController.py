@@ -9,13 +9,14 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from scipy.ndimage.measurements import center_of_mass
 
-from wep.WFDataCollector import WFDataCollector
-from wep.SciIsrWrapper import SciIsrWrapper, getImageData
-from wep.SourceSelector import SourceSelector
-from wep.SourceProcessor import SourceProcessor, abbrevDectectorName
-from wep.WFEstimator import WFEstimator
-from wep.DefocalImage import DefocalImage, DonutImage
-from wep.Middleware import Middleware
+from lsst.ts.wep.WFDataCollector import WFDataCollector
+from lsst.ts.wep.SciIsrWrapper import SciIsrWrapper, getImageData
+from lsst.ts.wep.SourceSelector import SourceSelector
+from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
+from lsst.ts.wep.WFEstimator import WFEstimator
+from lsst.ts.wep.DefocalImage import DefocalImage, DonutImage
+from lsst.ts.wep.Middleware import Middleware
+from lsst.ts.wep.Utility import getModulePath
 
 class WEPController(object):
 
@@ -1138,6 +1139,9 @@ class WEPControllerTest(unittest.TestCase):
     """
 
     def setUp(self):
+
+        # Get the path of module
+        self.modulePath = getModulePath()
         
         self.topicList = ["WavefrontErrorCalculated", "WavefrontError"]
         self.moduleName = "tcsWEP"
@@ -1202,8 +1206,8 @@ class WEPControllerTest(unittest.TestCase):
         dataCollector = WFDataCollector()
         sourProc = SourceProcessor()
 
-        instruFolderPath = os.path.join("..", "instruData")
-        algoFolderPath = os.path.join("..", "algo")
+        instruFolderPath = os.path.join(self.modulePath, "instruData")
+        algoFolderPath = os.path.join(self.modulePath, "algo")
         wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
         # Configurate the source selector
@@ -1222,12 +1226,12 @@ class WEPControllerTest(unittest.TestCase):
 
         # Configurate the WFS data collector
         # Data butler does not support the corner WFS at this moment.
-        pathOfRawData = os.path.join("..", "test", "phosimOutput")
-        destinationPath = butlerInputs = butlerOutputs = os.path.join(".", "test")
+        pathOfRawData = os.path.join(self.modulePath, "test", "phosimOutput")
+        destinationPath = butlerInputs = butlerOutputs = os.path.join(self.modulePath, "test")
         dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
 
         # Configurate the source processor
-        focalPlaneFolder = os.path.join("..", "test")
+        focalPlaneFolder = os.path.join(self.modulePath, "test")
         sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
                         pixel2Arcsec=0.2)
 
@@ -1249,12 +1253,12 @@ class WEPControllerTest(unittest.TestCase):
         # Get the target stars by file
 
         # Set the database address
-        dbAdress = os.path.join("..", "test", "bsc.db3")
+        dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
 
         # Do the query
         pointing = (0,0)
         cameraRotation = 0.0
-        skyInfoFilePath = os.path.join("..", "test", "phosimOutput", "realWfs", "output", 
+        skyInfoFilePath = os.path.join(self.modulePath, "test", "phosimOutput", "realWfs", "output", 
                                        "skyWfsInfo.txt")
 
         camOrientation = "corner"

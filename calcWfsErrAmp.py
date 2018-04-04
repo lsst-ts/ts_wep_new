@@ -1,12 +1,12 @@
 import os
 
-from wep.WEPController import WEPController, plotDonutImg
+from lsst.ts.wep.WEPController import WEPController, plotDonutImg
 
-from wep.SciWFDataCollector import SciWFDataCollector
-from wep.SciIsrWrapper import SciIsrWrapper
-from wep.SourceSelector import SourceSelector
-from wep.SourceProcessor import SourceProcessor, abbrevDectectorName
-from wep.WFEstimator import WFEstimator
+from lsst.ts.wep.SciWFDataCollector import SciWFDataCollector
+from lsst.ts.wep.SciIsrWrapper import SciIsrWrapper
+from lsst.ts.wep.SourceSelector import SourceSelector
+from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
+from lsst.ts.wep.WFEstimator import WFEstimator
 
 from cwfs.Tool import plotImage
 

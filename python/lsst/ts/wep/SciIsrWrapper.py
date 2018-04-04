@@ -9,7 +9,8 @@ from matplotlib.colors import LogNorm, SymLogNorm
 
 from lsst.daf.persistence import Butler
 
-from wep.SciWFDataCollector import runProgram
+from lsst.ts.wep.SciWFDataCollector import runProgram
+from lsst.ts.wep.Utility import getModulePath
 
 class SciIsrWrapper(object):
 
@@ -223,8 +224,11 @@ class SciIsrWrapperTest(unittest.TestCase):
 
     def setUp(self):
 
+        # Get the path of module
+        modulePath = getModulePath()
+
         # Path of data folder
-        dataFolderPath = "../test"
+        dataFolderPath = os.path.join(modulePath, "test")
         self.pathData = dataFolderPath
         self.outputPath = dataFolderPath
 

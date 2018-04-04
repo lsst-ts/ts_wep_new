@@ -5,7 +5,8 @@ import lsst.daf.persistence as dafPersistence
 from lsst.ip.isr import IsrTask
 from lsst.ip.isr.assembleCcdTask import AssembleCcdTask
 
-from wep.SciIsrWrapper import SciIsrWrapper
+from lsst.ts.wep.SciIsrWrapper import SciIsrWrapper
+from lsst.ts.wep.Utility import getModulePath
 
 class IsrWrapper(SciIsrWrapper):
 
@@ -268,8 +269,11 @@ class IsrWrapperTest(unittest.TestCase):
 
 	def setUp(self):
 
+		# Get the path of module
+		modulePath = getModulePath()
+
 		# Path of data folder
-		dataFolderPath = "../test"
+		dataFolderPath = os.path.join(modulePath, "test")
 		self.dataFolderPath = dataFolderPath
 
 	def testWfsIsrTask(self):

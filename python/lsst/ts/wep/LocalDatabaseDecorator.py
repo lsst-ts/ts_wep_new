@@ -1,7 +1,9 @@
-import unittest
+import os, unittest
 import numpy as np
 
 from bsc.LocalDatabase import LocalDatabase
+
+from lsst.ts.wep.Utility import getModulePath
 
 class LocalDatabaseDecorator(LocalDatabase):
 
@@ -133,8 +135,11 @@ class LocalDatabaseDecoratorTest(unittest.TestCase):
 
     def setUp(self):
 
+        # Get the path of module
+        self.modulePath = getModulePath()
+
         # Address of local database
-        dbAdress = "../test/bsc.db3"
+        dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
 
         self.db = LocalDatabaseDecorator()
         self.db.connect(dbAdress)
@@ -157,7 +162,7 @@ class LocalDatabaseDecoratorTest(unittest.TestCase):
             pass
 
         # Sky data file path
-        skyFilePath = "../test/skyComCamInfo.txt"
+        skyFilePath = os.path.join(self.modulePath, "test", "skyComCamInfo.txt")
         self.db.insertDataByFile(aFilter, tableName, skyFilePath)
 
         self.db.deleteTable(tableName)

@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from wep.WEPController import WEPController
+from lsst.ts.wep.WEPController import WEPController
 
 if __name__ == "__main__":
 

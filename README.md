@@ -119,6 +119,7 @@ Keep this terminal open for the connection.
 - **DefocalImage**: Container for the defocal images.
 - **DonutImage**: Container for the donut images.
 - **WEPController**: High level class to use the WEP package.
+- **Utility**: Utility functions used in WEP.
 
 ## 9. Example Script
 

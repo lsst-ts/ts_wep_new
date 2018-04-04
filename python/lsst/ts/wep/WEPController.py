@@ -1206,8 +1206,8 @@ class WEPControllerTest(unittest.TestCase):
         dataCollector = WFDataCollector()
         sourProc = SourceProcessor()
 
-        instruFolderPath = os.path.join(self.modulePath, "instruData")
-        algoFolderPath = os.path.join(self.modulePath, "algo")
+        instruFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "instruData")
+        algoFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "algo")
         wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
         # Configurate the source selector

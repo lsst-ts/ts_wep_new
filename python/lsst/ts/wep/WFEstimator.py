@@ -236,10 +236,10 @@ class WFEsitmatorTest(unittest.TestCase):
         self.modulePath = getModulePath()
 
         # Define the instrument folder
-        instruFolderPath = os.path.join(self.modulePath, "instruData")
+        instruFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "instruData")
 
         # Define the algorithm folder
-        algoFolderPath = os.path.join(self.modulePath, "algo")
+        algoFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "algo")
 
         # Decalre the WFEsitmator
         self.wfsEst = WFEstimator(instruFolderPath, algoFolderPath)

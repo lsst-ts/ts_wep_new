@@ -5,6 +5,7 @@ from lsst.ts.wep.WFDataCollector import WFDataCollector
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from lsst.ts.wep.WFEstimator import WFEstimator
+from lsst.ts.wep.Utility import getModulePath
 
 from cwfs.Tool import plotImage
 
@@ -18,8 +19,9 @@ if __name__ == "__main__":
     dataCollector = WFDataCollector()
     sourProc = SourceProcessor()
 
-    instruFolderPath = os.path.join(".", "instruData")
-    algoFolderPath = os.path.join(".", "algo")
+    modulePath = getModulePath()
+    instruFolderPath = os.path.join(modulePath, "algoData", "cwfs", "instruData")
+    algoFolderPath = os.path.join(modulePath, "algoData", "cwfs", "algo")
     wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
 
     # Configurate the source selector
@@ -38,12 +40,12 @@ if __name__ == "__main__":
 
     # Configurate the WFS data collector
     # Data butler does not support the corner WFS at this moment.
-    pathOfRawData = os.path.join(".", "test", "phosimOutput")
+    pathOfRawData = os.path.join(modulePath, "test", "phosimOutput")
     destinationPath = butlerInputs = butlerOutputs = os.path.join(".", "test")
     dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
 
     # Configurate the source processor
-    focalPlaneFolder = os.path.join(".", "test")
+    focalPlaneFolder = os.path.join(modulePath, "test")
     sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
                     pixel2Arcsec=0.2)
 
@@ -61,12 +63,12 @@ if __name__ == "__main__":
                     wfsEsti=wfsEsti)
 
     # Set the database address
-    dbAdress = os.path.join(".", "test", "bsc.db3")
+    dbAdress = os.path.join(modulePath, "test", "bsc.db3")
 
     # Do the query
     pointing = (0,0)
     cameraRotation = 0.0
-    skyInfoFilePath = os.path.join(".", "test", "phosimOutput", "realWfs", "output", 
+    skyInfoFilePath = os.path.join(modulePath, "test", "phosimOutput", "realWfs", "output", 
                                     "skyWfsInfo.txt")
 
     camOrientation = "corner"
@@ -88,7 +90,7 @@ if __name__ == "__main__":
                                     sglDonutOnly=True)
 
     # Plot the donut images
-    saveToDir = os.path.join(".", "test", "donutImg")
+    saveToDir = os.path.join(modulePath, "test", "donutImg")
     plotDonutImg(donutMap, saveToDir=saveToDir, dpi=None)
 
     # Calculate the wavefront error for the individual donut

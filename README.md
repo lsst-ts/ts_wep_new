@@ -79,9 +79,9 @@ setup sims_catUtils -t $user_defined_tag -t sims
 <br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_bsc
 <br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_wep
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_wep (N/D)
 <br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_deblend
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_deblend (N/D)
 <br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_isr
 <br/>

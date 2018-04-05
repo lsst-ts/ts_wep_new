@@ -4,10 +4,9 @@ from astropy.io.fits import getheader
 
 from lsst.sims.utils import ObservationMetaData
 
-from bsc.BrightStarDatabase import BrightStarDatabase
-from bsc.CameraData import LsstCamera, ComCam 
-from bsc.Filter import Filter
-
+from lsst.ts.wep.bsc.BrightStarDatabase import BrightStarDatabase
+from lsst.ts.wep.bsc.CameraData import LsstCamera, ComCam 
+from lsst.ts.wep.bsc.Filter import Filter
 from lsst.ts.wep.LocalDatabaseDecorator import LocalDatabaseDecorator
 from lsst.ts.wep.Utility import getModulePath
 

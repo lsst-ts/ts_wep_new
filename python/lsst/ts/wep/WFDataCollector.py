@@ -2,9 +2,8 @@ import os, re, unittest, shutil
 
 import lsst.daf.persistence as dafPersistence
 
-from isr.PhoSimImgAdaptor import PhoSimImgAdaptor
-from isr.LocalDatabase import LocalDatabase
-
+from lsst.ts.wep.isr.PhoSimImgAdaptor import PhoSimImgAdaptor
+from lsst.ts.wep.isr.LocalDatabase import LocalDatabase
 from lsst.ts.wep.SciWFDataCollector import SciWFDataCollector
 from lsst.ts.wep.Utility import getModulePath
 

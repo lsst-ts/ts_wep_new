@@ -77,15 +77,9 @@ setup sims_catUtils -t $user_defined_tag -t sims
 
 *2. Setup the WEP environment:*
 <br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_bsc (N/D)
-<br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_wep (N/D)
-<br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_deblend (N/D)
-<br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_isr (N/D)
-<br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep_python
+<br/>
+(e.g. export PYTHONPATH=$PYTHONPATH:/home/ttsai/Document/stash/ts_tcs_wep/python)
 
 *3. Connect to fatboy server:*
 <br/>

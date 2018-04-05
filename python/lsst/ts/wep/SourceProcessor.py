@@ -5,9 +5,8 @@ from lsst.sims.utils import ObservationMetaData
 from lsst.sims.coordUtils.CameraUtils import focalPlaneCoordsFromRaDec
 from lsst.obs.lsstSim import LsstSimMapper
 
-from deblend.BlendedImageDecorator import BlendedImageDecorator
-from isr.changePhoSimInstrument import readData
-
+from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
+from lsst.ts.wep.isr.changePhoSimInstrument import readData
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SciIsrWrapper import poltExposureImage
 from lsst.ts.wep.Utility import getModulePath

@@ -1,10 +1,9 @@
 import os, sys, unittest
 import numpy as np
 
-from cwfs.Instrument import Instrument
-from cwfs.Algorithm import Algorithm
-from cwfs.CompensationImageDecorator import CompensationImageDecorator
-
+from lsst.ts.wep.cwfs.Instrument import Instrument
+from lsst.ts.wep.cwfs.Algorithm import Algorithm
+from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 from lsst.ts.wep.Utility import getModulePath
 
 class WFEstimator(object):
@@ -320,4 +319,3 @@ if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
-

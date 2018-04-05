@@ -1,15 +1,13 @@
 import os
 
 from lsst.ts.wep.WEPController import WEPController, plotDonutImg
-
 from lsst.ts.wep.WFDataCollector import WFDataCollector
 from lsst.ts.wep.EimgIsrWrapper import EimgIsrWrapper
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from lsst.ts.wep.WFEstimator import WFEstimator
 from lsst.ts.wep.Utility import getModulePath
-
-from cwfs.Tool import plotImage
+from lsst.ts.wep.cwfs.Tool import plotImage
 
 if __name__ == "__main__":
     

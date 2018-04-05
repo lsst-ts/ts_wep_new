@@ -1,8 +1,7 @@
 import os, unittest
 import numpy as np
 
-from bsc.LocalDatabase import LocalDatabase
-
+from lsst.ts.wep.bsc.LocalDatabase import LocalDatabase
 from lsst.ts.wep.Utility import getModulePath
 
 class LocalDatabaseDecorator(LocalDatabase):

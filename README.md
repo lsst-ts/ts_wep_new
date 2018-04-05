@@ -83,7 +83,7 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_wep (N/D)
 <br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_deblend (N/D)
 <br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_isr
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_isr (N/D)
 <br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep_python
 

@@ -24,6 +24,7 @@
 
 - *lsst_sims*
 - *lsst_distrib*
+- *obs_lsstSim - syseng3 branch*
 - *numpy*
 - *scipy*
 - *astropy*
@@ -31,7 +32,10 @@
 - *cython*
 - *scikit-image*
 
-## 4. Setup Tag and Use the obs_lsstSim
+## 4. Compile cwfs
+* To compile the code, at the path of cwfs in terminal, execute "python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib". 
+
+## 5. Setup Tag and Use the obs_lsstSim
 
 - *0. Install the lsst_sims by "eups distrib install lsst_sims -t sims".*
 - *1. Install the lsst_distrib by "eups distrib install lsst_distrib -t sims".*
@@ -40,7 +44,7 @@
 - *4. Setup the package. You will need to use something like "setup sims_catUtils -t ttsai -t sims".  That way, any package that does not have a "ttsai" tag available will be setup with the "sims" tag.*
 - *5. Use "scons" under the repository to build it.*
 
-## 5. DM Command Line Task (obs_lsstSim)
+## 6. DM Command Line Task (obs_lsstSim)
 
 *1. Make the input repository*
 <br/>
@@ -62,7 +66,7 @@ ingestCalibs.py input R*.fits --validity 99999 --output input
 <br/>
 processSimCcd.py input --id --output output
 
-## 6. Use of Module
+## 7. Use of Module
 
 *1. Setup the DM environment:*
 <br/>
@@ -94,7 +98,7 @@ ssh -i /home/ttsai/.ssh/fatboy -L 51433:fatboy.phys.washington.edu:1433 simsuser
 <br/>
 Keep this terminal open for the connection.
 
-## 7. Integrate with SAL
+## 8. Integrate with SAL
 
 *Some environment paths defined in ts_sal/setup.env need to be modified to use lsst stack with SAL.*
 
@@ -102,7 +106,7 @@ Keep this terminal open for the connection.
 
 *2. LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${SAL_HOME}/lib*
 
-## 8. Content
+## 9. Content
 
 *This module contains the following classes:*
 
@@ -121,7 +125,7 @@ Keep this terminal open for the connection.
 - **WEPController**: High level class to use the WEP package.
 - **Utility**: Utility functions used in WEP.
 
-## 9. Example Script
+## 10. Example Script
 
 - **doCmdCalib.py**: Generate the calibration products and do the ingestion. This step is time-consuming and only needs to do once.
 - **wfsCommu.py**: Use the WEPController to issue the event and publish the telemetry.
@@ -129,7 +133,7 @@ Keep this terminal open for the connection.
 - **calcWfsErrEimgComcam.py**: Ingest the ComCam eimages, do the fake ISR, do the source selection, and calculate the wavefront error.
 - **calcWfsErrEimgWfs.py**: Get the corner WFS eimages (data butler does not support this at this moment), do the source selection, and calculate the wavefront error.
 
-## 10. Target for Future Release
+## 11. Target for Future Release
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*

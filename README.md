@@ -77,7 +77,7 @@ setup sims_catUtils -t $user_defined_tag -t sims
 
 *2. Setup the WEP environment:*
 <br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_bsc
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_bsc (N/D)
 <br/>
 export PYTHONPATH=$PYTHONPATH:$path_to_ts_lsst_wep (N/D)
 <br/>

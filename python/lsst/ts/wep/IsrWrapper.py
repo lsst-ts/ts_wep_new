@@ -1,7 +1,6 @@
 import os, unittest
 import numpy as np
 
-import lsst.daf.persistence as dafPersistence
 from lsst.ip.isr import IsrTask
 from lsst.ip.isr.assembleCcdTask import AssembleCcdTask
 

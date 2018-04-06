@@ -93,20 +93,20 @@ class SciIsrWrapper(object):
         Arguments:
             visit {[int]} -- Visit time.
             snap {int} -- Snap time (0 or 1) means first/ second exposure.
-            raft {[string]} -- Raft name.
-            sensor {[string]} -- Sensor name.
+            raft {[str]} -- Raft name.
+            sensor {[str]} -- Sensor name.
 
         Keyword Arguments:
-            channel {[string]} -- Channel name (default: {"None"}).
-            atype {[string]} -- Type of arrangement: eimage, raw, bias, flat, dark, postISRCCD 
-                                (default: {"None"}).
+            channel {[str]} -- Channel name (default: {"None"}).
+            atype {[str]} -- Type of arrangement: eimage, raw, bias, flat, dark, postISRCCD, 
+                             src. (default: {"None"}).
         
         Returns:
             [butler] -- Butler data.
         """
 
         # Define the data ID and get the raw amplifer image
-        if atype in ("eimage", "postISRCCD"):
+        if atype in ("eimage", "postISRCCD", "src"):
             dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, immediate=True)
         else:
             dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, channel=channel, 
@@ -114,6 +114,43 @@ class SciIsrWrapper(object):
         butlerData = self.butler.get(atype, dataId=dataId)
 
         return butlerData
+
+    def getBrtStarPos(self, visit, snap, raft, sensor, numOfBrtStr):
+        """
+        
+        Get the bright star positions based the source catalog by data butler. Note: (1) This 
+        catalog comes from the finish of processSimCcd.py. (2) It looks like there is some 
+        difference betweeen the value by PSF (point spread function) kernel (maybe Gaussian-like) 
+        and the position on CCD. 
+        
+        Arguments:
+            visit {[int]} -- Visit time.
+            snap {int} -- Snap time (0 or 1) means first/ second exposure.
+            raft {[str]} -- Raft name.
+            sensor {[str]} -- Sensor name.
+            numOfBrtStr {[int]} -- Number of bright stars.
+        
+        Returns:
+            [ndarray] -- X pixel position.
+            [ndarray] -- Y pixel position.
+            [ndarray] -- PSF flux.
+        """
+
+        # Get the source data
+        srcData = self.getButlerData(visit, snap, raft, sensor, atype="src")
+        columnData = srcData.getColumnView()
+        
+        # Get the PSF flux data
+        fluxData = columnData.getPsfFlux()
+
+        # Get the index of bright star based on the flux value
+        idx = fluxData.argsort()[-int(numOfBrtStr):]
+
+        # Get the x, y positions
+        posXinPixel = columnData.getX()[idx]
+        posYinPixel = columnData.getY()[idx]
+
+        return posXinPixel, posYinPixel, fluxData[idx]
 
 def getImageData(image):
     """

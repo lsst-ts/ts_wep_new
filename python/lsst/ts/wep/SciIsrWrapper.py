@@ -99,14 +99,14 @@ class SciIsrWrapper(object):
         Keyword Arguments:
             channel {[str]} -- Channel name (default: {"None"}).
             atype {[str]} -- Type of arrangement: eimage, raw, bias, flat, dark, postISRCCD, 
-                             src. (default: {"None"}).
+                             icSrc. (default: {"None"}).
         
         Returns:
             [butler] -- Butler data.
         """
 
         # Define the data ID and get the raw amplifer image
-        if atype in ("eimage", "postISRCCD", "src"):
+        if atype in ("eimage", "postISRCCD", "icSrc"):
             dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, immediate=True)
         else:
             dataId = dict(visit=int(visit), snap=snap, raft=raft, sensor=sensor, channel=channel, 
@@ -115,7 +115,7 @@ class SciIsrWrapper(object):
 
         return butlerData
 
-    def getBrtStarPos(self, visit, snap, raft, sensor, numOfBrtStr):
+    def getBrtStarPos(self, visit, snap, raft, sensor):
         """
         
         Get the bright star positions based the source catalog by data butler. Note: (1) This 
@@ -128,7 +128,6 @@ class SciIsrWrapper(object):
             snap {int} -- Snap time (0 or 1) means first/ second exposure.
             raft {[str]} -- Raft name.
             sensor {[str]} -- Sensor name.
-            numOfBrtStr {[int]} -- Number of bright stars.
         
         Returns:
             [ndarray] -- X pixel position.
@@ -137,20 +136,17 @@ class SciIsrWrapper(object):
         """
 
         # Get the source data
-        srcData = self.getButlerData(visit, snap, raft, sensor, atype="src")
+        srcData = self.getButlerData(visit, snap, raft, sensor, atype="icSrc")
         columnData = srcData.getColumnView()
         
         # Get the PSF flux data
         fluxData = columnData.getPsfFlux()
 
-        # Get the index of bright star based on the flux value
-        idx = fluxData.argsort()[-int(numOfBrtStr):]
-
         # Get the x, y positions
-        posXinPixel = columnData.getX()[idx]
-        posYinPixel = columnData.getY()[idx]
+        posXinPixel = columnData.getX()
+        posYinPixel = columnData.getY()
 
-        return posXinPixel, posYinPixel, fluxData[idx]
+        return posXinPixel, posYinPixel, fluxData
 
 def getImageData(image):
     """

@@ -13,6 +13,11 @@ class SciWFDataCollector(object):
         self.pathOfRawData = None
         self.destinationPath = None
 
+        # Information of DAQ server
+        self.pathToDaqPvtKey = None
+        self.daqUserName = None
+        self.daqIpAdr = None
+
     def config(self, pathOfRawData=None, destinationPath=None):
         """
         
@@ -25,6 +30,48 @@ class SciWFDataCollector(object):
         
         self.pathOfRawData = pathOfRawData
         self.destinationPath = destinationPath
+
+    def setDaqSvr(self, pathToDaqPvtKey, daqUserName, daqIpAdr):
+        """
+        
+        Set the information needed to connect to DAQ (data acquision) server.
+        
+        Arguments:
+            pathToDaqPvtKey {[str]} -- File path to SSH private key for DAQ.
+            daqUserName {[str]} -- DAQ user name.
+            daqIpAdr {[str]} -- DAQ IP address.
+        """
+        
+        self.pathToDaqPvtKey = pathToDaqPvtKey
+        self.daqUserName = daqUserName
+        self.daqIpAdr = daqIpAdr
+
+    def getDaqFile(self, filePathInDaq, isDir=False):
+        """
+        
+        Get the files from DAQ (data acquision) server.
+        
+        Arguments:
+            filePathInDaq {[str]} -- File/ directory path on server.
+        """
+
+        # Copy the file by scp
+        command = "scp"
+
+        # Copy all directory or not
+        argstring = ""
+        if (isDir):
+            argstring += "-r "
+
+        # Define the path and key
+        argstring += "-i %s %s@%s:%s %s" % (self.pathToDaqPvtKey, self.daqUserName, 
+                                   self.daqIpAdr, filePathInDaq, self.pathOfRawData)
+        
+        # Execute the command from shell
+        try:
+            runProgram(command, argstring=argstring)
+        except Exception as RuntimeError:
+            print(RuntimeError)
 
     def setMapper(self):
         """
@@ -185,6 +232,29 @@ class SciWFDataCollectorTest(unittest.TestCase):
         # Remove the file and directory
         argstring = "-rf %s" % self.tempDir
         runProgram("rm", argstring=argstring)
+
+    def testFuncWiDaq(self):
+
+        # Initiate the collector object
+        sciWfDataCollector = SciWFDataCollector()
+
+        # Set the path
+        pathOfRawData = "temp"
+
+        # Set the server
+        pathToDaqPvtKey = "key"
+        daqUserName = "user"
+        daqIpAdr = "ip"
+        sciWfDataCollector.setDaqSvr(pathToDaqPvtKey, daqUserName, daqIpAdr)
+
+        self.assertEqual(sciWfDataCollector.daqIpAdr, daqIpAdr)
+
+        # Get the data
+        filePathInDaq = "filePath"
+        try:
+            sciWfDataCollector.getDaqFile(filePathInDaq, isDir=False)
+        except Exception as RuntimeError:
+            pass
 
 if __name__ == "__main__":
 

@@ -53,6 +53,9 @@ class SciWFDataCollector(object):
         
         Arguments:
             filePathInDaq {[str]} -- File/ directory path on server.
+
+        Keyword Arguments:
+            isDir {[bool]} -- Input file path is directory or not. (default: {False})
         """
 
         # Copy the file by scp

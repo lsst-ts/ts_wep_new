@@ -46,6 +46,38 @@ class SciWFDataCollector(object):
         self.daqUserName = daqUserName
         self.daqIpAdr = daqIpAdr
 
+    def runRemoteExecutable(self, script, args=None):
+        """
+        
+        Run the remote executable script.
+        
+        Arguments:
+            script {[str]} -- Executable script file path in the remote server.
+        
+        Keyword Arguments:
+            args {[str]} -- Arguments of script. (default: {None})
+        """
+
+        # Execute the remote script by ssh
+        command = "ssh"
+
+        # Put the ssh needed information
+        argstring = ""
+        argstring += "-i %s %s@%s " % (self.pathToDaqPvtKey, self.daqUserName, 
+                                       self.daqIpAdr)
+        # Add the executable file path 
+        argstring += script
+
+        # Put the arguments
+        if (args is not None):
+            argstring += " " + args
+
+        # Execute the command from shell
+        try:
+            runProgram(command, argstring=argstring)
+        except Exception as RuntimeError:
+            print(RuntimeError)
+
     def getDaqFile(self, filePathInDaq, isDir=False):
         """
         
@@ -259,7 +291,15 @@ class SciWFDataCollectorTest(unittest.TestCase):
         except Exception as RuntimeError:
             pass
 
+        # Run the script
+        script = "runScript"
+        try:
+            sciWfDataCollector.runRemoteExecutable(script)
+        except Exception as RuntimeError:
+            pass
+
 if __name__ == "__main__":
 
     # Do the unit test
     unittest.main()
+    

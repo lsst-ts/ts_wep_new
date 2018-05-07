@@ -1,8 +1,9 @@
-import os, re, time
+import os, re, time, unittest
 import numpy as np
 from astropy.io import fits
 
 from lsst.ts.wep.bsc.Filter import Filter
+from lsst.ts.wep.Utility import getModulePath
 
 class FitsFormat(object):
 
@@ -118,31 +119,77 @@ class FitsFormat(object):
 
         return dataDict
 
+class FitsFormatTest(unittest.TestCase):
+
+    """ 
+    Test the function of FitsFormat.
+    """
+
+    def setUp(self):
+
+        modulePath = getModulePath()
+        self.testDir = os.path.join(modulePath, "test")
+
+    def testFunction(self):
+
+        # Instantiate the fits class
+        fitsFormat = FitsFormat()
+
+        # Do the configuration
+        fitsFormat.config(fitsDir=self.testDir)
+        self.assertEqual(self.testDir, fitsFormat.fitsDir)
+
+        # Define the data
+        data = np.random.rand(50,100)*100
+        data = data.astype("uint32")
+
+        # Generate the file
+        fitsFileName = "temp_1234_f2_R12_S21_C03.fits"
+        fitsFilePath = fitsFormat.writeNewFits(data, fitsFileName)
+        self.assertTrue(os.path.isfile(fitsFilePath))
+
+        # Configurate the file path
+        fitsFormat.config(fitsFilePath=fitsFilePath)
+
+        # Add the metadata based on the file name
+        headerDict = fitsFormat.getMetaDataFromFileName(fitsFilePath)
+        fitsFormat.updateHeader(headerDict)
+
+        # Get the header
+        header = fits.getheader(fitsFilePath)
+        self.assertEqual(header["CCDID"], "R12_S21")
+
+        # Remove the file in the final
+        os.remove(fitsFilePath)
+
 if __name__ == "__main__":
+
+    # Do the unit test
+    unittest.main()
     
-    # Instantiate the fits class
-    fitsFormat = FitsFormat()
-    fitsDir = "/home/ttsai/Document/stash/ts_tcs_wep/test"
-    fitsFormat.config(fitsDir=fitsDir)
+    # # Instantiate the fits class
+    # fitsFormat = FitsFormat()
+    # fitsDir = "/home/ttsai/Document/stash/ts_tcs_wep/test"
+    # fitsFormat.config(fitsDir=fitsDir)
 
-    # Define the file path
-    fitsFileName = "temp_1234_f2_R12_S21_C03.fits"
+    # # Define the file path
+    # fitsFileName = "temp_1234_f2_R12_S21_C03.fits"
 
-    # Define the data
-    data = np.random.rand(50,100)*100
-    data = data.astype("uint32")
+    # # Define the data
+    # data = np.random.rand(50,100)*100
+    # data = data.astype("uint32")
 
-    # Write to file
-    fitsFilePath = fitsFormat.writeNewFits(data, fitsFileName)
+    # # Write to file
+    # fitsFilePath = fitsFormat.writeNewFits(data, fitsFileName)
 
-    # Config the filepath
-    if (fitsFilePath is None):
-        fitsFilePath = os.path.join(fitsDir, fitsFileName)
-    fitsFormat.config(fitsFilePath=fitsFilePath)
+    # # Config the filepath
+    # if (fitsFilePath is None):
+    #     fitsFilePath = os.path.join(fitsDir, fitsFileName)
+    # fitsFormat.config(fitsFilePath=fitsFilePath)
 
-    # Header dictionary
-    headerDict = fitsFormat.getMetaDataFromFileName(fitsFilePath)
-    print(headerDict)
+    # # Header dictionary
+    # headerDict = fitsFormat.getMetaDataFromFileName(fitsFilePath)
+    # print(headerDict)
 
-    # Update the header
-    fitsFormat.updateHeader(headerDict)
+    # # Update the header
+    # fitsFormat.updateHeader(headerDict)

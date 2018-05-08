@@ -23,3 +23,4 @@
 /test/phosim_out/darkCurrent/output/temp_a_9999_f2_R22_S11_C01_E000.fits.gz filter=lfs diff=lfs merge=lfs -text
 /test/phosim_out/flatDome/output/temp_a_9999_f2_R22_S11_C01_E000.fits.gz filter=lfs diff=lfs merge=lfs -text
 /test/phosim_out/real/output/temp_a_99999999_f2_R22_S11_C01_E000.fits.gz filter=lfs diff=lfs merge=lfs -text
+/test/daqData/comcam_a_99999999_f0_R10_S00_C00 filter=lfs diff=lfs merge=lfs -text

@@ -147,6 +147,8 @@ class FitsFormat(object):
         # This is to translate the "snap"
         dataDict["OUTFILE"] = "lsst_e_E000"
 
+        dataDict["EXPTIME"] = 15.0
+
         return dataDict
 
 class FitsFormatTest(unittest.TestCase):

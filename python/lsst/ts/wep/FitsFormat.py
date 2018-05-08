@@ -114,8 +114,38 @@ class FitsFormat(object):
         dataDict = {}
         dataDict["OBSID"] = int(m.groups()[0])
         dataDict["FILTER"] = filterDict.get(m.groups()[1])
-        dataDict["CCDID"] = "R%s%s_S%s%s" % m.groups()[2:6]
+        dataDict["CHIPID"] = "R%s%s_S%s%s" % m.groups()[2:6]
         dataDict["AMPID"] = "C%s%s" % m.groups()[6:8]
+
+        return dataDict
+
+    def getData(self, daqFilePath, dimOfCol=512):
+        """
+        
+        Get the data from DAQ file.
+        
+        Arguments:
+            daqFilePath {[str]} -- DAQ file path.
+        
+        Keyword Arguments:
+            dimOfCol {int} -- Dimension of column. (default: {512})
+        
+        Returns:
+            [ndarray] -- Image data.
+        """
+
+        data = np.loadtxt(daqFilePath)
+        data = data.reshape(-1, int(dimOfCol))
+        data = data.astype("uint32")
+
+        return data
+
+    def addDefaultFakeData(self, dataDict):
+
+        dataDict["MJD-OBS"] = 49552.2999131944
+
+        # This is to translate the "snap"
+        dataDict["OUTFILE"] = "lsst_e_E000"
 
         return dataDict
 
@@ -139,9 +169,10 @@ class FitsFormatTest(unittest.TestCase):
         fitsFormat.config(fitsDir=self.testDir)
         self.assertEqual(self.testDir, fitsFormat.fitsDir)
 
-        # Define the data
-        data = np.random.rand(50,100)*100
-        data = data.astype("uint32")
+        # Get the data
+        daqFilePath = os.path.join(self.testDir, "daqData", "comcam_a_99999999_f0_R10_S00_C00")
+        data = fitsFormat.getData(daqFilePath, dimOfCol=512)
+        self.assertEqual(data.shape, (4608, 512))
 
         # Generate the file
         fitsFileName = "temp_1234_f2_R12_S21_C03.fits.gz"
@@ -157,7 +188,7 @@ class FitsFormatTest(unittest.TestCase):
 
         # Get the header
         header = fits.getheader(fitsFilePath)
-        self.assertEqual(header["CCDID"], "R12_S21")
+        self.assertEqual(header["CHIPID"], "R12_S21")
 
         # Remove the file in the final
         os.remove(fitsFilePath)

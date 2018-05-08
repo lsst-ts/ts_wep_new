@@ -2,8 +2,6 @@ import os, re, time, unittest
 import numpy as np
 from astropy.io import fits
 
-from lsst.daf.persistence import Butler
-
 from lsst.ts.wep.bsc.Filter import Filter
 from lsst.ts.wep.Utility import getModulePath
 

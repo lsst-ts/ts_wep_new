@@ -23,12 +23,15 @@ if __name__ == "__main__":
     # Write to the new fits file
     fitsFileName = os.path.basename(daqDataPath)
     fitsFileNameStr = fitsFileName.split("_")
-    fitsFileName = "lsst_" + "_".join(fitsFileNameStr[1:]) + "_E000.fits.gz"
+    fitsFileName = "lsst_" + "_".join(fitsFileNameStr[1:]) + "_E000.fits"
     fitsFilePath = fitsFormat.writeNewFits(data, fitsFileName)
 
     # Update the header
     fitsFormat.config(fitsFilePath=fitsFilePath)
     fitsFormat.updateHeader(dataDict)
+
+    # Gzip the file
+    fitsFormat.gzipFits()    
 
     # Ingest the fits image
     pathOfRawData = "/home/ttsai/Document/phosimObsData/raw"

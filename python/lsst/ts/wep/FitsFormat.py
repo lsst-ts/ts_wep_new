@@ -1,8 +1,9 @@
-import os, re, time, unittest
+import os, re, unittest
 import numpy as np
 from astropy.io import fits
 
 from lsst.ts.wep.bsc.Filter import Filter
+from lsst.ts.wep.SciWFDataCollector import runProgram
 from lsst.ts.wep.Utility import getModulePath
 
 class FitsFormat(object):
@@ -32,7 +33,7 @@ class FitsFormat(object):
         
         Arguments:
             data {[ndarray]} -- FITS data.
-            fitsFileName {[str]} -- FITS file name (e.g. "temp.fits", "temp.fits.gz").
+            fitsFileName {[str]} -- FITS file name (e.g. "temp.fits").
         
         Returns:
             [str] -- New FITS file path. None if the file exists already.
@@ -54,6 +55,18 @@ class FitsFormat(object):
             print(OSError)
 
         return fitsFilePath
+
+    def gzipFits(self):
+        """
+        
+        Gzip the FITS file.
+        """
+        
+        # Gzip the file
+        runProgram("gzip", argstring=self.fitsFilePath)
+
+        # Update the file path
+        self.fitsFilePath += ".gz"
 
     def updateHeader(self, headerDict):
         """
@@ -119,7 +132,7 @@ class FitsFormat(object):
 
         return dataDict
 
-    def getData(self, daqFilePath, dimOfCol=512):
+    def getData(self, daqFilePath, dimOfCol=512, enforcedShape=None):
         """
         
         Get the data from DAQ file.
@@ -128,25 +141,57 @@ class FitsFormat(object):
             daqFilePath {[str]} -- DAQ file path.
         
         Keyword Arguments:
-            dimOfCol {int} -- Dimension of column. (default: {512})
+            dimOfCol {[int]} -- Dimension of column. (default: {512})
+            enforcedShape {[tuple]} -- Enforce the data to have the specific
+                                       shape 2D array for the testing of data 
+                                       butler.
         
         Returns:
             [ndarray] -- Image data.
         """
 
+        # Load the data from file
         data = np.loadtxt(daqFilePath)
-        data = data.reshape(-1, int(dimOfCol))
+
+        # Reshape the image
+        if (enforcedShape is not None):
+            
+            # Compare the element number
+            requiredPixNum = enforcedShape[0]*enforcedShape[1]
+            if (len(data) >= requiredPixNum):
+                data = data[0:requiredPixNum]
+            else:
+                data = np.append(data, np.zeros(requiredPixNum-len(data)))
+
+            data = data.reshape(enforcedShape)
+
+        else:
+            data = data.reshape(-1, int(dimOfCol))
+
+        # Change the data type
         data = data.astype("uint32")
 
         return data
 
     def addDefaultFakeData(self, dataDict):
+        """
+        
+        Add the default fake header data to use the data butler.
+        
+        Arguments:
+            dataDict {[dict]} -- Input header data dictionary.
+        
+        Returns:
+            [dict] -- Header data with the fake information.
+        """
 
+        # Add the MJD 
         dataDict["MJD-OBS"] = 49552.2999131944
 
         # This is to translate the "snap"
         dataDict["OUTFILE"] = "lsst_e_E000"
 
+        # Add the exposure time
         dataDict["EXPTIME"] = 15.0
 
         return dataDict
@@ -176,8 +221,13 @@ class FitsFormatTest(unittest.TestCase):
         data = fitsFormat.getData(daqFilePath, dimOfCol=512)
         self.assertEqual(data.shape, (4608, 512))
 
+        # Enforce the data shape
+        data = fitsFormat.getData(daqFilePath, enforcedShape=(4700, 530))
+        self.assertEqual(data.shape, (4700, 530))        
+
         # Generate the file
-        fitsFileName = "temp_1234_f2_R12_S21_C03.fits.gz"
+        data = fitsFormat.getData(daqFilePath, enforcedShape=(1000, 500))
+        fitsFileName = "temp_1234_f2_R12_S21_C03.fits"
         fitsFilePath = fitsFormat.writeNewFits(data, fitsFileName)
         self.assertTrue(os.path.isfile(fitsFilePath))
 
@@ -186,14 +236,24 @@ class FitsFormatTest(unittest.TestCase):
 
         # Add the metadata based on the file name
         headerDict = fitsFormat.getMetaDataFromFileName(fitsFilePath)
+
+        # Add the fake data to header
+        headerDict = fitsFormat.addDefaultFakeData(headerDict)
+        self.assertEqual(headerDict["EXPTIME"], 15.0)
+
+        # Update the FITS file
         fitsFormat.updateHeader(headerDict)
 
         # Get the header
-        header = fits.getheader(fitsFilePath)
+        header = fits.getheader(fitsFormat.fitsFilePath)
         self.assertEqual(header["CHIPID"], "R12_S21")
 
+        # Compress the fits file
+        fitsFormat.gzipFits()
+        self.assertTrue(os.path.isfile(fitsFormat.fitsFilePath))
+
         # Remove the file in the final
-        os.remove(fitsFilePath)
+        os.remove(fitsFormat.fitsFilePath)
 
 if __name__ == "__main__":
 

@@ -46,6 +46,11 @@
 
 ## 6. DM Command Line Task (obs_lsstSim)
 
+*0. Download the obs_lsstSim. It is noted that the user does not need to follow the readme on this repo. Instead, we use the API in syseng3 branch to do this.*
+<br>
+The repository can be downloaded at: https://github.com/lsst/obs_lsstSim/tree/master/python/lsst/obs/lsstSim
+<br/>
+
 *1. Make the input repository*
 <br/>
 mkdir input

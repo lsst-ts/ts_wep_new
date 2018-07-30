@@ -108,7 +108,11 @@ Keep this terminal open for the connection.
 *2. In ts_sal/setup.env, use 'LD_LIBRARY_PATH=
 ${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'.*
 
-## 9. Content
+## 9. SAL XML Model
+
+*The SAL xml model are in the 'sal_interfaces' of ts_xml repository. The branch used is the develop branch. The CSC keywords are 'tcsOfc' and 'tcsWEP' for active optics to use. The xml files can be found in the related directory. The way to generate the SAL py libraries can follow the ts_sal manual.*
+
+## 10. Content
 
 *This module contains the following classes:*
 
@@ -127,7 +131,7 @@ ${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'
 - **WEPController**: High level class to use the WEP package.
 - **Utility**: Utility functions used in WEP.
 
-## 10. Example Script
+## 11. Example Script
 
 - **doCmdCalib.py**: Generate the calibration products and do the ingestion. This step is time-consuming and only needs to do once.
 - **wfsCommu.py**: Use the WEPController to issue the event and publish the telemetry.
@@ -135,7 +139,7 @@ ${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'
 - **calcWfsErrEimgComcam.py**: Ingest the ComCam eimages, do the fake ISR, do the source selection, and calculate the wavefront error.
 - **calcWfsErrEimgWfs.py**: Get the corner WFS eimages (data butler does not support this at this moment), do the source selection, and calculate the wavefront error.
 
-## 11. Target for Future Release
+## 12. Target for Future Release
 
 - *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*

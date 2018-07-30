@@ -101,9 +101,9 @@ Keep this terminal open for the connection.
 
 *Some environment paths defined in ts_sal/setup.env need to be modified to use lsst stack with SAL.*
 
-*1. PYTHON_BUILD_LOCATION=$lsst_stack_python_directory. e.g. PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21*
+*Need to setup the following path variables: LSST_SDK_INSTALL, OSPL_HOME, PYTHON_BUILD_VERSION, and PYTHON_BUILD_LOCATION.*
 
-*2. LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${SAL_HOME}/lib*
+*1. PYTHON_BUILD_LOCATION=$lsst_stack_python_directory. e.g. PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21*
 
 ## 9. Content
 

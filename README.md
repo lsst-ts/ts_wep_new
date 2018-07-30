@@ -105,7 +105,8 @@ Keep this terminal open for the connection.
 
 *1. PYTHON_BUILD_LOCATION=$lsst_stack_python_directory. e.g. PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21*
 
-*2. In ts_sal/setup.env, use 'LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'.*
+*2. In ts_sal/setup.env, use 'LD_LIBRARY_PATH=
+${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'.*
 
 ## 9. Content
 

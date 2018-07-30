@@ -11,25 +11,25 @@ if __name__ == "__main__":
     wepCntlr = WEPController()
 
     # Set the middle ware
-    topicList = ["WavefrontErrorCalculated", "WavefrontError"]
+    topicList = ["wavefrontErrorCalculated", "wavefrontError"]
     wepCntlr.setMiddleWare(topicList)
 
     # Issue the event
-    sensorName = "R:2,2 S:1,1"
+    sensorId = 11
     timestamp = time.time()
     priority = 1
-    eventData = {"sensorID": sensorName,
+    eventData = {"sensorId": sensorId,
                  "timestamp": timestamp,
                  "priority": priority}
-    wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
+    wepCntlr.issueEvent(topicList[0], eventData)
     time.sleep(1)
 
     # Issue the telemetry
     zkList = np.random.rand(19)
-    telData = {"sensorID": sensorName,
+    telData = {"sensorId": sensorId,
                "annularZerikePolynomials": zkList,
                "timestamp": timestamp}
-    wepCntlr.issueTelemetry("WavefrontError", telData)
+    wepCntlr.issueTelemetry(topicList[1], telData)
     time.sleep(10)
 
     # Turn off the SAL

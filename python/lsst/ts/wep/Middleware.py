@@ -2,7 +2,7 @@ import time, re, unittest
 
 from collections import Iterable
 
-from SALPY_m2ms import SAL_m2ms
+from SALPY_tcsWEP import SAL_tcsWEP
 
 class Middleware(object):
 
@@ -418,7 +418,7 @@ class MiddlewareTest(unittest.TestCase):
 	def setUp(self):
 
 		# Module name
-		moduleName = "m2ms"
+		moduleName = "tcsWEP"
 
 		# Declare the Middleware
 		self.wepSalIssue = Middleware(moduleName)
@@ -438,18 +438,11 @@ class MiddlewareTest(unittest.TestCase):
 		self.assertEqual(self.wepSalGet.timeOut, timeOut)
 
 		# Set the telemetry topic
-		topic = "PowerStatus"
+		topic = "timestamp"
 
-		# Data information of "m2ms_PowerStatus"
-		currents = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-		onOff = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-		states = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-		voltages = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-
-		newData = {"currents": currents,
-				   "onOff": onOff,
-				   "states": states,
-				   "voltages": voltages}
+		# Data information of "tcsWEP_timestamp"
+		timestamp = 2.0
+		newData = {"timestamp": timestamp}
 
 		# Issue the telemetry
 		self.wepSalIssue.issueTelemetry(topic, newData)
@@ -461,7 +454,7 @@ class MiddlewareTest(unittest.TestCase):
 		self.wepSalGet.getTelemetry(topic)
 
 		# Test to get the telemetry
-		self.assertEqual(self.wepSalGet.retData["currents"], currents)
+		self.assertEqual(self.wepSalGet.retData["timestamp"], timestamp)
 
 	def testEvent(self):
 
@@ -470,12 +463,12 @@ class MiddlewareTest(unittest.TestCase):
 		self.wepSalGet.resetTopic()
 
 		# Set the event topic
-		topic = "SummaryState"
+		topic = "summaryState"
 
 		# Event data
-		SummaryStateValue = 2
+		summaryStateValue = 2
 		priority = 1
-		newData = {"SummaryStateValue": SummaryStateValue,
+		newData = {"summaryState": summaryStateValue,
 				   "priority": priority}
 
 		# Issue the event
@@ -488,7 +481,7 @@ class MiddlewareTest(unittest.TestCase):
 		self.wepSalGet.getEvent(topic)
 
 		# Test to get the event information
-		self.assertEqual(self.wepSalGet.retData["SummaryStateValue"], SummaryStateValue)
+		self.assertEqual(self.wepSalGet.retData["summaryState"], summaryStateValue)
 
 	def testCommand(self):
 
@@ -497,11 +490,11 @@ class MiddlewareTest(unittest.TestCase):
 		self.wepSalGet.resetTopic()
 
 		# Set the command topic
-		topic = "abort"
+		topic = "start"
 
 		# Command data
-		state = 2
-		newData = {"state": state}
+		settingsToApply = "defaultSetting"
+		newData = {"settingsToApply": settingsToApply}
 
 		# Issue the event
 		self.wepSalIssue.issueCommand(topic, newData)

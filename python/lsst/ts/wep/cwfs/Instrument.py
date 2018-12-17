@@ -1,16 +1,8 @@
-#!/usr/bin/env python
-##
-# @package cwfs
-# @file instrument.py
-##
-# @authors: Bo Xin & Chuck Claver
-# @       Large Synoptic Survey Telescope
-
-import os, unittest
+import os
 import numpy as np
 
 from lsst.ts.wep.cwfs.Tool import getConfigValue
-from lsst.ts.wep.Utility import getModulePath
+
 
 class Instrument(object):
   
@@ -118,28 +110,6 @@ class Instrument(object):
 
         return parameter
 
-class InstrumentTest(unittest.TestCase):
-    """
-    Test functions in Instrument.
-    """
-
-    def setUp(self):
-
-        # Get the path of module
-        modulePath = getModulePath()
-
-        # Define the instrument folder
-        self.instruFolder = os.path.join(modulePath, "algoData", "cwfs", "instruData")
-
-        # Define the instrument name
-        self.instruName = "lsst"
-
-    def testInstrument(self):
-        inst = Instrument(self.instruFolder)
-        inst.config(self.instruName, 120)
-        self.assertEqual(inst.parameter["sensorSamples"], 120)
 
 if __name__ == "__main__":
-
-    # Do the unit test
-    unittest.main()
+    pass

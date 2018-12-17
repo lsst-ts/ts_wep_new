@@ -1,10 +1,13 @@
-# -*- coding: utf-8 -*-
-
 import os
 import sys
+import time
+import numpy as np
+import unittest
+
 from lsst.ts.wep.cwfs import Instrument, Algorithm, CompensationImageDecorator
 from lsst.ts.wep.cwfs.Tool import plotImage
 from lsst.ts.wep.Utility import getModulePath
+
 
 def runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm, imageFolderPath, 
            intra_image_name, extra_image_name, fieldXY, opticalModel, showFig=False, 
@@ -76,12 +79,13 @@ def runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm, imageFolderPa
 
     # Show the information of image, algorithm, and instrument
     if (showConf):
-        __outParam(algo, inst, I1, I2, opticalModel, filename)
+        _outParam(algo, inst, I1, I2, opticalModel, filename)
     
     # Return the Zernikes Zn (n>=4)
     return algo.zer4UpNm
 
-def __outParam(algo, inst, I1, I2, opticalModel, filename=None):
+
+def _outParam(algo, inst, I1, I2, opticalModel, filename=None):
     """
     
     Put the information of images, instrument, and algorithm on terminal or file.
@@ -112,16 +116,17 @@ def __outParam(algo, inst, I1, I2, opticalModel, filename=None):
     fout.write("Using optical model:\t %s\n" % opticalModel)
     
     # Read the instrument file
-    __readConfigFile(fout, inst, "instrument")
+    _readConfigFile(fout, inst, "instrument")
 
     # Read the algorithm file
-    __readConfigFile(fout, algo, "algorithm")
+    _readConfigFile(fout, algo, "algorithm")
 
     # Close the file
     if (filename is not None):
         fout.close()
 
-def __readConfigFile(fout, config, configName):
+
+def _readConfigFile(fout, config, configName):
     """
     
     Read the configuration file
@@ -151,40 +156,144 @@ def __readConfigFile(fout, config, configName):
     # Close the file
     fconfig.close()
 
-if __name__ == "__main__":
+
+class FileToTest(object): 
+    
+    def __init__(self, ImageFolderName, ImageName, FieldXY, UseAlgorithm,
+                 Orientation, ValidationPath):
+        
+        self.imageFolderName = ImageFolderName
+        self.imageName = ImageName
+        self.fieldXY = [FieldXY, FieldXY]
+        self.useAlgorithm = UseAlgorithm
+        self.orientation = Orientation
+        
+        # Get the refFilePath
+        refFileName = ImageFolderName + "_" + ImageName + UseAlgorithm + ".txt"
+        self.refFilePath = os.path.join(ValidationPath,refFileName)
+
+
+class DataWEP(object):
+    
+    def __init__(self, InstruFolder, AlgoFolderPath, InstruName, ImageFolder,
+                 FileToTest):
+    
+        self.instruFolder = InstruFolder
+        self.algoFolderPath = AlgoFolderPath
+        self.instruName = InstruName
+        self.useAlgorithm = FileToTest.useAlgorithm
+        self.imageFolderPath = os.path.join(ImageFolder,
+                                            FileToTest.imageFolderName)
+        self.intra_image_name = FileToTest.imageName + "intra.txt"
+        self.extra_image_name = FileToTest.imageName + "extra.txt"
+        self.fieldXY = FileToTest.fieldXY
+        self.orientation = FileToTest.orientation
+        self.refFilePath = FileToTest.refFilePath
+
+
+class TestWEP(unittest.TestCase):
+    
+    def setUp(self):
+
+        # Get the path of module
+        modulePath = getModulePath()
+        
+        # Restart time
+        self.startTime = time.time()
+        self.difference = 0
+        self.validationDir = os.path.join(modulePath, "tests", "testData",
+                                          "testImages", "validation")
+
+    def tearDown(self):
+        
+        # Calculate the time of test case
+        t = time.time() - self.startTime
+        print("%s: %.3f s. Differece is %.3f." % (self.id(), t, self.difference))
+
+    def generateTestCase(self, ImageFolderName, ImageName ,FieldXY, UseAlgorithm, 
+                         Orientation, ValidationPath):
+
+        case_test = FileToTest(ImageFolderName, ImageName, FieldXY, UseAlgorithm, Orientation, 
+                               ValidationPath)  
+    
+        case = DataWEP(InstruFolder, AlgoFolderPath, InstruName, ImageFolderPath, 
+                       case_test)
+    
+        return case
+
+    def compareCalculation(self, DataWEP, tor):
+                
+        # Run WEP to get Zk
+        zer4UpNm = runWEP(DataWEP.instruFolder, DataWEP.algoFolderPath, DataWEP.instruName, 
+                          DataWEP.useAlgorithm, DataWEP.imageFolderPath, DataWEP.intra_image_name, 
+                          DataWEP.extra_image_name, DataWEP.fieldXY, DataWEP.orientation)
+        
+        # Load the reference data
+        refZer4UpNm = np.loadtxt(DataWEP.refFilePath)
+
+        # Compare the result
+        difference = np.sum((zer4UpNm-refZer4UpNm)**2)
+        
+        if difference <= tor:
+            result = "true"
+        else:
+            result = "false"
+
+        self.difference = difference
+
+        return result
+
+    def testCase1(self):
+        
+        case = self.generateTestCase("LSST_NE_SN25", "z11_0.25_", [1.185, 1.185], "exp", "offAxis", 
+                                     self.validationDir)        
+        result = self.compareCalculation(case, tor)           
+        self.assertEqual(result, "true")
+
+    def testCase2(self):
+
+        case = self.generateTestCase("LSST_NE_SN25", "z11_0.25_", [1.185, 1.185], "fft", "offAxis", 
+                                     self.validationDir)        
+        result = self.compareCalculation(case, tor)
+        self.assertEqual(result, "true")
+
+    def testCase3(self):
+
+        case = self.generateTestCase("F1.23_1mm_v61", "z7_0.25_", [0, 0], "fft", "paraxial", 
+                                     self.validationDir)        
+        result = self.compareCalculation(case, tor)
+        self.assertEqual(result, "true")
+
+    def testCase4(self):
+
+        case = self.generateTestCase("LSST_C_SN26", "z7_0.25_", [0, 0], "fft", "onAxis", 
+                                     self.validationDir)        
+        result = self.compareCalculation(case, tor)
+        self.assertEqual(result, "true")
+
+    def testCase5(self):
+
+        case = self.generateTestCase("LSST_C_SN26", "z7_0.25_", [0, 0], "exp", "onAxis", 
+                                     self.validationDir)        
+        result = self.compareCalculation(case, tor)
+        self.assertEqual(result, "true")
+
+
+if __name__ == "__main__": 
 
     # Get the path of module
     modulePath = getModulePath()
-        
-    # Define the instrument folder
-    instruFolder = os.path.join(modulePath, "algoData", "cwfs", "instruData")
+    
+    # Information of test
+    InstruFolder = os.path.join(modulePath, "configData", "cwfs", "instruData")
+    AlgoFolderPath = os.path.join(modulePath, "configData", "cwfs", "algo")
+    InstruName = "lsst"
+    ImageFolderPath = os.path.join(modulePath, "tests", "testData",
+                                   "testImages")
 
-    # Define the algorithm folder
-    algoFolderPath = os.path.join(modulePath, "algoData", "cwfs", "algo")
-    
-    # Define the instrument name
-    instruName = "lsst"
+    # Set the tolerance
+    tor = 3
 
-    # Define the algorithm being used: "exp" or "fft"
-    useAlgorithm = "fft"
-    
-    # Define the image folder and image names
-    # Image data -- Don't know the final image format. 
-    # It is noted that image.readFile inuts is based on the txt file
-    imageFolderPath = os.path.join(modulePath, "test", "testImages", "LSST_NE_SN25")
-    intra_image_name = "z11_0.25_intra.txt"
-    extra_image_name = "z11_0.25_extra.txt"
-    
-    # Define fieldXY: [1.185, 1.185] or [0, 0]
-    # This is the position of donut on the focal plane in degree
-    fieldXY = [1.185, 1.185]
-    
-    # Define the optical model: "paraxial", "onAxis", "offAxis"
-    opticalModel = "offAxis"
-    
-    # Run the WEP and show the result
-    zer4UpNm = runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm, imageFolderPath, 
-                      intra_image_name, extra_image_name, [fieldXY, fieldXY], opticalModel, 
-                      showFig=False, showConf=False)
-    
-    
+    # Run the test
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestWEP)
+    unittest.TextTestRunner(verbosity=0).run(suite)

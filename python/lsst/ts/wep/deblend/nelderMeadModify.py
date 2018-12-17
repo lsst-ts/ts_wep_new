@@ -6,8 +6,9 @@
     Modify this script to fit the interger step for need.
 """
 
-import copy, unittest
+import copy
 import numpy as np
+
 
 def feval(func, vars=()):
     """
@@ -24,6 +25,7 @@ def feval(func, vars=()):
         [double] -- Output of evaluated function.
     """
     return eval("func")(*vars)
+
 
 def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6, no_improv_break=10, max_iter=0,
                      alpha=1., gamma=2., rho=-0.5, sigma=0.5):
@@ -152,22 +154,6 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6, no_
             nres.append([redx, score])
         res = nres
 
-class nelderMeadModifyTest(unittest.TestCase):
-    """
-    Test the function of nelderMeadModify.
-    """
 
-    def setUp(self):
-        self.func = lambda x, y, c: abs(x**2 + y**2 - c)
-
-    def testFunc(self):
-        vars = (1, 2, 1)
-        self.assertEqual(feval(self.func, vars), 4)
-
-        xopt = nelderMeadModify(self.func, np.array([2.1]), args=(2,8,))
-        self.assertEqual(xopt[0], 2)
-
-if __name__ == '__main__':
-
-    # Do the unit test
-    unittest.main()
+if __name__ == "__main__":
+    pass

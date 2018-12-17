@@ -8,7 +8,8 @@
 <br/>
 *Finish the WEP in totally ideal condition.*
 <br/>
-*Version 1.01*
+<br/>
+*Version 1.0.1*
 <br/>
 *Integrate the DM cmd task and implement the high-level WEPController class.*
 

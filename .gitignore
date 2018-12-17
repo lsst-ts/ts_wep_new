@@ -1,5 +1,14 @@
+# Python built file
 *.pyc
 *.so
 *.c
 *.o
-/data/*
+
+# Coverage test files
+.coverage
+htmlcov/
+
+# Pytest cache
+pytest_session.txt
+.cache/
+.pytest_cache/

@@ -32,6 +32,7 @@
 - *matplotlib*
 - *cython*
 - *scikit-image*
+- *pymssql*
 
 ## 4. Compile cwfs
 * To compile the code, at the path of cwfs in terminal, execute "python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib". 

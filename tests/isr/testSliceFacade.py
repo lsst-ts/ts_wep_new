@@ -7,7 +7,7 @@ from lsst.ts.wep.isr.SliceFacade import SliceFacade
 from lsst.ts.wep.Utility import getModulePath
 
 
-class SliceFacadeTest(unittest.TestCase):
+class TestSliceFacade(unittest.TestCase):
     """Test the SliceFacade class."""
 
     def setUp(self):

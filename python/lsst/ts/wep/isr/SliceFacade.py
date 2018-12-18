@@ -1,7 +1,3 @@
-import os, unittest
-import lsst.daf.persistence as dafPersistence
-from lsst.ts.wep.Utility import getModulePath
-
 class SliceFacade(object):
 
     def __init__(self, dataButlerObject):
@@ -111,56 +107,6 @@ class SliceFacade(object):
         else:
             return self.dataButlerObject
 
-class SliceFacadeTest(unittest.TestCase):
-
-    """
-    Test the function of SliceFacade.
-    """
-
-    def setUp(self):
-
-        # Get the path of module
-        modulePath = getModulePath()
-
-        # Path of data folder
-        dataFolderPath = os.path.join(modulePath, "test")
-        self.dataFolderPath = dataFolderPath
-
-    def testFunction(self):
-
-        # Constuct the butler
-        butler = dafPersistence.Butler(inputs=self.dataFolderPath)
-
-        # Get the amplifier slice data
-        obsId = 99999999
-        snap = 0
-        raft = "2,2"
-        sensor = "1,1"
-        channel = "1,4"
-
-        dataId = dict(visit=obsId, snap=snap, raft=raft, sensor=sensor, channel=channel)
-        exposure = butler.get("raw", dataId=dataId)
-        ampSlice = SliceFacade(exposure)
-        ampTwoSlice = SliceFacade(dict([("S1", exposure), ("S2", exposure)]))
-
-        # Test Slice functions
-        self.assertEqual(ampSlice.getDimensions()[0], 513)
-        self.assertEqual(ampSlice.getDimensions()[1], 2001)
-
-        self.assertEqual(ampSlice.getGain(), 1.83546)
-
-        self.assertEqual(ampSlice.getBoresightAzAlt()[0], 0)
-
-        self.assertEqual(ampSlice.getBoresightRotAngle(), 0)
-
-        self.assertEqual(ampSlice.getBoresightRaDec()[0], 0)
-        self.assertEqual(ampSlice.getBoresightRaDec()[1], 0)
-
-        # Test Slice functions for a dictionary
-        self.assertEqual(ampTwoSlice.getDimensions("S1")[0], 513)
-        self.assertEqual(ampTwoSlice.getDimensions("S2")[1], 2001)
 
 if __name__ == "__main__":
-
-    # Do the unit test
-    unittest.main()
+    pass

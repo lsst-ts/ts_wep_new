@@ -1,5 +1,5 @@
 from numpy import nan
-import unittest
+
 
 class Filter(object):
 
@@ -81,25 +81,6 @@ class Filter(object):
 
         return lowMagnitude, highMagnitude
 
-class FilterTest(unittest.TestCase):
-    """
-    Test the function of Filter.
-    """
 
-    def setUp(self):
-
-        self.filter = "u"
-
-    def testFilter(self):
-
-        afilter = Filter()
-        afilter.setFilter(self.filter)
-
-        self.assertEqual(afilter.getFilter(), self.filter)
-        self.assertEqual(afilter.getMagBoundary(), (7.94, 14.8))
-
-if __name__ == '__main__':
-
-    # Do the unit test
-    unittest.main()
-
+if __name__ == "__main__":
+    pass

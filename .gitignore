@@ -12,3 +12,6 @@ htmlcov/
 pytest_session.txt
 .cache/
 .pytest_cache/
+
+# Internal test data
+tests/testData/registry.sqlite3

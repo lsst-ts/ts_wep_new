@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import unittest
 
 from lsst.ts.wep.Middleware import Middleware

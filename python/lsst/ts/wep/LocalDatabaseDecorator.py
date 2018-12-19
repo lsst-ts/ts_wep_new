@@ -1,8 +1,8 @@
-import os, unittest
+import os
 import numpy as np
 
 from lsst.ts.wep.bsc.LocalDatabase import LocalDatabase
-from lsst.ts.wep.Utility import getModulePath
+
 
 class LocalDatabaseDecorator(LocalDatabase):
 
@@ -127,47 +127,6 @@ class LocalDatabaseDecorator(LocalDatabase):
 
         return isExist
 
-class LocalDatabaseDecoratorTest(unittest.TestCase):
-    """
-    Test the LocalDatabaseDecorator. 
-    """
-
-    def setUp(self):
-
-        # Get the path of module
-        self.modulePath = getModulePath()
-
-        # Address of local database
-        dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
-
-        self.db = LocalDatabaseDecorator()
-        self.db.connect(dbAdress)
-
-    def tearDown(self):
-        self.db.disconnect()
-
-    def testFunctions(self):
-        
-        aFilter = "g"
-        tableName = "TempTable"
-        self.assertFalse(self.db.checkTableInDb(tableName))
-
-        self.db.createTable(aFilter, tableName)
-        self.assertTrue(self.db.checkTableInDb(tableName))
-
-        try:
-            self.db.createTable(aFilter, tableName)
-        except Exception as RuntimeError:
-            pass
-
-        # Sky data file path
-        skyFilePath = os.path.join(self.modulePath, "test", "skyComCamInfo.txt")
-        self.db.insertDataByFile(aFilter, tableName, skyFilePath)
-
-        self.db.deleteTable(tableName)
-        self.assertFalse(self.db.checkTableInDb(tableName))
 
 if __name__ == "__main__":
-
-    # Do the unit test
-    unittest.main()
+    pass

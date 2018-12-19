@@ -1,3 +1,4 @@
+import numpy as np
 import unittest
 
 from lsst.ts.wep.Middleware import Middleware

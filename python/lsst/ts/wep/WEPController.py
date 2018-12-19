@@ -15,8 +15,8 @@ from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
 from lsst.ts.wep.WFEstimator import WFEstimator
 from lsst.ts.wep.DefocalImage import DefocalImage, DonutImage
-from lsst.ts.wep.Middleware import Middleware
 from lsst.ts.wep.Utility import getModulePath
+
 
 class WEPController(object):
 
@@ -31,8 +31,6 @@ class WEPController(object):
         self.isrWrapper = None
         self.sourProc = None
         self.wfsEsti = None
-        self.middleWare = dict()
-        self.topicList = dict()
 
     def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, 
                 wfsEsti=None):
@@ -54,87 +52,6 @@ class WEPController(object):
         self.__setVar(isrWrapper, "isrWrapper")
         self.__setVar(sourProc, "sourProc")
         self.__setVar(wfsEsti, "wfsEsti")
-
-    def setMiddleWare(self, topicList, moduleName="tcsWEP"):
-        """
-        
-        Set the middle ware. 
-        
-        Arguments:
-            topicList {[list]} -- List of topic.
-        
-        Keyword Arguments:
-            moduleName {[str]} -- Module name. (default: {"tcsWEP"})
-        """
-
-        if moduleName not in list(self.topicList.keys()):
-            self.topicList[moduleName] = np.array(topicList)
-            middleWareList = []
-            for ii in range(len(topicList)):
-                middleWareList.append(Middleware(moduleName))
-            self.middleWare[moduleName] = middleWareList
-        else:
-            print("The module: '%s' is in the list ready." % moduleName)
-
-    def shutDownSal(self):
-        """
-        
-        Shutdown the SAL.
-        """
-
-        for moduleName, middleWareList in self.middleWare.items():
-            print("Shutdown SAL module: %s" % moduleName)
-            for middleWare in middleWareList:
-                middleWare.shutDownSal()
-
-    def issueEvent(self, topic, newData, moduleName="tcsWEP"):
-        """
-        
-        Issue the event.
-        
-        Arguments:
-            topic {[str]} -- Topic name.
-            newData {[dict]} -- New input data to issue.
-        
-        Keyword Arguments:
-            moduleName {[str]} -- Module name. (default: {"tcsWEP"})
-        """
-
-        idx = self.__getIdxOfTopic(topic, moduleName)
-        self.middleWare[moduleName][idx].issueEvent(topic, newData)
-
-    def issueTelemetry(self, topic, newData, moduleName="tcsWEP"):
-        """
-        
-        Issue the telemetry.
-        
-        Arguments:
-            topic {[str]} -- Topic name.
-            newData {[dict]} -- New input data to issue.
-        
-        Keyword Arguments:
-            moduleName {[str]} -- Module name. (default: {"tcsWEP"})
-        """
-
-        idx = self.__getIdxOfTopic(topic, moduleName)
-        self.middleWare[moduleName][idx].issueTelemetry(topic, newData)
-
-    def __getIdxOfTopic(self, topic, moduleName):
-        """
-        
-        Get the index of specific topic in specific module. 
-        
-        Arguments:
-            topic {[str]} -- Topic name.
-            moduleName {[str]} -- Module name.
-        
-        Returns:
-            [int] -- Index of topic.
-        """
-
-        idx = np.where(self.topicList[moduleName] == topic)[0][0]
-
-        return idx
 
     def getWfsList(self):
         """
@@ -1142,58 +1059,9 @@ class WEPControllerTest(unittest.TestCase):
 
         # Get the path of module
         self.modulePath = getModulePath()
-        
-        self.topicList = ["WavefrontErrorCalculated", "WavefrontError"]
-        self.moduleName = "tcsWEP"
 
         # Instantiate the WEP controller
         self.wepCntlr = WEPController()
-
-        # Set another middleware client
-        self.middlewareClient = Middleware(self.moduleName)
-
-    def testSalFunction(self):
-
-        # Set the middle ware
-        self.wepCntlr.setMiddleWare(self.topicList, moduleName=self.moduleName)
-        self.assertEqual(list(self.wepCntlr.topicList.keys())[0], self.moduleName)
-        self.assertEqual(len(self.wepCntlr.topicList[self.moduleName]), 2)
-
-        # Issue the event
-        sensorName = "R:2,2 S:1,1"
-        timestamp = time.time()
-        priority = 1
-        eventData = {"sensorID": sensorName,
-                     "timestamp": timestamp,
-                     "priority": priority}
-        self.wepCntlr.issueEvent("WavefrontErrorCalculated", eventData)
-
-        # Issue the telemetry
-        zkList = np.random.rand(19)
-        telData = {"sensorID": sensorName,
-                   "annularZerikePolynomials": zkList,
-                   "timestamp": timestamp}
-        self.wepCntlr.issueTelemetry("WavefrontError", telData)
-
-        # Sleep 1 second
-        time.sleep(1)
-
-        # Accept the event
-        self.middlewareClient.getEvent("WavefrontErrorCalculated")
-
-        # Check the value
-        self.assertEqual(self.middlewareClient.retData["sensorID"], sensorName)
-
-        # Accept the telemetry
-        self.middlewareClient.getEvent("WavefrontErrorCalculated")
-
-        # Reset the topic
-        self.middlewareClient.resetTopic()
-        self.middlewareClient.getTelemetry("WavefrontError")
-
-        # Check the value
-        self.assertAlmostEqual(np.sum(self.middlewareClient.retData["annularZerikePolynomials"]), 
-                            np.sum(zkList))
 
     def testCornerWfsFunction(self):
 
@@ -1316,11 +1184,6 @@ class WEPControllerTest(unittest.TestCase):
         ans = donutList[0].zer4UpNm*weightingRatio[0] + donutList[1].zer4UpNm*weightingRatio[1]
         self.assertEqual(np.sum(avgErr), np.sum(ans))
 
-    def tearDown(self):
-
-        # Turn off the sal
-        self.wepCntlr.shutDownSal()
-        self.middlewareClient.shutDownSal()
 
 if __name__ == "__main__":
 

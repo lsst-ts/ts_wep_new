@@ -1,6 +1,7 @@
+import numpy as np
 import unittest
 
-from lsst.ts.wep.DefocalImage import DefocalImage, DonutImage
+from lsst.ts.wep.DefocalImage import DefocalImage
 
 
 class TestDefocalImage(unittest.TestCase):
@@ -8,36 +9,28 @@ class TestDefocalImage(unittest.TestCase):
 
     def setUp(self):
         
-        self.defocalImg = DefocalImage()
+        self.defocalImg = DefocalImage(np.arange(2), np.arange(3))
 
-    def testFunction(self):
+    def testGetIntraImg(self):
+
+        intraImg = self.defocalImg.getIntraImg()
+        self.assertEqual(np.sum(intraImg), 1)
+
+    def testGetExtraImg(self):
+
+        extraImg = self.defocalImg.getExtraImg()
+        self.assertEqual(np.sum(extraImg), 3)
+
+    def testSetImg(self):
         
-        intraImg = 1
-        extraImg = 2
+        intraImg = np.arange(1)
+        extraImg = np.arange(2)
         self.defocalImg.setImg(intraImg=intraImg, extraImg=extraImg)
-        self.assertEqual(self.defocalImg.intraImg, intraImg)
-        self.assertEqual(self.defocalImg.extraImg, extraImg)
-
-
-class TestDonutImage(unittest.TestCase):
-    """Test the donut image class."""
-
-    def setUp(self):
         
-        starId = 0 
-        pixelX = 1 
-        pixelY = 1 
-        fieldX = 2 
-        fieldY = 2
-        self.donutImg = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
-
-    def testFunction(self):
-        
-        self.assertEqual(self.donutImg.pixelX, self.donutImg.pixelY)
-
-        zer4UpNm = 10
-        self.donutImg.setWfErr(zer4UpNm)
-        self.assertEqual(self.donutImg.zer4UpNm, zer4UpNm)
+        newIntraImg = self.defocalImg.getIntraImg()
+        newExtraImg = self.defocalImg.getExtraImg()
+        self.assertEqual(np.sum(newIntraImg), 0)
+        self.assertEqual(np.sum(newExtraImg), 1)
 
 
 if __name__ == "__main__":

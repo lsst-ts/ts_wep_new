@@ -1,75 +1,70 @@
 class DefocalImage(object):
 
     def __init__(self, intraImg=None, extraImg=None):
+        """Initialize the DefocalImage class.
+
+        Parameters
+        ----------
+        intraImg : numpy.ndarray, optional
+            Intra-defocal image. (the default is None.)
+        extraImg : numpy.ndarray, optional
+            Extra-defocal image. (the default is None.)
         """
-        
-        Initialize the DefocalImage class.
-        
-        Keyword Arguments:
-            intraImg {[ndarray]} -- Intra-defocal image. (default: {None})
-            extraImg {[ndarray]} -- Extra-defocal image. (default: {None})
-        """
-        
+
         # Defocal images
         self.intraImg = intraImg
         self.extraImg = extraImg
 
     def setImg(self, intraImg=None, extraImg=None):
-        """
-        
-        Set the image.
-        
-        Keyword Arguments:
-            intraImg {[ndarray]} -- Intra-defocal image. (default: {None})
-            extraImg {[ndarray]} -- Extra-defocal image. (default: {None})
-        """
+        """Set the image.
 
-        if (intraImg is not None):
-            self.intraImg = intraImg
-
-        if (extraImg is not None):
-            self.extraImg = extraImg
-
-
-class DonutImage(DefocalImage):
-
-    def __init__(self, starId, pixelX, pixelY, fieldX, fieldY, intraImg=None, extraImg=None):
-        """
-        
-        Initialize the DonutImage class.
-        
-        Arguments:
-            starId {[int]} -- star ID.
-            pixelX {[float]} -- Pixel x.
-            pixelY {[float]} -- Pixel y.
-            fieldX {[float]} -- Field x in degree.
-            fieldY {[float]} -- Field y in degree.
-        
-        Keyword Arguments:
-            intraImg {[ndarray]} -- Intra-defocal image. (default: {None})
-            extraImg {[ndarray]} -- Extra-defocal image. (default: {None})
+        Parameters
+        ----------
+        intraImg : numpy.ndarray, optional
+            Intra-defocal image. (the default is None.)
+        extraImg : numpy.ndarray, optional
+            Extra-defocal image. (the default is None.)
         """
 
-        super(DonutImage, self).__init__(intraImg=intraImg, extraImg=extraImg)
-        self.starId = int(starId)
-        self.pixelX = pixelX
-        self.pixelY = pixelY
-        self.fieldX = fieldX
-        self.fieldY = fieldY
+        self._setValIfNotNone("intraImg", intraImg)
+        self._setValIfNotNone("extraImg", extraImg)
 
-        # Wavefront eror in annular Zk in nm (z4-z22)
-        self.zer4UpNm = None
+    def _setValIfNotNone(self, attrName, val):
+        """Set the value to the related class attribute if the value is not
+        none.
 
-    def setWfErr(self, zer4UpNm):
-        """
-        
-        Set the wavefront error in annular Zk in nm (z4-z22).
-        
-        Arguments:
-            zer4UpNm {[ndarray]} -- z4 to z22 in nm.
+        Parameters
+        ----------
+        attrName : str
+            Attribute name.
+        val : numpy.ndarray
+            Assigned value.
         """
 
-        self.zer4UpNm = zer4UpNm
+        if (val is not None):
+            setattr(self, attrName, val)
+
+    def getIntraImg(self):
+        """Get the intra-defocal image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Intra-defocal image.
+        """
+
+        return self.intraImg
+
+    def getExtraImg(self):
+        """Get the extra-defocal image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Extra-defocal image.
+        """
+
+        return self.extraImg
 
 
 if __name__ == "__main__":

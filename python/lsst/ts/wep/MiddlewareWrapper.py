@@ -1,3 +1,5 @@
+import numpy as np
+
 from lsst.ts.wep.Middleware import Middleware
 
 

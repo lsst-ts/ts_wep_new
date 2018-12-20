@@ -16,10 +16,16 @@ class TestButlerWrapper(unittest.TestCase):
 
     def testGetPhoSimRpkgRawExp(self):
 
-        visit, raft, sensor = self._getDefaultSurveyMetaData()
-        exposure = self.butlerWrapper.getPhoSimRpkgRawExp(visit, raft, sensor)
+        exposure = self._getPhoSimRpkgRawExp()
         self.assertEqual(exposure.getDimensions()[0], 4176)
         self.assertEqual(exposure.getDimensions()[1], 4020)
+
+    def _getPhoSimRpkgRawExp(self):
+
+        visit, raft, sensor = self._getDefaultSurveyMetaData()
+        exposure = self.butlerWrapper.getPhoSimRpkgRawExp(visit, raft, sensor)
+
+        return exposure
 
     def _getDefaultSurveyMetaData(self):
 
@@ -29,25 +35,12 @@ class TestButlerWrapper(unittest.TestCase):
 
         return visit, raft, sensor
 
-    def testGetPhoSimPostIsrCcd(self):
-
-        postIsrCcd = self._getPhoSimPostIsrCcd()
-        self.assertEqual(postIsrCcd.getDimensions()[0], 4072)
-        self.assertEqual(postIsrCcd.getDimensions()[1], 4000)
-
-    def _getPhoSimPostIsrCcd(self):
-
-        visit, raft, sensor = self._getDefaultSurveyMetaData()
-        postIsrCcd = self.butlerWrapper.getPhoSimPostIsrCcd(visit, raft, sensor)
-
-        return postIsrCcd
-
     def testSetInputsAndOutputs(self):
 
         self.butlerWrapper.setInputsAndOutputs(inputs=self.inputs)
 
-        postIsrCcd = self._getPhoSimPostIsrCcd()
-        self.assertEqual(postIsrCcd.getDimensions()[0], 4072)
+        exposure = self._getPhoSimRpkgRawExp()
+        self.assertEqual(exposure.getDimensions()[0], 4176)
 
 
 if __name__ == "__main__":

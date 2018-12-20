@@ -1,3 +1,4 @@
+import numpy as np
 import unittest
 
 from lsst.ts.wep.DonutImage import DonutImage
@@ -7,21 +8,44 @@ class TestDonutImage(unittest.TestCase):
     """Test the donut image class."""
 
     def setUp(self):
-        
-        starId = 0 
-        pixelX = 1 
-        pixelY = 1 
-        fieldX = 2 
-        fieldY = 2
-        self.donutImg = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
 
-    def testFunction(self):
-        
-        self.assertEqual(self.donutImg.pixelX, self.donutImg.pixelY)
+        self.starId = 0
+        self.pixelX = 1
+        self.pixelY = 2
+        self.fieldX = 3
+        self.fieldY = 4
+        self.donutImg = DonutImage(self.starId, self.pixelX, self.pixelY,
+                                   self.fieldX, self.fieldY)
 
-        zer4UpNm = 10
-        self.donutImg.setWfErr(zer4UpNm)
-        self.assertEqual(self.donutImg.zer4UpNm, zer4UpNm)
+    def testGetStarId(self):
+
+        self.assertEqual(self.donutImg.getStarId(), self.starId)
+
+    def testGetPixelPos(self):
+
+        pixelX, pixelY = self.donutImg.getPixelPos()
+
+        self.assertEqual(pixelX, self.pixelX)
+        self.assertEqual(pixelY, self.pixelY)
+
+    def testGetFieldPos(self):
+
+        fieldX, fieldY = self.donutImg.getFieldPos()
+
+        self.assertEqual(fieldX, self.fieldX)
+        self.assertEqual(fieldY, self.fieldY)
+
+    def testGetWfErr(self):
+
+        self.assertEqual(self.donutImg.getWfErr(), None)
+
+    def testSetWfErr(self):
+
+        wfErr = np.arange(19)
+        self.donutImg.setWfErr(wfErr)
+
+        recordedWfErr = self.donutImg.getWfErr()
+        self.assertEqual(np.sum(np.abs(recordedWfErr-wfErr)), 0)
 
 
 if __name__ == "__main__":

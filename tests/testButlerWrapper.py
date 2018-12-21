@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import unittest
 
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
@@ -41,6 +42,14 @@ class TestButlerWrapper(unittest.TestCase):
 
         exposure = self._getRawExp()
         self.assertEqual(exposure.getDimensions()[0], 4176)
+
+    def testGetImageData(self):
+
+        exposure = self._getRawExp()
+
+        image = ButlerWrapper.getImageData(exposure)
+        self.assertTrue(isinstance(image, np.ndarray))
+        self.assertEqual(image.shape, (4020, 4176))
 
 
 if __name__ == "__main__":

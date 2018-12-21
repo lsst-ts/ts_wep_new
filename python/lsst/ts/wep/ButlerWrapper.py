@@ -72,7 +72,7 @@ class ButlerWrapper(object):
         Returns
         -------
         lsst.afw.image.exposure.exposure.ExposureF
-            PhoSim repackaged raw exposure.
+            Raw exposure object.
         """
 
         dataId = self._getDefaultDataId(visit, raft, sensor)
@@ -123,7 +123,7 @@ class ButlerWrapper(object):
         Returns
         -------
         lsst.afw.image.exposure.exposure.ExposureF
-            PhoSim post-ISR CCD.
+            Post-ISR CCD object.
         """
 
         dataId = self._getDefaultDataId(visit, raft, sensor)
@@ -131,6 +131,34 @@ class ButlerWrapper(object):
             dataId["filter"] = afilter
 
         return self._butler.get("postISRCCD", dataId=dataId)
+
+    @staticmethod
+    def getImageData(exposure):
+        """Get the image data.
+
+        Parameters
+        ----------
+        exposure : lsst.afw.image.exposure.exposure.ExposureF
+            Exposure object.
+
+        Returns
+        -------
+        numpy.ndarray
+            Image data.
+        """
+
+        # Get the numpy array data based on the input object type
+        if isinstance(exposure, np.ndarray):
+            data = exposure
+        elif hasattr(exposure, "getMaskedImage"):
+            data = exposure.getMaskedImage().getImage().getArray() 
+        elif hasattr(exposure, "getImage"):
+            data = exposure.getImage().getArray() 
+        else:
+            data = exposure.getArray()
+
+        # Return the data in numpy array
+        return data
 
 
 if __name__ == "__main__":

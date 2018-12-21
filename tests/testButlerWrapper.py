@@ -14,16 +14,16 @@ class TestButlerWrapper(unittest.TestCase):
                                    "repackagedPhoSimData")
         self.butlerWrapper = ButlerWrapper(inputs=self.inputs)
 
-    def testGetPhoSimRpkgRawExp(self):
+    def testGetRawExp(self):
 
-        exposure = self._getPhoSimRpkgRawExp()
+        exposure = self._getRawExp()
         self.assertEqual(exposure.getDimensions()[0], 4176)
         self.assertEqual(exposure.getDimensions()[1], 4020)
 
-    def _getPhoSimRpkgRawExp(self):
+    def _getRawExp(self):
 
         visit, raft, sensor = self._getDefaultSurveyMetaData()
-        exposure = self.butlerWrapper.getPhoSimRpkgRawExp(visit, raft, sensor)
+        exposure = self.butlerWrapper.getRawExp(visit, raft, sensor)
 
         return exposure
 
@@ -39,7 +39,7 @@ class TestButlerWrapper(unittest.TestCase):
 
         self.butlerWrapper.setInputsAndOutputs(inputs=self.inputs)
 
-        exposure = self._getPhoSimRpkgRawExp()
+        exposure = self._getRawExp()
         self.assertEqual(exposure.getDimensions()[0], 4176)
 
 

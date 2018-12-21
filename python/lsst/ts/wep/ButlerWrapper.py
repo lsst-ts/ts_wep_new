@@ -54,8 +54,8 @@ class ButlerWrapper(object):
 
         self._butler = Butler(inputs=inputs, outputs=outputs)
 
-    def getPhoSimRpkgRawExp(self, visit, raft, sensor, snap=None):
-        """Get the PhoSim repackaged raw exposure.
+    def getRawExp(self, visit, raft, sensor, snap=None):
+        """Get the raw exposure.
 
         Parameters
         ----------
@@ -103,8 +103,8 @@ class ButlerWrapper(object):
 
         return dataId
 
-    def getPhoSimPostIsrCcd(self, visit, raft, sensor, afilter=None):
-        """Get PhoSim post-ISR CCD exposure.
+    def getPostIsrCcd(self, visit, raft, sensor, afilter=None):
+        """Get the post-ISR CCD exposure.
 
         ISR: Instrument signature removal.
         CCD: Charge-coupled device.

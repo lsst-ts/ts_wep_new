@@ -50,3 +50,4 @@
 /tests/testData/raw/v99999999-fr/E000/R22/S11/imsim_99999999_R22_S11_C17_E000.fits.gz filter=lfs diff=lfs merge=lfs -text
 /tests/testData/registry.sqlite3 filter=lfs diff=lfs merge=lfs -text
 /tests/testData/repackagedPhoSimData/raw/20/R00/00000020-R00-S22-det197-000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/repackagedFiles/lsst_a_20_f5_R00_S22_E000.fits filter=lfs diff=lfs merge=lfs -text

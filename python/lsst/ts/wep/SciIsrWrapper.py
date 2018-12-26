@@ -148,30 +148,6 @@ class SciIsrWrapper(object):
 
         return posXinPixel, posYinPixel, fluxData
 
-def getImageData(image):
-    """
-    
-    Get the image data in numpy array.
-    
-    Arguments:
-        image {[obj]} -- Image data. It can be numpy array or Exposure image.
-    
-    Returns:
-        [float] -- Image data in numpy array.
-    """
-
-    # Get the numpy array data based on the input object type
-    if isinstance(image, np.ndarray):
-        data = image
-    elif hasattr(image, "getMaskedImage"):
-        data = image.getMaskedImage().getImage().getArray() 
-    elif hasattr(image, "getImage"):
-        data = image.getImage().getArray() 
-    else:
-        data = image.getArray()
-
-    # Return the data in numpy array
-    return data
 
 def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None, vmax=None, saveFilePath=None):
     """

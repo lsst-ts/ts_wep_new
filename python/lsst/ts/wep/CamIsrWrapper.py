@@ -1,11 +1,11 @@
 import os
 
-from lsst.ts.wep.Utility import runProgram
+from lsst.ts.wep.Utility import runProgram, writeFile
 
 
 class CamIsrWrapper(object):
 
-    def __init__(self, destDir=None):
+    def __init__(self, destDir):
         
         self.destDir = destDir
 
@@ -16,10 +16,6 @@ class CamIsrWrapper(object):
         self.doDefect = False
 
         self.isrConfigFilePath = None
-
-    def setDestDir(self, destDir):
-
-        self.destDir = destDir
 
     def config(self, doBias=False, doDark=False, doFlat=False,
                doFringe=False, doDefect=False, fileName="isr_config.py"):
@@ -43,24 +39,10 @@ class CamIsrWrapper(object):
         content += "config.isr.doDefect=%s\n" % self.doDefect
 
         try:
-            self._writeFile(filePath, content)
+            writeFile(filePath, content)
             self.isrConfigFilePath = filePath
         except Exception as e:
             raise
-
-    def _writeFile(self, filePath, content):
-
-        with open(filePath, "w") as file:
-            file.write(content)
-
-    def genPhoSimMapper(self):
-
-        fileName = "_mapper"
-        filePath = os.path.join(self.destDir, fileName)
-
-        content = "lsst.obs.lsst.phosim.PhosimMapper"
-
-        self._writeFile(filePath, content)
 
     def doISR(self, inputDir, rerunName="run1"):
         

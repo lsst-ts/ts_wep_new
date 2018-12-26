@@ -1,4 +1,5 @@
 import os
+import subprocess
 import lsst.ts.wep
 
 
@@ -55,6 +56,12 @@ def runProgram(command, binDir=None, argstring=None):
     # Call the program w/o arguments
     if (subprocess.call(command, shell=True) != 0):
         raise RuntimeError("Error running: %s" % command)
+
+
+def writeFile(filePath, content):
+
+    with open(filePath, "w") as file:
+        file.write(content)
 
 
 if __name__ == "__main__":

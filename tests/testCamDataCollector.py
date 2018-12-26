@@ -15,7 +15,7 @@ class  TestCamDataCollector(unittest.TestCase):
         self.isrDir = os.path.join(self.dataDir, "input")
         self._makeDir(self.isrDir)
 
-        self.camDataCollector = CamDataCollector(destDir=self.isrDir)
+        self.camDataCollector = CamDataCollector(self.isrDir)
 
     def _makeDir(self, directory):
 
@@ -96,7 +96,8 @@ class  TestCamDataCollector(unittest.TestCase):
         self._genMapper()
 
         imgFiles = os.path.join(getModulePath(), "tests", "testData",
-                              "repackagedFiles", "*.fits")
+                                "repackagedFiles",
+                                "lsst_a_20_f5_R00_S22_E000.fits")
         self.camDataCollector.ingestImages(imgFiles)
 
         # Check the ingested calibration products

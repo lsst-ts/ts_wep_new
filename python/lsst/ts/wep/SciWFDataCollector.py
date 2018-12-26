@@ -198,33 +198,33 @@ class SciWFDataCollector(object):
         else:
             print("Can not ingest fits files becasue of no destination directory path.")
 
-def runProgram(command, binDir=None, argstring=None):
-    """
+# def runProgram(command, binDir=None, argstring=None):
+#     """
     
-    Run the program w/o arguments.
+#     Run the program w/o arguments.
     
-    Arguments:
-        command {[str]} -- Command of application.
+#     Arguments:
+#         command {[str]} -- Command of application.
     
-    Keyword Arguments:
-        binDir {[str]} -- Directory of binary application. (default: {None})
-        argstring {[str]} -- Arguments of program. (default: {None})
+#     Keyword Arguments:
+#         binDir {[str]} -- Directory of binary application. (default: {None})
+#         argstring {[str]} -- Arguments of program. (default: {None})
     
-    Raises:
-        RuntimeError -- There is the error in running the program.
-    """
+#     Raises:
+#         RuntimeError -- There is the error in running the program.
+#     """
 
-    # Directory of binary application
-    if (binDir is not None):
-        command = os.path.join(binDir, command)
+#     # Directory of binary application
+#     if (binDir is not None):
+#         command = os.path.join(binDir, command)
 
-    # Arguments for the program
-    if (argstring is not None):
-        command += (" " + argstring)
+#     # Arguments for the program
+#     if (argstring is not None):
+#         command += (" " + argstring)
 
-    # Call the program w/o arguments
-    if (subprocess.call(command, shell=True) != 0):
-        raise RuntimeError("Error running: %s" % command)
+#     # Call the program w/o arguments
+#     if (subprocess.call(command, shell=True) != 0):
+#         raise RuntimeError("Error running: %s" % command)
 
 class SciWFDataCollectorTest(unittest.TestCase):
 

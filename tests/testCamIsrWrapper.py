@@ -11,7 +11,7 @@ class TestCamIsrWrapper(unittest.TestCase):
 
     def setUp(self):
         
-        self.dataDir = os.path.join(getModulePath(), "tests", "tmp") 
+        self.dataDir = os.path.join(getModulePath(), "tests", "tmp")
         self.isrDir = os.path.join(self.dataDir, "input")
         self._makeDir(self.isrDir)
 
@@ -25,13 +25,6 @@ class TestCamIsrWrapper(unittest.TestCase):
     def tearDown(self):
 
         shutil.rmtree(self.dataDir)
-
-    def testSetDestDir(self):
-
-        destDir = "temp"
-        self.camIsrWrapper.setDestDir(destDir)
-
-        self.assertEqual(self.camIsrWrapper.destDir, destDir)
 
     def testConfig(self):
 
@@ -50,20 +43,6 @@ class TestCamIsrWrapper(unittest.TestCase):
 
         with open(filePath, "r") as file:
             return sum(1 for line in file.readlines())
-
-    def testGenCamMapper(self):
-
-        self._genMapper()
-
-        mapperFilePath = os.path.join(self.isrDir, "_mapper")
-        self.assertTrue(os.path.isfile(mapperFilePath))
-
-        numOfLine = self._getNumOfLineInFile(mapperFilePath)
-        self.assertEqual(numOfLine, 1)
-
-    def _genMapper(self):
-
-        self.camIsrWrapper.genPhoSimMapper()
 
     def testDoIsr(self):
         pass

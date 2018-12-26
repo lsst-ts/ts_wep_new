@@ -2,9 +2,9 @@ import os, re
 import numpy as np
 
 from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
-from lsst.ts.wep.isr.changePhoSimInstrument import readData
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SciIsrWrapper import poltExposureImage
+from lsst.ts.wep.Utility import readPhoSimSettingData
 
 
 class SourceProcessor(object):
@@ -76,7 +76,7 @@ class SourceProcessor(object):
         """
 
         # Read the focal plane data by the delegation
-        ccdData = readData(folderPath, fileName, "fieldCenter")
+        ccdData = readPhoSimSettingData(folderPath, fileName, "fieldCenter")
 
         # Collect the focal plane data
         sensorFocaPlaneInDeg = {}
@@ -100,7 +100,8 @@ class SourceProcessor(object):
         self.sensorDimList = sensorDimList
         self.sensorFocaPlaneInDeg = sensorFocaPlaneInDeg
         self.sensorFocaPlaneInUm = sensorFocaPlaneInUm
-        self.sensorEulerRot = readData(folderPath, fileName, "eulerRot")
+        self.sensorEulerRot = readPhoSimSettingData(folderPath, fileName,
+                                                    "eulerRot")
 
     def __shiftCenterWfs(self, sensorName, focalPlaneData):
         """

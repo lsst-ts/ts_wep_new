@@ -9,8 +9,7 @@ from matplotlib.colors import LogNorm, SymLogNorm
 
 from lsst.daf.persistence import Butler
 
-from lsst.ts.wep.SciWFDataCollector import runProgram
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.Utility import getModulePath, runProgram
 
 class SciIsrWrapper(object):
 

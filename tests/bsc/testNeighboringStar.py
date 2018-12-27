@@ -1,12 +1,14 @@
+import numpy as np
 import unittest
 
 from lsst.ts.wep.bsc.StarData import StarData
 from lsst.ts.wep.bsc.NeighboringStar import NeighboringStar
+from lsst.ts.wep.Utility import FilterType
 
 
 class TestNeighboringStar(unittest.TestCase):
     """Test the NeighboringStar class."""
-    
+
     def setUp(self):
 
         stars = StarData([123, 456, 789], [0.1, 0.2, 0.3],
@@ -14,26 +16,46 @@ class TestNeighboringStar(unittest.TestCase):
                          [2.1, 2.1, 4.1], [2.2, 3.2, 4.2],
                          [2.3, 3.3, 4.3], [2.4, 3.4, 4.4],
                          [2.5, 3.5, 4.5])
-        stars.populateRAData([value*10 for value in stars.RA])
-        stars.populateDeclData([value*10 for value in stars.Decl])
+        stars.populateRAData(stars.getRA() * 10)
+        stars.populateDeclData(stars.getDecl() * 10)
 
         self.stars = stars
         self.neighboringStar = NeighboringStar()
 
-    def testAddStar(self):
+    def testGetId(self):
 
-        self.neighboringStar.addStar(self.stars, 0, 1, "r")
+        self._addStar()
 
-        self.assertTrue(123 in self.neighboringStar.SimobjID)
-        self.assertTrue(self.neighboringStar.SimobjID[123], [456])
+        self.assertTrue(123 in self.neighboringStar.getId())
+        self.assertTrue(self.neighboringStar.getId()[123], [456])
 
-        self.assertEqual(self.neighboringStar.RaDecl,
+    def _addStar(self):
+
+        self.neighboringStar.addStar(self.stars, 0, np.array([1]),
+                                     FilterType.R)
+
+    def testGetRaDecl(self):
+
+        self._addStar()
+        self.assertEqual(self.neighboringStar.getRaDecl(),
                          {456: (0.2, 2.2), 123: (0.1, 2.1)})
-        self.assertEqual(self.neighboringStar.RaDeclInPixel, 
+
+    def testGetRaDeclInPixel(self):
+
+        self._addStar()
+        self.assertEqual(self.neighboringStar.getRaDeclInPixel(), 
                          {456: (2.0, 22.0), 123: (1.0, 21.0)})
 
-        self.assertEqual(len(self.neighboringStar.LSSTMagR), 2)
-        self.assertEqual(self.neighboringStar.LSSTMagU, {})
+    def testGetMag(self):
+
+        self._addStar()
+        self.assertEqual(len(self.neighboringStar.getMag(FilterType.R)), 2)
+        self.assertEqual(self.neighboringStar.getMag(FilterType.U), {})
+
+    def testAddStarAndGetData(self):
+
+        self._addStar()
+        self.assertNotEqual(len(self.neighboringStar.getId()), 0)
 
 
 if __name__ == "__main__":

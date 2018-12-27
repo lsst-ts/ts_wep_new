@@ -1,6 +1,8 @@
+import numpy as np
 import unittest
 
 from lsst.ts.wep.bsc.StarData import StarData
+from lsst.ts.wep.Utility import FilterType
 
 
 class TestStarData(unittest.TestCase):
@@ -13,30 +15,84 @@ class TestStarData(unittest.TestCase):
                               [2.3, 3.3, 4.3], [2.4, 3.4, 4.4],
                               [2.5, 3.5, 4.5])
 
-    def testStarData(self):
-        stars = self.stars
-        stars.populateDetector("CCD")
+    def testGetId(self):
 
-        self.assertEqual(stars.SimobjID, [123, 456, 789])
-        self.assertEqual(stars.RA, [0.1, 0.2, 0.3])
-        self.assertEqual(stars.Decl, [2.1, 2.2, 2.3])
-        self.assertEqual(stars.LSSTMagU, [2.0, 3.0, 4.0])
-        self.assertEqual(stars.LSSTMagG, [2.1, 2.1, 4.1])
-        self.assertEqual(stars.LSSTMagR, [2.2, 3.2, 4.2])
-        self.assertEqual(stars.LSSTMagI, [2.3, 3.3, 4.3])
-        self.assertEqual(stars.LSSTMagZ, [2.4, 3.4, 4.4])
-        self.assertEqual(stars.LSSTMagY, [2.5, 3.5, 4.5])
-        self.assertEqual(stars.Detector,"CCD")
+        starId = self.stars.getId()
+        self.assertEqual(starId.dtype, int)
+        self.assertEqual(starId.tolist(), [123, 456, 789])
+
+    def testGetRA(self):
+
+        self.assertEqual(self.stars.getRA().tolist(), [0.1, 0.2, 0.3])
+
+    def testGetDecl(self):
+
+        self.assertEqual(self.stars.getDecl().tolist(), [2.1, 2.2, 2.3])
+
+    def testGetMag(self):
+
+        self.assertEqual(self.stars.getMag(FilterType.U).tolist(),
+                         [2.0, 3.0, 4.0])
+        self.assertEqual(self.stars.getMag(FilterType.G).tolist(),
+                         [2.1, 2.1, 4.1])
+        self.assertEqual(self.stars.getMag(FilterType.R).tolist(),
+                         [2.2, 3.2, 4.2])
+        self.assertEqual(self.stars.getMag(FilterType.I).tolist(),
+                         [2.3, 3.3, 4.3])
+        self.assertEqual(self.stars.getMag(FilterType.Z).tolist(),
+                         [2.4, 3.4, 4.4])
+        self.assertEqual(self.stars.getMag(FilterType.Y).tolist(),
+                         [2.5, 3.5, 4.5])
+
+    def testPopulateDetector(self):
+
+        detector = "CCD"
+        self.stars.populateDetector(detector)
+        self.assertEqual(self.stars.detector,detector)
+
+    def testPopulateRADataAndGetIt(self):
+
+        raInPixel = [1.0, 2.0]
+        self.stars.populateRAData(raInPixel)
+
+        self.assertEqual(self.stars.getRaInPixel().tolist(), raInPixel)
+
+    def testPopulateRADataWithFloatValue(self):
+
+        raInPixel = 1.0
+        self.stars.populateRAData(raInPixel)
+
+        self.assertEqual(self.stars.getRaInPixel().tolist(), [raInPixel])
+
+    def testPopulateRADataWithNpArray(self):
+
+        raInPixel = np.array([1.0, 2.0])
+        self.stars.populateRAData(raInPixel)
+
+        delta = np.sum(np.abs(self.stars.getRaInPixel() - raInPixel))
+        self.assertEqual(delta, 0)
+
+    def testPopulateDeclDataAndGetIt(self):
+
+        declInPixel = [2.0, 3.0]
+        self.stars.populateDeclData(declInPixel)
+
+        self.assertEqual(self.stars.getDeclInPixel().tolist(), declInPixel)
 
     def testCheckCandidateStars(self):
-        stars = self.stars
 
-        indexCandidateU = stars.checkCandidateStars("u", 1.9, 2.1)
-        indexCandidateG = stars.checkCandidateStars("g", 0, 5)
-        indexCandidateR = stars.checkCandidateStars("r", 0, 1)
-        indexCandidateI = stars.checkCandidateStars("i", 2.1, 4.0)
-        indexCandidateZ = stars.checkCandidateStars("z", 3.0, 5.0)
-        indexCandidateY = stars.checkCandidateStars("y", 1.0, 2.0)
+        indexCandidateU = self.stars.checkCandidateStars(
+                                            FilterType.U, 1.9, 2.1)
+        indexCandidateG = self.stars.checkCandidateStars(
+                                            FilterType.G, 0, 5)
+        indexCandidateR = self.stars.checkCandidateStars(
+                                            FilterType.R, 0, 1)
+        indexCandidateI = self.stars.checkCandidateStars(
+                                            FilterType.I, 2.1, 4.0)
+        indexCandidateZ = self.stars.checkCandidateStars(
+                                            FilterType.Z, 3.0, 5.0)
+        indexCandidateY = self.stars.checkCandidateStars(
+                                            FilterType.Y, 1.0, 2.0)
 
         self.assertEqual(indexCandidateU, [0])
         self.assertEqual(indexCandidateG, [0, 1, 2])
@@ -46,27 +102,47 @@ class TestStarData(unittest.TestCase):
         self.assertEqual(indexCandidateY, [])
 
     def testGetNeighboringStar(self):
-        stars = self.stars
-        stars.populateRAData([value*10 for value in stars.RA])
-        stars.populateDeclData([value*10 for value in stars.Decl])
 
-        neighboringStarU = stars.getNeighboringStar([0], 3, "u", 99)
-        neighboringStarG = stars.getNeighboringStar([0, 1], 3, "g", 99)
-        neighboringStarR = stars.getNeighboringStar([0], 1, "r", 99)
-        neighboringStarI = stars.getNeighboringStar([], 3, "i", 99)
-        neighboringStarZ = stars.getNeighboringStar([0, 1], 2, "z", 1)
-        neighboringStarY = stars.getNeighboringStar([1], 2, "y", 1)
+        self._populateRaDeclInPixel()
 
-        self.assertEqual(stars.RAInPixel, [1, 2, 3])
-        self.assertEqual(stars.DeclInPixel, [21, 22, 23])
+        neighboringStarU = self.stars.getNeighboringStar(
+                                [0], 3, FilterType.U, maxNumOfNbrStar=99)
+        neighboringStarG = self.stars.getNeighboringStar(
+                                [0, 1], 3, FilterType.G, maxNumOfNbrStar=99)
+        neighboringStarR = self.stars.getNeighboringStar(
+                                [0], 1, FilterType.R, maxNumOfNbrStar=99)
+        neighboringStarI = self.stars.getNeighboringStar(
+                                [], 3, FilterType.I, maxNumOfNbrStar=99)
+        neighboringStarZ = self.stars.getNeighboringStar(
+                                [0, 1], 2, FilterType.Z, maxNumOfNbrStar=1)
+        neighboringStarY = self.stars.getNeighboringStar(
+                                [1], 2, FilterType.Y, maxNumOfNbrStar=1)
 
-        self.assertEqual(len(neighboringStarU.SimobjID[123]), 2)
-        self.assertEqual(len(neighboringStarU.RaDecl), 3)
-        self.assertEqual(len(neighboringStarG.SimobjID), 2)
-        self.assertEqual(len(neighboringStarR.SimobjID[123]), 0)
-        self.assertEqual(neighboringStarI.SimobjID, {})
-        self.assertEqual(len(neighboringStarZ.SimobjID), 1)
-        self.assertEqual(neighboringStarY.SimobjID, {})
+        self.assertEqual(len(neighboringStarU.getId()[123]), 2)
+        self.assertEqual(len(neighboringStarU.getRaDecl()), 3)
+
+        self.assertEqual(len(neighboringStarG.getId()), 2)
+
+        self.assertEqual(len(neighboringStarR.getId()[123]), 0)
+
+        self.assertEqual(neighboringStarI.getId(), {})
+
+        self.assertEqual(len(neighboringStarZ.getId()), 1)
+
+        self.assertEqual(neighboringStarY.getId(), {})
+
+    def _populateRaDeclInPixel(self):
+
+        self.stars.populateRAData(self.stars.getRA() * 10)
+        self.stars.populateDeclData(self.stars.getDecl() * 10)
+
+    def testGetNeighboringStarWithNothing(self):
+
+        self._populateRaDeclInPixel()
+        neighboringStarU = self.stars.getNeighboringStar(
+                                [], 3.0, FilterType.U, maxNumOfNbrStar=99)
+
+        self.assertEqual(len(neighboringStarU.getId()), 0)
 
 
 if __name__ == "__main__":

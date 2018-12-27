@@ -3,7 +3,7 @@ import numpy as np
 from lsst.ts.wep.Utility import FilterType
 
 
-class NeighboringStar(object):
+class NbrStar(object):
 
     def __init__(self):
         """Initialize the neighboring star class."""

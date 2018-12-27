@@ -2,12 +2,12 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.bsc.StarData import StarData
-from lsst.ts.wep.bsc.NeighboringStar import NeighboringStar
+from lsst.ts.wep.bsc.NbrStar import NbrStar
 from lsst.ts.wep.Utility import FilterType
 
 
-class TestNeighboringStar(unittest.TestCase):
-    """Test the NeighboringStar class."""
+class TestNbrStar(unittest.TestCase):
+    """Test the NbrStar class."""
 
     def setUp(self):
 
@@ -20,7 +20,7 @@ class TestNeighboringStar(unittest.TestCase):
         stars.populateDeclData(stars.getDecl() * 10)
 
         self.stars = stars
-        self.neighboringStar = NeighboringStar()
+        self.neighboringStar = NbrStar()
 
     def testGetId(self):
 

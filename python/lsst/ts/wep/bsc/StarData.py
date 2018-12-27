@@ -2,7 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 from lsst.ts.wep.Utility import FilterType
-from lsst.ts.wep.bsc.NeighboringStar import NeighboringStar
+from lsst.ts.wep.bsc.NbrStar import NbrStar
 
 
 class StarData(object):
@@ -281,11 +281,11 @@ class StarData(object):
 
         Returns
         -------
-        NeighboringStar
+        NbrStar
             Information of neighboring stars.
         """
 
-        nbrStar = NeighboringStar()
+        nbrStar = NbrStar()
 
         # Calculate the distance in pixel between candidate stars and all stars
         numOfIdxCand = len(idxCand)

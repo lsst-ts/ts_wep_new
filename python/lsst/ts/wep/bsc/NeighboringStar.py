@@ -1,24 +1,92 @@
 import numpy as np
 
+from lsst.ts.wep.Utility import FilterType
+
 
 class NeighboringStar(object):
 
     def __init__(self):
         """Initialize the neighboring star class."""
 
-        self.SimobjID = {} 
-        self.RaDecl = {}
-        self.RaDeclInPixel = {}
+        self.starId = dict()
+        self.raDecl = dict()
+        self.raDeclInPixel = dict()
 
-        self.LSSTMagU = {}
-        self.LSSTMagG = {}
-        self.LSSTMagR = {}
-        self.LSSTMagI = {}
-        self.LSSTMagZ = {}
-        self.LSSTMagY = {}
+        self.lsstMagU = dict()
+        self.lsstMagG = dict()
+        self.lsstMagR = dict()
+        self.lsstMagI = dict()
+        self.lsstMagZ = dict()
+        self.lsstMagY = dict()
 
-    def addStar(self, stars, indexCandidate, indexNeighboringStar,
-                cameraFilter):
+    def getId(self):
+        """Get the star Id.
+
+        Returns
+        -------
+        dict
+            Star Id.
+        """
+
+        return self.starId
+
+    def getRaDecl(self):
+        """Get the star right ascension (RA) and declination (Decl) in degree.
+
+        Returns
+        -------
+        dict
+            Star RA and Decl in degree.
+        """
+
+        return self.raDecl
+
+    def getRaDeclInPixel(self):
+        """Get the star right ascension (RA) and declination (Decl) in pixel.
+
+        Returns
+        -------
+        dict
+            Star RA and Decl in pixel.
+        """
+
+        return self.raDeclInPixel
+
+    def getMag(self, filterType):
+        """Get the star magnitude.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+
+        Returns
+        -------
+        dict
+            Star magnitude.
+
+        Raises
+        ------
+        ValueError
+            No filter type matches.
+        """
+
+        if (filterType == FilterType.U):
+            return self.lsstMagU
+        elif (filterType == FilterType.G):
+            return self.lsstMagG
+        elif (filterType == FilterType.R):
+            return self.lsstMagR
+        elif (filterType == FilterType.I):
+            return self.lsstMagI
+        elif (filterType == FilterType.Z):
+            return self.lsstMagZ
+        elif (filterType == FilterType.Y):
+            return self.lsstMagY
+        else:
+            raise ValueError("No filter type matches.")
+
+    def addStar(self, stars, idxCand, idxNbrStar, filterType):
         """Add the information of neightboring stars based on the candidate
         star.
 
@@ -26,42 +94,43 @@ class NeighboringStar(object):
         ----------
         stars : StarData
             Star information.
-        indexCandidate : int
+        idxCand : int
             Index of candidate stars.
-        indexNeighboringStar : int
+        idxNbrStar : numpy.ndarray[int]
             Index of neighboring stars of specific candidate star.
-        cameraFilter : str
-            Filter type of camera: u, g, r, i, z, y.
+        filterType : str
+            Filter type.
         """
 
-        self.SimobjID[stars.SimobjID[indexCandidate]] = np.array(
-                            stars.SimobjID)[[indexNeighboringStar]].tolist()
+        candStarId = stars.getId()
+        self.starId[candStarId[idxCand]] = candStarId[idxNbrStar].tolist()
 
         # Collect coordinates and magnitude of candidate and neighboring stars 
-        indexStar = np.append(indexNeighboringStar, indexCandidate)
+        indexStar = np.append(idxNbrStar, idxCand)
         for index in indexStar:
-            self.RaDecl[stars.SimobjID[index]] = (stars.RA[index],
-                                                  stars.Decl[index])
-            self.RaDeclInPixel[stars.SimobjID[index]] = \
-                        (stars.RAInPixel[index], stars.DeclInPixel[index])
+            self.raDecl[candStarId[index]] = (stars.getRA()[index],
+                                              stars.getDecl()[index])
+            self.raDeclInPixel[candStarId[index]] = \
+                (stars.getRaInPixel()[index], stars.getDeclInPixel()[index])
 
-            if (cameraFilter == stars.FilterU):
-                self.LSSTMagU[stars.SimobjID[index]] = stars.LSSTMagU[index]
+            starMag = stars.getMag(filterType)[index]
+            if (filterType == FilterType.U):
+                self.lsstMagU[candStarId[index]] = starMag
 
-            elif (cameraFilter == stars.FilterG):
-                self.LSSTMagG[stars.SimobjID[index]] = stars.LSSTMagG[index]
+            elif (filterType == FilterType.G):
+                self.lsstMagG[candStarId[index]] = starMag
 
-            elif (cameraFilter == stars.FilterR):
-                self.LSSTMagR[stars.SimobjID[index]] = stars.LSSTMagR[index]
+            elif (filterType == FilterType.R):
+                self.lsstMagR[candStarId[index]] = starMag
 
-            elif (cameraFilter == stars.FilterI):
-                self.LSSTMagI[stars.SimobjID[index]] = stars.LSSTMagI[index]
+            elif (filterType == FilterType.I):
+                self.lsstMagI[candStarId[index]] = starMag
 
-            elif (cameraFilter == stars.FilterZ):
-                self.LSSTMagZ[stars.SimobjID[index]] = stars.LSSTMagZ[index]
+            elif (filterType == FilterType.Z):
+                self.lsstMagZ[candStarId[index]] = starMag
 
-            elif (cameraFilter == stars.FilterY):
-                self.LSSTMagY[stars.SimobjID[index]] = stars.LSSTMagY[index]
+            elif (filterType == FilterType.Y):
+                self.lsstMagY[candStarId[index]] = starMag
 
 
 if __name__ == "__main__":

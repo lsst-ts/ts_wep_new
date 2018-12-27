@@ -1,182 +1,351 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
+from lsst.ts.wep.Utility import FilterType
 from lsst.ts.wep.bsc.NeighboringStar import NeighboringStar
-from lsst.ts.wep.bsc.Filter import Filter
 
 
 class StarData(object):
 
-    def __init__(self, simobjid, ra, decl, lsstMagU, lsstMagG, lsstMagR,
+    def __init__(self, starId, ra, decl, lsstMagU, lsstMagG, lsstMagR,
                  lsstMagI, lsstMagZ, lsstMagY):
-        
-        self.Detector = "" 
-      
-        self.SimobjID = simobjid
+        """Initialize the star data class.
 
-        self.RA = ra
-        self.RAInPixel = []
-        self.Decl = decl
-        self.DeclInPixel = []
-        
-        self.LSSTMagU = lsstMagU 
-        self.LSSTMagG = lsstMagG
-        self.LSSTMagR = lsstMagR
-        self.LSSTMagI = lsstMagI
-        self.LSSTMagZ = lsstMagZ
-        self.LSSTMagY = lsstMagY
+        Parameters
+        ----------
+        starId : int, list[int], or numpy.ndarray[int]
+            Star Id.
+        ra : float, list[float], or numpy.ndarray[float]
+            Star right ascension in degree.
+        decl : float, list[float], or numpy.ndarray[float]
+            Star declination in degree.
+        lsstMagU : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the LSST u filter band.
+        lsstMagG : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the LSST g filter band.
+        lsstMagR : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the LSST r filter band.
+        lsstMagI : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the LSST i filter band.
+        lsstMagZ : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the LSST z filter band.
+        lsstMagY : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the LSST y filter band.
+        """
 
-        # Get the filter type defined in the Filter class
-        afilter = Filter()
-        self.FilterU = afilter.FilterU
-        self.FilterG = afilter.FilterG
-        self.FilterR = afilter.FilterR
-        self.FilterI = afilter.FilterI
-        self.FilterZ = afilter.FilterZ
-        self.FilterY = afilter.FilterY
-        
+        self.detector = ""
+
+        starIdArray = self._changeToNpArrayIfNeeded(starId)
+        self.starId = starIdArray.astype(int)
+
+        self.ra = self._changeToNpArrayIfNeeded(ra)
+        self.decl = self._changeToNpArrayIfNeeded(decl)
+
+        self.raInPixel = np.array([])
+        self.declInPixel = np.array([])
+
+        self.lsstMagU = self._changeToNpArrayIfNeeded(lsstMagU) 
+        self.lsstMagG = self._changeToNpArrayIfNeeded(lsstMagG)
+        self.lsstMagR = self._changeToNpArrayIfNeeded(lsstMagR)
+        self.lsstMagI = self._changeToNpArrayIfNeeded(lsstMagI)
+        self.lsstMagZ = self._changeToNpArrayIfNeeded(lsstMagZ)
+        self.lsstMagY = self._changeToNpArrayIfNeeded(lsstMagY)
+
+    def _changeToNpArrayIfNeeded(self, val):
+        """Change the value type to the numpy array if it is needed.
+
+        Parameters
+        ----------
+        val : int, float, list, or numpy.ndarray
+            Value.
+
+        Returns
+        -------
+        numpy.ndarray
+            Value in the numpy array data type.
+        """
+
+        if isinstance(val, np.ndarray):
+            return val
+        elif isinstance(val, list):
+            return np.array(val)
+        else:
+            return np.array([val])
+
+    def getId(self):
+        """Get the star Id.
+
+        Returns
+        -------
+        numpy.ndarray
+            Star Id.
+        """
+
+        return self.starId
+
+    def getRA(self):
+        """Get the star right ascension (RA) in degree.
+
+        Returns
+        -------
+        numpy.ndarray
+            Star RA in degree.
+        """
+
+        return self.ra
+
+    def getDecl(self):
+        """Get the star declination in degree.
+
+        Returns
+        -------
+        numpy.ndarray
+            Star declination in degree.
+        """
+
+        return self.decl
+
+    def getRaInPixel(self):
+        """Get the star right ascension (RA) in pixel.
+
+        Returns
+        -------
+        numpy.ndarray
+            Star RA in pixel.
+        """
+
+        return self.raInPixel
+
+    def getDeclInPixel(self):
+        """Get the star declination in pixel.
+
+        Returns
+        -------
+        numpy.ndarray
+            Star declination in pixel.
+        """
+
+        return self.declInPixel
+
+    def getMag(self, filterType):
+        """Get the star magnitude.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+
+        Returns
+        -------
+        numpy.ndarray
+            Star magnitude.
+
+        Raises
+        ------
+        ValueError
+            No filter type matches.
+        """
+
+        if (filterType == FilterType.U):
+            return self.lsstMagU
+        elif (filterType == FilterType.G):
+            return self.lsstMagG
+        elif (filterType == FilterType.R):
+            return self.lsstMagR
+        elif (filterType == FilterType.I):
+            return self.lsstMagI
+        elif (filterType == FilterType.Z):
+            return self.lsstMagZ
+        elif (filterType == FilterType.Y):
+            return self.lsstMagY
+        else:
+            raise ValueError("No filter type matches.")
+
     def populateDetector(self, detector):
+        """Populates the detector name for this set of stars.
+
+        Parameters
+        ----------
+        detector : str
+            The name of the detector.
         """
-        
-        Populates the detector information for this set of stars.
-        
-        Arguments:
-            detector {[string]} -- The name of the detector.
-        """
-        self.Detector = detector
-        
+
+        self.detector = detector
+
     def populateRAData(self, raInPixel):
+        """Populates the RA pixel data for this set of stars.
+
+        Parameters
+        ----------
+        raInPixel : float, list[float], or numpy.array[float]
+            The ra pixel coordinate each star falls on the detector.
         """
-        
-        Populates the RA pixel and mm data for this set of stars.
-        
-        Arguments:
-            raInPixel {[float]} -- The ra pixel coordinate each star falls on the detector.
-        """
-        self.RAInPixel = raInPixel
-        
+
+        self.raInPixel = self._changeToNpArrayIfNeeded(raInPixel)
+
     def populateDeclData(self, declInPixel):
-        """
-        
-        Populates the Decl pixel and mm data for this set of stars.
-        
-        Arguments:
-            declInPixel {[float]} -- The decl pixel coordinate each star falls on the detector.
-        """
-        self.DeclInPixel = declInPixel
+        """Populates the Decl pixel data for this set of stars.
 
-    def checkCandidateStars(self, cameraFilter, lowMagnitude, highMagnitude):
-        """
-        
-        Determine the candidate stars based on the magnitude.
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-            lowMagnitude {[float]} -- Lower boundary of magnitude.
-            highMagnitude {[float]} -- Higher boundary of magnitude.
-        
-        Returns:
-            [int] -- index of candidate stars
+        Parameters
+        ----------
+        declInPixel : float, list[float], or numpy.array[float]
+            The decl pixel coordinate each star falls on the detector.
         """
 
-        indexCandidate = []
-        if (self.RA):
-            if (cameraFilter == self.FilterU):
-                indexCandidate = [index for index in range(len(self.RA)) 
-                    if self.LSSTMagU[index] >= lowMagnitude and self.LSSTMagU[index] <= highMagnitude]
-            
-            elif (cameraFilter == self.FilterG):
-                indexCandidate = [index for index in range(len(self.RA)) 
-                    if self.LSSTMagG[index] >= lowMagnitude and self.LSSTMagG[index] <= highMagnitude]
-            
-            elif (cameraFilter == self.FilterR):
-                indexCandidate = [index for index in range(len(self.RA)) 
-                    if self.LSSTMagR[index] >= lowMagnitude and self.LSSTMagR[index] <= highMagnitude]
-                
-            elif (cameraFilter == self.FilterI):
-                indexCandidate = [index for index in range(len(self.RA)) 
-                    if self.LSSTMagI[index] >= lowMagnitude and self.LSSTMagI[index] <= highMagnitude]
-                
-            elif (cameraFilter == self.FilterZ):
-                indexCandidate = [index for index in range(len(self.RA)) 
-                    if self.LSSTMagZ[index] >= lowMagnitude and self.LSSTMagZ[index] <= highMagnitude]
-                
-            elif (cameraFilter == self.FilterY):
-                indexCandidate = [index for index in range(len(self.RA)) 
-                    if self.LSSTMagY[index] >= lowMagnitude and self.LSSTMagY[index] <= highMagnitude]
+        self.declInPixel = self._changeToNpArrayIfNeeded(declInPixel)
 
-        return indexCandidate
+    def checkCandidateStars(self, filterType, lowMag, highMag):
+        """Check the candidate stars based on the magnitude.
 
-    def getNeighboringStar(self, indexCandidate, maxDistance, cameraFilter, maxNeighboringStar):
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+        lowMag : float
+            Lower boundary of magnitude.
+        highMag : float
+            Higher boundary of magnitude.
+
+        Returns
+        -------
+        list[int]
+            List of index candidate.
         """
-        
-        Get the neighboring stars of candidate stars based on specific max distance.
-        
-        Arguments:
-            indexCandidate {[int]} -- Index of candidate star in "stars" data.
-            maxDistance {[float]} -- Maximum distance in pixel.
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
 
-        Returns:
-            [NeighboringStar] -- Information of neighboring stars.
+        if (len(self.ra) != 0):
+
+            if (filterType == FilterType.U):
+                valArray = self.lsstMagU
+
+            elif (filterType == FilterType.G):
+                valArray = self.lsstMagG            
+
+            elif (filterType == FilterType.R):
+                valArray = self.lsstMagR
+
+            elif (filterType == FilterType.I):
+                valArray = self.lsstMagI
+
+            elif (filterType == FilterType.Z):
+                valArray = self.lsstMagZ
+
+            elif (filterType == FilterType.Y):
+                valArray = self.lsstMagY
+
+            idxCand = self._getIdxCandByBndry(valArray, lowMag, highMag)
+
+        else:
+            idxCand = []
+
+        return idxCand
+
+    def _getIdxCandByBndry(self, valArray, lowMag, highMag):
+        """Get the index candidate list based on the boundary of magnitude.
+
+        Parameters
+        ----------
+        valArray : list or numpy.ndarray
+            Value array
+        lowMag : float
+            Lower boundary of magnitude.
+        highMag : float
+            Higher boundary of magnitude.
+
+        Returns
+        -------
+        list
+            List of index candidate.
         """
+
+        idxCand = [idx for idx in range(len(valArray)) \
+                   if lowMag <= valArray[idx] <= highMag]
+
+        return idxCand
+
+    def getNeighboringStar(self, idxCand, maxDist, filterType,
+        maxNumOfNbrStar=0):
+        """Get the neighboring stars of candidate stars based on the specific
+        max distance and number of neighboring star.
+
+        Parameters
+        ----------
+        idxCand : list[int]
+            List of index of candidate star in "stars" data.
+        maxDist : float
+            Maximum distance in pixel.
+        filterType : FilterType
+            Filter type.
+        maxNumOfNbrStar : int, optional
+            Maximum number of neighboring star for each candidate star (the
+            default is 0)
+
+        Returns
+        -------
+        NeighboringStar
+            Information of neighboring stars.
+        """
+
+        nbrStar = NeighboringStar()
 
         # Calculate the distance in pixel between candidate stars and all stars
-        if (indexCandidate):
-            allStarXY = np.array([self.RAInPixel, self.DeclInPixel]).transpose()
-            candidateStarXY = allStarXY[np.array(indexCandidate),:]
-            starDistances = cdist(candidateStarXY,allStarXY)
+        numOfIdxCand = len(idxCand)
+        if (numOfIdxCand != 0):
+            allStarXY = np.array([self.raInPixel,
+                                  self.declInPixel]).transpose()
+            candidateStarXY = allStarXY[np.array(idxCand), :]
+            starDistances = cdist(candidateStarXY, allStarXY)
 
-        # Decide the number of neighboring stars
-        neighboringStar = NeighboringStar()
-        for ii in range(len(indexCandidate)):
-            indexNeighboringStar = np.where(starDistances[ii,:] < maxDistance)[0]
-            
-            # Delete candidate star itself
-            indexNeighboringStar = np.delete(indexNeighboringStar, 
-                                             np.where(indexNeighboringStar==indexCandidate[ii]))
+            # Decide the number of neighboring stars
+            for ii in range(numOfIdxCand):
+                idxNbrStar = np.where(starDistances[ii,:] < maxDist)[0]
+                
+                # Delete candidate star itself
+                idxNbrStar = np.delete(idxNbrStar, 
+                                       np.where(idxNbrStar==idxCand[ii]))
 
-            # Remove the candidate star if there is the neighboring star brighter than itself
-            if (cameraFilter == self.FilterU):
-                magSelf = self.LSSTMagU[indexCandidate[ii]]
-                magNeighboringStar = np.array(self.LSSTMagU)[[indexNeighboringStar]]
+                # Remove the candidate star if there is the neighboring star
+                # brighter than itself
+                if (filterType == FilterType.U):
+                    magSelf = self.lsstMagU[idxCand[ii]]
+                    magNbrStar = self.lsstMagU[[idxNbrStar]]
 
-            elif (cameraFilter == self.FilterG):
-                magSelf = self.LSSTMagG[indexCandidate[ii]]
-                magNeighboringStar = np.array(self.LSSTMagG)[[indexNeighboringStar]]
+                elif (filterType == FilterType.G):
+                    magSelf = self.lsstMagG[idxCand[ii]]
+                    magNbrStar = self.lsstMagG[[idxNbrStar]]
 
-            elif (cameraFilter == self.FilterR):
-                magSelf = self.LSSTMagR[indexCandidate[ii]]
-                magNeighboringStar = np.array(self.LSSTMagR)[[indexNeighboringStar]]
+                elif (filterType == FilterType.R):
+                    magSelf = self.lsstMagR[idxCand[ii]]
+                    magNbrStar = self.lsstMagR[[idxNbrStar]]
 
-            elif (cameraFilter == self.FilterI):
-                magSelf = self.LSSTMagI[indexCandidate[ii]]
-                magNeighboringStar = np.array(self.LSSTMagI)[[indexNeighboringStar]]
+                elif (filterType == FilterType.I):
+                    magSelf = self.lsstMagI[idxCand[ii]]
+                    magNbrStar = self.lsstMagI[[idxNbrStar]]
 
-            elif (cameraFilter == self.FilterZ):
-                magSelf = self.LSSTMagZ[indexCandidate[ii]]
-                magNeighboringStar = np.array(self.LSSTMagZ)[[indexNeighboringStar]]
+                elif (filterType == FilterType.Z):
+                    magSelf = self.lsstMagZ[idxCand[ii]]
+                    magNbrStar = self.lsstMagZ[[idxNbrStar]]
 
-            elif (cameraFilter == self.FilterY):
-                magSelf = self.LSSTMagY[indexCandidate[ii]]
-                magNeighboringStar = np.array(self.LSSTMagY)[[indexNeighboringStar]]
+                elif (filterType == FilterType.Y):
+                    magSelf = self.lsstMagY[idxCand[ii]]
+                    magNbrStar = self.lsstMagY[[idxNbrStar]]
 
-            if ((np.where(magNeighboringStar < magSelf)[0]).size != 0):
-                brighterNeighbor = True
-            else:
-                brighterNeighbor = False 
+                if ((np.where(magNbrStar < magSelf)[0]).size != 0):
+                    brighterNeighbor = True
+                else:
+                    brighterNeighbor = False 
 
-            # Restrict the maximum number of neighboring stars
-            if (indexNeighboringStar.size > maxNeighboringStar):
-                highNeighboringStar = True
-            else:
-                highNeighboringStar = False
+                # Restrict the maximum number of neighboring stars
+                if (len(idxNbrStar) > maxNumOfNbrStar):
+                    highNeighboringStar = True
+                else:
+                    highNeighboringStar = False
 
-            # Record the information of neighboring stars
-            if (brighterNeighbor == False and highNeighboringStar == False):
-                neighboringStar.addStar(self, indexCandidate[ii], indexNeighboringStar, cameraFilter)
+                # Record the information of neighboring stars
+                if (brighterNeighbor == False and 
+                    highNeighboringStar == False):
+                    nbrStar.addStar(self, idxCand[ii], idxNbrStar, filterType)
 
-        return neighboringStar
+        return nbrStar
 
 
 if __name__ == "__main__":

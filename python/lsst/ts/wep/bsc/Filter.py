@@ -4,6 +4,7 @@ from lsst.ts.wep.Utility import FilterType
 class Filter(object):
 
     def __init__(self):
+        """Initialize the filter class."""
 
         self.filter = FilterType.U
 
@@ -67,10 +68,11 @@ class Filter(object):
         elif (self.filter == FilterType.Z):
             lowMagnitude = 8.83
             highMagnitude = 14.68
-            
+
         elif (self.filter == FilterType.Y):
             lowMagnitude = 8.02
             highMagnitude = 13.76
+
         else:
             raise ValueError("No filter type matches.")
 

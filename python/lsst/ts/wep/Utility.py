@@ -1,6 +1,17 @@
 import os
 import subprocess
+from enum import Enum
+
 import lsst.ts.wep
+
+
+class FilterType(Enum):
+    U = 1
+    G = 2
+    R = 3
+    I = 4
+    Z = 5
+    Y = 6
 
 
 def getModulePath(module=lsst.ts.wep, startIdx=1, endIdx=-4):

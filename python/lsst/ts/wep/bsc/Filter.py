@@ -1,83 +1,78 @@
-from numpy import nan
+from lsst.ts.wep.Utility import FilterType
 
 
 class Filter(object):
 
-    # LSST camera filter type
-    FilterU = "u" 
-    FilterG = "g"
-    FilterR = "r"
-    FilterI = "i"
-    FilterZ = "z"
-    FilterY = "y"
-
     def __init__(self):
 
-        self.filter = None
+        self.filter = FilterType.U
 
     def getFilter(self):
-        """
-        
-        Get the filter type.
-        
-        Returns:
-            [string] -- Filter type.
+        """Get the filter type.
+
+        Returns
+        -------
+        FilterType
+            Filter type.
         """
 
         return self.filter
 
-    def setFilter(self, afilter):
-        """
-        
-        Set the filter type.
-        
-        Arguments:
-            afilter {[string]} -- Filter type.
-        
-        Raises:
-            ValueError -- No such filter type.
+    def setFilter(self, filterType):
+        """Set the filter type.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
         """
 
-        if afilter in (self.FilterU, self.FilterG, self.FilterR, self.FilterI, self.FilterZ, self.FilterY):
-            self.filter = afilter
-        else:
-            raise ValueError("No '%s' filter." % afilter)
+        self.filter = filterType
 
     def getMagBoundary(self):
-        """
-        
-        Get the boundary of magnitude under the current filter type.
-        
-        Returns:
-            [float] -- Boundary of magnitude (lowMagnitude, highMagnitude).
+        """Get the boundary of magnitude under the current filter type.
+
+        Returns
+        -------
+        float
+            Lower boundary of magnitude.
+        float
+            Higher boundary of magnitude.
+
+        Raises
+        ------
+        ValueError
+            No filter type matches.
         """
 
-        # Get the boundary of magnitude based on the filter
-        lowMagnitude = nan
-        highMagnitude = nan
-        if (self.filter == self.FilterU):
+        lowMagnitude = 0
+        highMagnitude = 0
+
+        if (self.filter == FilterType.U):
             lowMagnitude = 7.94
             highMagnitude = 14.80
 
-        elif (self.filter == self.FilterG):
+        elif (self.filter == FilterType.G):
             lowMagnitude = 9.74
             highMagnitude = 16.17
 
-        elif (self.filter == self.FilterR):
+        elif (self.filter == FilterType.R):
             lowMagnitude = 9.56
             highMagnitude = 15.73
 
-        elif (self.filter == self.FilterI):
+        elif (self.filter == FilterType.I):
             lowMagnitude = 9.22
             highMagnitude = 15.26
 
-        elif (self.filter == self.FilterZ):
+        elif (self.filter == FilterType.Z):
             lowMagnitude = 8.83
             highMagnitude = 14.68
             
-        elif (self.filter == self.FilterY):
+        elif (self.filter == FilterType.Y):
             lowMagnitude = 8.02
             highMagnitude = 13.76
+        else:
+            raise ValueError("No filter type matches.")
 
         return lowMagnitude, highMagnitude
 

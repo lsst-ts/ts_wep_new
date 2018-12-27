@@ -4,6 +4,7 @@ import numpy as np
 class NeighboringStar(object):
 
     def __init__(self):
+        """Initialize the neighboring star class."""
 
         self.SimobjID = {} 
         self.RaDecl = {}

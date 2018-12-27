@@ -1,10 +1,10 @@
 import unittest
 
-from lsst.ts.wep.bsc.StarData import StarData, NeighboringStar
+from lsst.ts.wep.bsc.StarData import StarData
 
 
 class TestStarData(unittest.TestCase):
-    """Test the StarData and NeighboringStar classes."""
+    """Test the StarData class."""
 
     def setUp(self):
         self.stars = StarData([123, 456, 789], [0.1, 0.2, 0.3],

@@ -1,6 +1,7 @@
 import numpy as np
 
 from lsst.ts.wep.Utility import FilterType
+from lsst.ts.wep.bsc.StarData import StarData
 
 
 class DefaultDatabase(object):
@@ -20,14 +21,11 @@ class DefaultDatabase(object):
         self.cursor.close()
         self.connection.close()
 
-    def query(self, tableName, filterType, corner1, corner2, corner3,
-              corner4):
+    def query(self, filterType, corner1, corner2, corner3, corner4):
         """Query the database for stars within an area.
 
         Parameters
         ----------
-        tableName : str
-            Table name in database.
         filterType : FilterType
             Filter type.
         corner1 : tuple
@@ -53,7 +51,7 @@ class DefaultDatabase(object):
         right = max(ra)
 
         # Need to change this query method that divides the area with 2 parts.
-        raStddev = std(ra)
+        raStddev = np.std(ra)
 
         # Query regions crosses the RA = 0
         if (raStddev >= self.STD_DEV_SPLIT):
@@ -61,10 +59,8 @@ class DefaultDatabase(object):
             # Query the left and right regions
             left = max([x for x in ra if x < 180])
             right = min([x for x in ra if x >= 180])
-            above0Set = self._queryTable(tableName, filterType, top, bottom,
-                                         0, left)
-            below0Set = self._queryTable(tableName, filterType, top, bottom,
-                                         right, 360)
+            above0Set = self._queryTable(filterType, top, bottom, 0, left)
+            below0Set = self._queryTable(filterType, top, bottom, right, 360)
 
             # Combine the query results
             starId = np.append(above0Set.getId(), below0Set.getId())
@@ -89,16 +85,13 @@ class DefaultDatabase(object):
 
         # Query regions does not cross the RA = 0
         else:                            
-            return self._queryTable(tableName, filterType, top, bottom, left,
-                                    right)
+            return self._queryTable(filterType, top, bottom, left, right)
 
-    def _queryTable(self, tableName, filterType, top, bottom, left, right):
+    def _queryTable(self, filterType, top, bottom, left, right):
         """Queries the database for stars within an area.
 
         Parameters
         ----------
-        tableName : str
-            Table name in database.
         filterType : FilterType
             Filter type.
         top : float

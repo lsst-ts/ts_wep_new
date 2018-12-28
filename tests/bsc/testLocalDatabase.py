@@ -39,7 +39,45 @@ class TestLocalDatabase(unittest.TestCase):
         self.localDatabase.disconnect()
 
     def testQuery(self):
-        pass
+
+        self._insertData()
+        stars = self.localDatabase.query(self.filterType, [0, 2],
+                                         [0, 2.4], [0.4, 2],
+                                         [0.4, 2.4])
+
+        self.assertEqual(stars.getId().tolist(), [123, 456, 789])
+        self.assertEqual(stars.getRA().tolist(), [0.1, 0.2, 0.3])
+        self.assertEqual(stars.getDecl().tolist(), [2.1, 2.2, 2.3])
+
+    def testQueryWithoutStarAndCrossRa0(self):
+
+        stars = self._queryCrossRa0()
+        self.assertEqual(len(stars.getId()), 0)
+
+    def testQueryWithStarAndCrossRa0(self):
+        
+        self._insertData()
+        listID = self._getListId()
+        self.localDatabase.updateData(self.filterType, listID, 
+                                      ["ra", "ra", "ra"],
+                                      [0.005, 359.98, 359.999])
+        self.localDatabase.updateData(self.filterType, listID, 
+                                      ["decl", "decl", "decl"],
+                                      [-1.5, -1.5, -1.5])
+
+        stars = self._queryCrossRa0()
+
+        self.assertEqual(len(stars.getId()), 2)
+        self.assertEqual(stars.getId().tolist(), [123, 789])
+        self.assertEqual(stars.getRA().tolist(), [0.005, 359.999])
+        self.assertEqual(stars.getDecl().tolist(), [-1.5, -1.5])
+
+    def _queryCrossRa0(self):
+
+        stars = self.localDatabase.query(self.filterType, [0.01, -1],
+                                         [359.99, -2], [0.01, -1],
+                                         [359.99, -2])
+        return stars
 
     def testSearchSimobjdID(self):
 

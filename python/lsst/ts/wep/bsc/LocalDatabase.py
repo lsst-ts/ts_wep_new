@@ -4,9 +4,12 @@ import numpy as np
 
 from lsst.ts.wep.bsc.DefaultDatabase import DefaultDatabase
 from lsst.ts.wep.bsc.StarData import StarData
+from lsst.ts.wep.Utility import FilterType
 
 
 class LocalDatabase(DefaultDatabase):
+
+    PRE_TABLE_NAME = "BrightStarCatalog"
 
     def connect(self, dbAdress):
         """Connects database based on the local path.
@@ -20,13 +23,11 @@ class LocalDatabase(DefaultDatabase):
         self.connection = sqlite3.connect(dbAdress)
         self.cursor = self.connection.cursor()
 
-    def _queryTable(self, tableName, filterType, top, bottom, left, right):
+    def _queryTable(self, filterType, top, bottom, left, right):
         """Queries the database for stars within an area.
 
         Parameters
         ----------
-        tableName : str
-            Table name in database.
         filterType : FilterType
             Filter type.
         top : float
@@ -45,6 +46,7 @@ class LocalDatabase(DefaultDatabase):
         """
 
         # Do the query
+        tableName = self._getTableName(filterType)
         command = "SELECT simobjid, ra, decl, " + \
                   filterType.name.lower() + "mag" + \
                   " FROM " + tableName + \
@@ -89,7 +91,23 @@ class LocalDatabase(DefaultDatabase):
                 lsstMagY.append(item[3])
 
         return StarData(simobjid, ra, decl, lsstMagU, lsstMagG, lsstMagR,  
-                        lsstMagI, lsstMagZ, lsstMagY)           
+                        lsstMagI, lsstMagZ, lsstMagY)
+
+    def _getTableName(self, filterType):
+        """Get the table name.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+
+        Returns
+        -------
+        str
+            Table name.
+        """
+
+        return self.PRE_TABLE_NAME + filterType.name
 
     def searchSimobjdID(self, filterType, listID):
         """Search the data based on the simobjid.
@@ -108,9 +126,9 @@ class LocalDatabase(DefaultDatabase):
             search
         """
 
-        # Search the simobjid data
-        command = "SELECT id, ra, decl From" + \
-                  " BrightStarCatalog" + filterType.name + \
+        # Search the simobjid data 
+        tableName = self._getTableName(filterType)
+        command = "SELECT id, ra, decl From " + tableName + \
                   " WHERE simobjid in" + \
                   " (" + ', '.join(str(ID) for ID in listID) + ")"
         self.cursor.execute(command)
@@ -136,7 +154,8 @@ class LocalDatabase(DefaultDatabase):
         """
 
         # Compare ra and decl to see the existance of star in database
-        command = "SELECT id FROM BrightStarCatalog" + filterType.name + \
+        tableName = self._getTableName(filterType)
+        command = "SELECT id FROM " + tableName + \
                   " WHERE ra = %f AND decl = %f" 
         query = command % (ra, decl)
         self.cursor.execute(query)
@@ -202,11 +221,11 @@ class LocalDatabase(DefaultDatabase):
                         allStarList.append(starID)
        
         # Insert the star data to local data base
+        tableName = self._getTableName(filterType)
         for simobjID in allStarList:
 
             # Insert data
-            command = "INSERT INTO BrightStarCatalog" + filterType.name + \
-                      " (simobjid, ra, decl, " + \
+            command = "INSERT INTO " + tableName + " (simobjid, ra, decl, " + \
                       filterType.name.lower() + "mag, bright_star) " + \
                       "VALUES (?, ?, ?, ?, ?)"
 
@@ -252,6 +271,7 @@ class LocalDatabase(DefaultDatabase):
                 raise ValueError("'%s' can not be updated." % item)
 
         # Update data based on the id
+        tableName = self._getTableName(filterType)
         for ii in range(len(listID)):
 
             # Check the item is "mag" or not. If it is "mag", give the
@@ -261,8 +281,8 @@ class LocalDatabase(DefaultDatabase):
                 itemToChange = filterType.name.lower() + itemToChange
 
             # Give the SQL command
-            command = "UPDATE BrightStarCatalog" + filterType.name + \
-                      " SET " + itemToChange + "=" + str(listOfNewValue[ii]) + \
+            command = "UPDATE " + tableName + " SET " + \
+                      itemToChange + "=" + str(listOfNewValue[ii]) + \
                       " WHERE id=?"
             self.cursor.execute(command, (listID[ii],))
 
@@ -281,9 +301,9 @@ class LocalDatabase(DefaultDatabase):
         """
 
         # Delete the data
+        tableName = self._getTableName(filterType)
         for id in listID:       
-            command = "DELETE FROM BrightStarCatalog" + filterType.name + \
-                      " WHERE id=?"
+            command = "DELETE FROM " + tableName + " WHERE id=?"
             self.cursor.execute(command, (id,))
 
         # Commit the change to database
@@ -304,7 +324,8 @@ class LocalDatabase(DefaultDatabase):
         """
 
         # Print the table
-        command = "SELECT id FROM BrightStarCatalog" + filterType.name
+        tableName = self._getTableName(filterType)
+        command = "SELECT id FROM " + tableName
         self.cursor.execute(command)
         listIdByQuery = self.cursor.fetchall()
 

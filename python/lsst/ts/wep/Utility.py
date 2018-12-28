@@ -14,6 +14,10 @@ class FilterType(Enum):
     Y = 6
 
 
+class BscDbType(Enum):
+    LocalDb = 1
+
+
 def getModulePath(module=lsst.ts.wep, startIdx=1, endIdx=-4):
     """Get the path of module.
     Parameters

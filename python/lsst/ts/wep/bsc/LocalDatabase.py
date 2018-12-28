@@ -1,102 +1,166 @@
-import os, sqlite3
+import os
+import sqlite3
 import numpy as np
 
-from lsst.ts.wep.bsc.BrightStarDatabase import BrightStarDatabase
+from lsst.ts.wep.bsc.DefaultDatabase import DefaultDatabase
 from lsst.ts.wep.bsc.StarData import StarData
 
 
-class LocalDatabase(BrightStarDatabase):
+class LocalDatabase(DefaultDatabase):
 
     def connect(self, dbAdress):
-        """
-        
-        Connects database based on the local path.
-        
-        Arguments:
-            dbAdress {[string]} -- Path of local sqlite3 database.
+        """Connects database based on the local path.
+
+        Parameters
+        ----------
+        dbAdress : str
+            Path of local sqlite3 database.
         """
 
         self.connection = sqlite3.connect(dbAdress)
         self.cursor = self.connection.cursor()
 
-    def printAll(self, cameraFilter):
-        """
-        
-        Print all data based on the filter type. This is only for the debug.
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
+    def _queryTable(self, tableName, filterType, top, bottom, left, right):
+        """Queries the database for stars within an area.
+
+        Parameters
+        ----------
+        tableName : str
+            Table name in database.
+        filterType : FilterType
+            Filter type.
+        top : float
+            The top edge of the box (Decl).
+        bottom : float
+            The bottom edge of the box (Decl).
+        left : float
+            The left edge of the box (RA).
+        right : float
+            The right edge of the box (RA).
+
+        Returns
+        ----------
+        StarData
+            Star information.
         """
 
-        # Print the table
-        command = "SELECT * FROM BrightStarCatalog" + cameraFilter.upper()
-        self.cursor.execute(command)
-        result = self.cursor.fetchall()
+        # Do the query
+        command = "SELECT simobjid, ra, decl, " + \
+                  filterType.name.lower() + "mag" + \
+                  " FROM " + tableName + \
+                  " WHERE decl <= %f AND decl >= %f AND ra >= %f AND ra <= %f"
+        query = command % (top, bottom, left, right)
+        self.cursor.execute(query)
 
-        print(result)
+        # Collect the data
+        simobjid = []
+        ra = []
+        decl = []
+        lsstMagU = []
+        lsstMagG = []
+        lsstMagR = []
+        lsstMagI = []
+        lsstMagZ = []
+        lsstMagY = []
+        for item in self.cursor.fetchall():
 
-    def searchSimobjdID(self, cameraFilter, listID):
-        """
-        
-        Search data based on the simobjid. It is noted that this simobjid is not unique in 
-        UW. 
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-            listID {[int]} -- simobjid list to search.
-        
-        Returns:
-            result {[metadata]} -- Results (id, ra, decl) of search
+            # It is noted that the data type of simobjid is big interger
+            # in UW database 
+            simobjid.append(item[0])
+            ra.append(item[1])
+            decl.append(item[2])
+
+            if (filterType == FilterType.U):              
+                lsstMagU.append(item[3])    
+
+            elif (filterType == FilterType.G):              
+                lsstMagG.append(item[3])
+
+            elif (filterType == FilterType.R):
+                lsstMagR.append(item[3])
+
+            elif (filterType == FilterType.I):
+                lsstMagI.append(item[3])
+
+            elif (filterType == FilterType.Z):
+                lsstMagZ.append(item[3])
+
+            elif (filterType == FilterType.Y):
+                lsstMagY.append(item[3])
+
+        return StarData(simobjid, ra, decl, lsstMagU, lsstMagG, lsstMagR,  
+                        lsstMagI, lsstMagZ, lsstMagY)           
+
+    def searchSimobjdID(self, filterType, listID):
+        """Search data based on the simobjid.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+        listID : list[int]
+            Simobjid list to search.
+
+        Returns
+        -------
+        metadata
+            Results (id, ra, decl) of search
         """
 
         # Search the simobjid data
-        command = "SELECT id, ra, decl From BrightStarCatalog" + cameraFilter.upper() + \
-                  " WHERE simobjid in (" + ', '.join(str(id) for id in listID) + ")"
+        command = "SELECT id, ra, decl From" + \
+                  " BrightStarCatalog" + filterType.name + \
+                  " WHERE simobjid in" + \
+                  " (" + ', '.join(str(ID) for ID in listID) + ")"
         self.cursor.execute(command)
-        result = self.cursor.fetchall()
 
-        return result
+        return self.cursor.fetchall()
 
-    def searchRaDecl(self, cameraFilter, ra, decl):
-        """
-        
-        Search the star id based on ra, decl.
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-            ra {[float]} -- ra in degree (0 deg - 360 deg).
-            decl {[float]} -- decl in degree (-90 deg - 90 deg).
-        
-        Returns:
-            [int] -- Star ID in local databse.
+    def searchRaDecl(self, filterType, ra, decl):
+        """Search the star Id based on ra, decl.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+        ra : float
+            Star right ascension in degree.
+        decl : float
+            Star declination in degree.
+
+        Returns
+        -------
+        int
+            Star ID in local databse.
         """
 
         # Compare ra and decl to see the existance of star in database
-        command = "SELECT id FROM BrightStarCatalog" + cameraFilter.upper() + \
+        command = "SELECT id FROM BrightStarCatalog" + filterType.name + \
                   " WHERE ra = %f AND decl = %f" 
         query = command % (ra, decl)
         self.cursor.execute(query)
-        
+
         return self.cursor.fetchall()
 
-    def insertData(self, cameraFilter, neighborStarMap):
-        """
-        
-        Insert new star data into the local database.  
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-            neighborStarMap {[NeighboringStar]} -- Information of neighboring stars.
+    def insertData(self, filterType, neighborStarMap):
+        """Insert new star data into the local database.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+        neighborStarMap : NbrStar
+            Information of neighboring stars.
         """
 
         # List of bright star
-        brightStarList = list(neighborStarMap.SimobjID)
+        brightStarList = list(neighborStarMap.getId())
 
         # Check the existed bright star data based on ra and decl
         existIdList = []
         for ii in range(len(brightStarList)):
-            raDec = neighborStarMap.RaDecl[brightStarList[ii]]
-            if (self.searchRaDecl(cameraFilter,raDec[0],raDec[1])):
+            raDec = neighborStarMap.getRaDecl()[brightStarList[ii]]
+            if (self.searchRaDecl(filterType,raDec[0],raDec[1])):
                 existIdList.append(brightStarList[ii])
 
         # Collect the lists not in database yet. 
@@ -108,7 +172,7 @@ class LocalDatabase(BrightStarDatabase):
             if id not in existIdList:
                 remainIdList.append(id)
                 allStarList.append(id)
-                for starID in neighborStarMap.SimobjID[id]:
+                for starID in neighborStarMap.getId()[id]:
                     # Make sure the starID is not in the allStarList yet
                     if starID not in allStarList:
                         allStarList.append(starID)
@@ -117,25 +181,14 @@ class LocalDatabase(BrightStarDatabase):
         for simobjID in allStarList:
 
             # Insert data
-            command = "INSERT INTO BrightStarCatalog" + cameraFilter.upper() + \
-                      " (simobjid, ra, decl, " + cameraFilter + "mag, bright_star) " + \
+            command = "INSERT INTO BrightStarCatalog" + filterType.name + \
+                      " (simobjid, ra, decl, " + \
+                      filterType.name.lower() + "mag, bright_star) " + \
                       "VALUES (?, ?, ?, ?, ?)"
 
-            raDec = neighborStarMap.RaDecl[simobjID]
+            raDec = neighborStarMap.getRaDecl()[simobjID]
+            mag = neighborStarMap.getMag(filterType)[simobjID]
             
-            if (cameraFilter == self.FilterU):
-                mag = neighborStarMap.LSSTMagU[simobjID]
-            elif (cameraFilter == self.FilterG):
-                mag = neighborStarMap.LSSTMagG[simobjID]
-            elif (cameraFilter == self.FilterR):
-                mag = neighborStarMap.LSSTMagR[simobjID]
-            elif (cameraFilter == self.FilterI):
-                mag = neighborStarMap.LSSTMagI[simobjID]
-            elif (cameraFilter == self.FilterZ):
-                mag = neighborStarMap.LSSTMagZ[simobjID]
-            elif (cameraFilter == self.FilterY):
-                mag = neighborStarMap.LSSTMagY[simobjID]
-
             if simobjID in remainIdList:
                 brightStar = True
             else:
@@ -148,19 +201,25 @@ class LocalDatabase(BrightStarDatabase):
         # Commit the change to database
         self.connection.commit()
 
-    def updateData(self, cameraFilter, listID, listOfItemToChange, listOfNewValue):
-        """
-        
-        Update data based on the id.
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-            listID {[int]} -- ID list to change.
-            listOfItemToChange {[string]} -- Item list (simobjid, ra, decl, mag, bright_star) to change.
-            listOfNewValue {[valueType]} -- New value list.
+    def updateData(self, filterType, listID, listOfItemToChange,
+                   listOfNewValue):
+        """Update data based on the Id.
 
-        Raises:
-            ValueError -- Not the correct type to update.
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+        listID : list[int]
+            ID list to change.
+        listOfItemToChange : list[str]
+            Item list (simobjid, ra, decl, mag, bright_star) to change.
+        listOfNewValue : list[int, float, or bool]
+            New value list.
+
+        Raises
+        ------
+        ValueError
+            Not the correct type to update.
         """
 
         # Check the item can be updated or not
@@ -171,52 +230,57 @@ class LocalDatabase(BrightStarDatabase):
         # Update data based on the id
         for ii in range(len(listID)):
 
-            # Check the item is "mag" or not. If it is "mag", give the related filter information.
+            # Check the item is "mag" or not. If it is "mag", give the
+            # related filter information.
             itemToChange = listOfItemToChange[ii]
             if (itemToChange == "mag"):
-                itemToChange = cameraFilter + itemToChange
+                itemToChange = filterType.name.lower() + itemToChange
 
             # Give the SQL command
-            command = "UPDATE BrightStarCatalog" + cameraFilter.upper() + \
+            command = "UPDATE BrightStarCatalog" + filterType.name + \
                       " SET " + itemToChange + "=" + str(listOfNewValue[ii]) + \
-                      " WHERE id=?"  
+                      " WHERE id=?"
             self.cursor.execute(command, (listID[ii],))
 
         # Commit the change to database
         self.connection.commit()
 
-    def deleteData(self, cameraFilter, listID):
-        """
-        
-        Delete data based on the id.
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-            listID {[int]} -- ID list to delete.
+    def deleteData(self, filterType, listID):
+        """Delete data based on the Id.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type
+        listID : list[int]
+            ID list to delete.
         """
 
         # Delete the data
         for id in listID:       
-            command = "DELETE FROM BrightStarCatalog" + cameraFilter.upper() + " WHERE id=?"
+            command = "DELETE FROM BrightStarCatalog" + filterType.name + \
+                      " WHERE id=?"
             self.cursor.execute(command, (id,))
 
         # Commit the change to database
         self.connection.commit()
 
-    def getAllId(self, cameraFilter):
-        """
-        
-        Get all ID in the database.
-        
-        Arguments:
-            cameraFilter {[string]} -- Filter type of camera: u, g, r, i, z, y.
-        
-        Returns:
-            [int] -- ID list
+    def getAllId(self, filterType):
+        """Get all ID in the database.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+
+        Returns
+        -------
+        list
+            ID list
         """
 
         # Print the table
-        command = "SELECT id FROM BrightStarCatalog" + cameraFilter.upper()
+        command = "SELECT id FROM BrightStarCatalog" + filterType.name
         self.cursor.execute(command)
         listID = self.cursor.fetchall()
         return np.asarray(listID).squeeze().tolist()

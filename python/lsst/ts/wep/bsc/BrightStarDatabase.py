@@ -68,8 +68,8 @@ class BrightStarDatabase(object):
         if raStddev >= self.stddevSplit:
             left = max([x for x in ra if x < 180])
             right = min([x for x in ra if x >= 180])
-            above0Set = self.__queryInternal(tableName, cameraFilter, top, bottom, 0, left)
-            below0Set = self.__queryInternal(tableName, cameraFilter, top, bottom, right, 360)
+            above0Set = self.queryTable(tableName, cameraFilter, top, bottom, 0, left)
+            below0Set = self.queryTable(tableName, cameraFilter, top, bottom, right, 360)
             return StarData(above0Set.SimobjID + below0Set.SimobjID,
                             above0Set.RA + below0Set.RA, 
                             above0Set.Decl + below0Set.Decl, 
@@ -80,9 +80,9 @@ class BrightStarDatabase(object):
                             above0Set.LSSTMagZ + below0Set.LSSTMagZ, 
                             above0Set.LSSTMagY + below0Set.LSSTMagY)
         else:                            
-            return self.__queryInternal(tableName, cameraFilter, top, bottom, left, right)
+            return self.queryTable(tableName, cameraFilter, top, bottom, left, right)
 
-    def __queryInternal(self, tableName, cameraFilter, top, bottom, left, right):
+    def queryTable(self, tableName, cameraFilter, top, bottom, left, right):
         """
         
         Queries the database for stars within an area.

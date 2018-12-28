@@ -10,6 +10,8 @@ from lsst.afw.cameraGeom import WAVEFRONT, SCIENCE
 
 from lsst.ts.wep.bsc.StarData import StarData
 
+from lsst.ts.wep.Utility import FilterType
+
 # Ignore the warning of "WARNING: ErfaWarning: ERFA function "taiutc" yielded 1 
 # of "dubious year (Note 4)" [astropy._erfa.core]"
 
@@ -96,11 +98,11 @@ class CameraData(object):
                                 the pointing.
         """
 
-        ra = stars.RA
-        decl = stars.Decl
+        ra = stars.getRA()
+        decl = stars.getDecl()
         raInPixel, declInPixel = pixelCoordsFromRaDec(ra = ra, dec = decl, obs_metadata = obs,
                                                       epoch = 2000.0, 
-                                                      chipName = np.array([stars.Detector] * len(stars.RA)), 
+                                                      chipName = np.array([stars.getDetector()] * len(ra)), 
                                                       camera = self.__camera, includeDistortion = True)
         stars.populateRAData(raInPixel)
         stars.populateDeclData(declInPixel)
@@ -119,34 +121,47 @@ class CameraData(object):
                                 is near the edge of ccd.
         """
         
-        keep = [index for index in range(len(stars.RA)) 
-                if stars.RAInPixel[index] >= -offset and stars.RAInPixel[index] <= self.__dimension[stars.Detector][0]+offset 
-                and stars.DeclInPixel[index] >= -offset and stars.DeclInPixel[index] <= self.__dimension[stars.Detector][1]+offset]
+        keep = [index for index in range(len(stars.getRA())) 
+                if stars.getRaInPixel()[index] >= -offset and stars.getRaInPixel()[index] <= self.__dimension[stars.getDetector()][0]+offset 
+                and stars.getDeclInPixel()[index] >= -offset and stars.getDeclInPixel()[index] <= self.__dimension[stars.getDetector()][1]+offset]
         
-        stars.RA = [stars.RA[index] for index in keep]
-        stars.RAInPixel = [stars.RAInPixel[index] for index in keep]
-        stars.Decl = [stars.Decl[index] for index in keep]
-        stars.DeclInPixel = [stars.DeclInPixel[index] for index in keep]
+        starsRA = [stars.getRA()[index] for index in keep]
+        stars.setRA(starsRA)
+
+        starsRAInPixel = [stars.getRaInPixel()[index] for index in keep]
+        stars.populateRAData(starsRAInPixel)
+     
+        starsDecl = [stars.getDecl()[index] for index in keep]
+        stars.setDecl(starsDecl)
+
+        stars.DeclInPixel = [stars.getDeclInPixel()[index] for index in keep]
+        stars.populateDeclData(starsDecl)
         
         # Check the empty information
-        if (stars.LSSTMagU):
-            stars.LSSTMagU = [stars.LSSTMagU[index] for index in keep]
+        if (len(stars.getMag(FilterType.U)) != 0):
+            starsLSSTMagU = [stars.getMag(FilterType.U)[index] for index in keep]
+            stars.setMag(FilterType.U, starsLSSTMagU)
          
-        if (stars.LSSTMagG):
-            stars.LSSTMagG = [stars.LSSTMagG[index] for index in keep]
-         
-        if (stars.LSSTMagR):
-            stars.LSSTMagR = [stars.LSSTMagR[index] for index in keep]
-         
-        if (stars.LSSTMagI):
-            stars.LSSTMagI = [stars.LSSTMagI[index] for index in keep]
-         
-        if (stars.LSSTMagZ):
-            stars.LSSTMagZ = [stars.LSSTMagZ[index] for index in keep]
-         
-        if (stars.LSSTMagY):
-            stars.LSSTMagY = [stars.LSSTMagY[index] for index in keep]
-    
+        if (len(stars.getMag(FilterType.G)) != 0):
+            starsLSSTMagG = [stars.getMag(FilterType.G)[index] for index in keep]
+            stars.setMag(FilterType.G, starsLSSTMagG)
+
+        if (len(stars.getMag(FilterType.R)) != 0):
+            starsLSSTMagR = [stars.getMag(FilterType.R)[index] for index in keep]
+            stars.setMag(FilterType.R, starsLSSTMagR)
+
+        if (len(stars.getMag(FilterType.I)) != 0):
+            starsLSSTMagI = [stars.getMag(FilterType.I)[index] for index in keep]
+            stars.setMag(FilterType.I, starsLSSTMagI)
+
+        if (len(stars.getMag(FilterType.Z)) != 0):
+            starsLSSTMagZ = [stars.getMag(FilterType.Z)[index] for index in keep]
+            stars.setMag(FilterType.Z, starsLSSTMagZ)
+
+        if (len(stars.getMag(FilterType.Y)) != 0):
+            starsLSSTMagY = [stars.getMag(FilterType.Y)[index] for index in keep]
+            stars.setMag(FilterType.Y, starsLSSTMagY)
+
     def getDetectorRaDec(self, camera_mapper, obs):
         """
         

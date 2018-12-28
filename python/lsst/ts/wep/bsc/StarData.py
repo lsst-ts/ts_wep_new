@@ -34,22 +34,60 @@ class StarData(object):
         """
 
         self.detector = ""
-
-        starIdArray = self._changeToNpArrayIfNeeded(starId)
-        self.starId = starIdArray.astype(int)
-
-        self.ra = self._changeToNpArrayIfNeeded(ra)
-        self.decl = self._changeToNpArrayIfNeeded(decl)
+        self.starId = np.array([], dtype=int)
+        self.ra = np.array([])
+        self.decl = np.array([])
 
         self.raInPixel = np.array([])
         self.declInPixel = np.array([])
 
-        self.lsstMagU = self._changeToNpArrayIfNeeded(lsstMagU) 
-        self.lsstMagG = self._changeToNpArrayIfNeeded(lsstMagG)
-        self.lsstMagR = self._changeToNpArrayIfNeeded(lsstMagR)
-        self.lsstMagI = self._changeToNpArrayIfNeeded(lsstMagI)
-        self.lsstMagZ = self._changeToNpArrayIfNeeded(lsstMagZ)
-        self.lsstMagY = self._changeToNpArrayIfNeeded(lsstMagY)
+        self.lsstMagU = np.array([])
+        self.lsstMagG = np.array([])
+        self.lsstMagR = np.array([])
+        self.lsstMagI = np.array([])
+        self.lsstMagZ = np.array([])
+        self.lsstMagY = np.array([])
+
+        self.setId(starId)
+        self.setRA(ra)
+        self.setDecl(decl)
+
+        self.setMag(FilterType.U, lsstMagU)
+        self.setMag(FilterType.G, lsstMagG)
+        self.setMag(FilterType.R, lsstMagR)
+        self.setMag(FilterType.I, lsstMagI)
+        self.setMag(FilterType.Z, lsstMagZ)
+        self.setMag(FilterType.Y, lsstMagY)
+
+    def setId(self, starId):
+
+        starIdArray = self._changeToNpArrayIfNeeded(starId)
+        self.starId = starIdArray.astype(int)
+
+    def setRA(self, ra):
+
+        self.ra = self._changeToNpArrayIfNeeded(ra)
+
+    def setDecl(self, decl):
+
+        self.decl = self._changeToNpArrayIfNeeded(decl)
+
+    def setMag(self, filterType, mag):
+
+        if (filterType == FilterType.U):
+            self.lsstMagU = self._changeToNpArrayIfNeeded(mag) 
+        elif (filterType == FilterType.G):
+            self.lsstMagG = self._changeToNpArrayIfNeeded(mag)
+        elif (filterType == FilterType.R):
+            self.lsstMagR = self._changeToNpArrayIfNeeded(mag)
+        elif (filterType == FilterType.I):
+            self.lsstMagI = self._changeToNpArrayIfNeeded(mag)
+        elif (filterType == FilterType.Z):
+            self.lsstMagZ = self._changeToNpArrayIfNeeded(mag)
+        elif (filterType == FilterType.Y):
+            self.lsstMagY = self._changeToNpArrayIfNeeded(mag)
+        else:
+            raise ValueError("No filter type matches.")
 
     def _changeToNpArrayIfNeeded(self, val):
         """Change the value type to the numpy array if it is needed.
@@ -160,6 +198,17 @@ class StarData(object):
             return self.lsstMagY
         else:
             raise ValueError("No filter type matches.")
+
+    def getDetector(self):
+        """Get the detector.
+
+        Returns
+        -------
+        str
+            Detector.
+        """
+
+        return self.detector
 
     def populateDetector(self, detector):
         """Populates the detector name for this set of stars.

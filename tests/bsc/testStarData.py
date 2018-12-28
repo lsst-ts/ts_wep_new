@@ -44,11 +44,15 @@ class TestStarData(unittest.TestCase):
         self.assertEqual(self.stars.getMag(FilterType.Y).tolist(),
                          [2.5, 3.5, 4.5])
 
+    def testGetDetector(self):
+
+        self.assertEqual(self.stars.getDetector(), "")
+
     def testPopulateDetector(self):
 
         detector = "CCD"
         self.stars.populateDetector(detector)
-        self.assertEqual(self.stars.detector,detector)
+        self.assertEqual(self.stars.getDetector(), detector)
 
     def testPopulateRADataAndGetIt(self):
 

@@ -51,13 +51,13 @@ class TestCameraData(unittest.TestCase):
         stars.populateDetector("R:2,2 S:1,1")
         camera.populatePixelFromRADecl(stars, self.obs)
 
-        self.assertEqual(len(stars.RAInPixel), 3)
+        self.assertEqual(len(stars.getRaInPixel()), 3)
 
         # Test to remove stars not on detector
         camera.removeStarsNotOnDetectorSimple(stars, self.obs, 1e7)
-        self.assertEqual(len(stars.RA), 3)
+        self.assertEqual(len(stars.getRA()), 3)
         camera.removeStarsNotOnDetectorSimple(stars, self.obs, 0)
-        self.assertEqual(stars.RA, [])
+        self.assertEqual(stars.getRA().tolist(), [])
 
         # Test to get the correct sensor type
         self.assertEqual(len(camera.getSciCcdList()), 189)

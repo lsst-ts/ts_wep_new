@@ -92,7 +92,7 @@ class LocalDatabase(DefaultDatabase):
                         lsstMagI, lsstMagZ, lsstMagY)           
 
     def searchSimobjdID(self, filterType, listID):
-        """Search data based on the simobjid.
+        """Search the data based on the simobjid.
 
         Parameters
         ----------
@@ -103,8 +103,9 @@ class LocalDatabase(DefaultDatabase):
 
         Returns
         -------
-        metadata
-            Results (id, ra, decl) of search
+        list[tuple]
+            Results [(id_1, ra_1, decl_1, ), (id_2, ra_2, decl_2, ), ...] of
+            search
         """
 
         # Search the simobjid data
@@ -130,8 +131,8 @@ class LocalDatabase(DefaultDatabase):
 
         Returns
         -------
-        int
-            Star ID in local databse.
+        list
+            Star Id list in local database.
         """
 
         # Compare ra and decl to see the existance of star in database
@@ -140,7 +141,30 @@ class LocalDatabase(DefaultDatabase):
         query = command % (ra, decl)
         self.cursor.execute(query)
 
-        return self.cursor.fetchall()
+        listIdByQuery = self.cursor.fetchall()
+
+        return self._changeQueriedIdToList(listIdByQuery)
+
+    def _changeQueriedIdToList(self, listIdByQuery):
+        """Change the queried Id to the list data type.
+
+        Parameters
+        ----------
+        listIdByQuery : list[tuple]
+            Queried Id list.
+
+        Returns
+        -------
+        list
+            Id list.
+        """
+
+        listId = np.asarray(listIdByQuery).squeeze().tolist()
+        try:
+            len(listId)
+            return listId
+        except TypeError:
+            return [listId]
 
     def insertData(self, filterType, neighborStarMap):
         """Insert new star data into the local database.
@@ -282,8 +306,9 @@ class LocalDatabase(DefaultDatabase):
         # Print the table
         command = "SELECT id FROM BrightStarCatalog" + filterType.name
         self.cursor.execute(command)
-        listID = self.cursor.fetchall()
-        return np.asarray(listID).squeeze().tolist()
+        listIdByQuery = self.cursor.fetchall()
+
+        return self._changeQueriedIdToList(listIdByQuery)
 
 
 if __name__ == "__main__":

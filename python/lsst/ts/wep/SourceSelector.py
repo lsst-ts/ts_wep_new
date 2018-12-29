@@ -204,8 +204,8 @@ class SourceSelector(object):
             starsQueried = len(stars.RA)
             print("\t\tStars queried: %d" % starsQueried)
 
-            # Populate detector information for the stars
-            stars.populateDetector(detector)
+            # Set the detector information for the stars
+            stars.setDetector(detector)
 
             # Populate pixel information for stars
             self.camera.populatePixelFromRADecl(stars, obs)

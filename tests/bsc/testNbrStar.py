@@ -16,8 +16,8 @@ class TestNbrStar(unittest.TestCase):
                          [2.1, 2.1, 4.1], [2.2, 3.2, 4.2],
                          [2.3, 3.3, 4.3], [2.4, 3.4, 4.4],
                          [2.5, 3.5, 4.5])
-        stars.populateRAData(stars.getRA() * 10)
-        stars.populateDeclData(stars.getDecl() * 10)
+        stars.setRaInPixel(stars.getRA() * 10)
+        stars.setDeclInPixel(stars.getDecl() * 10)
 
         self.stars = stars
         self.neighboringStar = NbrStar()

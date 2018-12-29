@@ -26,8 +26,8 @@ class TestLocalDatabase(unittest.TestCase):
         stars = StarData([123, 456, 789], [0.1, 0.2, 0.3], [2.1, 2.2, 2.3],
                          [2.0, 3.0, 4.0], [2.0, 3.0, 4.0], [2.0, 3.0, 4.0],
                          [2.0, 3.0, 4.0], [2.0, 3.0, 4.0], [2.0, 3.0, 4.0])
-        stars.populateRAData(stars.getRA() * 10)
-        stars.populateDeclData(stars.getDecl() * 10)
+        stars.setRaInPixel(stars.getRA() * 10)
+        stars.setDeclInPixel(stars.getDecl() * 10)
         self.neighboringStar = stars.getNeighboringStar(
                                             [0], 3, self.filterType, 99)
 

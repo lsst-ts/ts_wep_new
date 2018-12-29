@@ -44,42 +44,45 @@ class TestStarData(unittest.TestCase):
         self.assertEqual(self.stars.getMag(FilterType.Y).tolist(),
                          [2.5, 3.5, 4.5])
 
-    def testGetDetector(self):
+    def testSetMag(self):
 
-        self.assertEqual(self.stars.getDetector(), "")
+        mag = [1, 3, 4, 5]
+        self.stars.setMag(FilterType.U, mag)
 
-    def testPopulateDetector(self):
+        self.assertEqual(self.stars.getMag(FilterType.U).tolist(), mag)
+
+    def testSetAndGetDetector(self):
 
         detector = "CCD"
-        self.stars.populateDetector(detector)
+        self.stars.setDetector(detector)
         self.assertEqual(self.stars.getDetector(), detector)
 
-    def testPopulateRADataAndGetIt(self):
+    def testSetAndGetRaInPixel(self):
 
         raInPixel = [1.0, 2.0]
-        self.stars.populateRAData(raInPixel)
+        self.stars.setRaInPixel(raInPixel)
 
         self.assertEqual(self.stars.getRaInPixel().tolist(), raInPixel)
 
-    def testPopulateRADataWithFloatValue(self):
+    def testSetRaInPixelWithFloatValue(self):
 
         raInPixel = 1.0
-        self.stars.populateRAData(raInPixel)
+        self.stars.setRaInPixel(raInPixel)
 
         self.assertEqual(self.stars.getRaInPixel().tolist(), [raInPixel])
 
-    def testPopulateRADataWithNpArray(self):
+    def testSetRaInPixelWithNpArray(self):
 
         raInPixel = np.array([1.0, 2.0])
-        self.stars.populateRAData(raInPixel)
+        self.stars.setRaInPixel(raInPixel)
 
         delta = np.sum(np.abs(self.stars.getRaInPixel() - raInPixel))
         self.assertEqual(delta, 0)
 
-    def testPopulateDeclDataAndGetIt(self):
+    def testSetAndGetDeclInPixel(self):
 
         declInPixel = [2.0, 3.0]
-        self.stars.populateDeclData(declInPixel)
+        self.stars.setDeclInPixel(declInPixel)
 
         self.assertEqual(self.stars.getDeclInPixel().tolist(), declInPixel)
 
@@ -137,8 +140,8 @@ class TestStarData(unittest.TestCase):
 
     def _populateRaDeclInPixel(self):
 
-        self.stars.populateRAData(self.stars.getRA() * 10)
-        self.stars.populateDeclData(self.stars.getDecl() * 10)
+        self.stars.setRaInPixel(self.stars.getRA() * 10)
+        self.stars.setDeclInPixel(self.stars.getDecl() * 10)
 
     def testGetNeighboringStarWithNothing(self):
 

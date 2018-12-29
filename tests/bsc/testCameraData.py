@@ -48,7 +48,7 @@ class TestCameraData(unittest.TestCase):
         self.assertEqual(len(corners), 4)
         
         # Test to transform the stars coordinate to pixel
-        stars.populateDetector("R:2,2 S:1,1")
+        stars.setDetector("R:2,2 S:1,1")
         camera.populatePixelFromRADecl(stars, self.obs)
 
         self.assertEqual(len(stars.getRaInPixel()), 3)

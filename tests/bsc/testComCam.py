@@ -3,10 +3,10 @@ import unittest
 from lsst.sims.utils import ObservationMetaData
 
 from lsst.ts.wep.bsc.StarData import StarData
-from lsst.ts.wep.bsc.CameraData import ComCam
+from lsst.ts.wep.bsc.ComCam import ComCam
 
 
-class TestCameraData(unittest.TestCase):
+class TestComCam(unittest.TestCase):
     """Test the ComCam class."""
 
     # Boresight (unit: degree)

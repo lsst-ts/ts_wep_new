@@ -6,7 +6,7 @@ from lsst.ts.wep.bsc.CameraData import CameraData
 class LsstCamera(CameraData):
 
     def __init__(self):
-        super(LsstCamera, self).__init__(self.LSST, LsstSimMapper().camera)
+        super(LsstCamera, self).__init__(LsstSimMapper().camera)
 
     def getWavefrontSensor(self, obs):
         """

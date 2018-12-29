@@ -1,11 +1,13 @@
 import numpy as np
 
-# instantiate the LSST camera model
-from lsst.obs.lsstSim import LsstSimMapper
 
 from lsst.sims.coordUtils.CameraUtils import raDecFromPixelCoords, \
                                              pixelCoordsFromRaDec
+
 from lsst.sims.utils import ObservationMetaData
+
+from lsst.ts.wep.bsc.WcsSol import WcsSol
+
 from lsst.afw.cameraGeom import WAVEFRONT, SCIENCE
 
 from lsst.ts.wep.bsc.StarData import StarData
@@ -16,22 +18,17 @@ from lsst.ts.wep.Utility import FilterType
 # of "dubious year (Note 4)" [astropy._erfa.core]"
 
 class CameraData(object):
-
-    LSST = "lsst"
-    COMCAM = "comcam"
     
-    def __init__(self, name, cameraCollection):
+    def __init__(self, cameraCollection):
         """
         
         Initiate the camera for bright star catalog to use.
         
         Arguments:
-            name {[string]} -- Name of camera.
             cameraCollection {[camera]} -- A collection of detectors that also supports 
                                            coordinate transformation.
         """
 
-        self.name = name
         self._camera = cameraCollection
 
         # Dictionary of (x, y) coordinates of detector corners and dimensions of detection

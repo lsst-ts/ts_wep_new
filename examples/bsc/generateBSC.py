@@ -35,7 +35,6 @@ if __name__ == "__main__":
 
     # Camera instance (Two classes: LsstCamera and ComCam)
     camera = CameraData.ComCam()
-    camera.initializeDetectors()
   
     # Camera orientation (center" or "corner" or "all" or "lsst")
     # For lsst camerea, orientation = "lsst"

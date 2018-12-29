@@ -8,24 +8,61 @@ from lsst.ts.wep.Utility import FilterType
 class CameraData(object):
     
     def __init__(self, camera):
-        """
-        
-        Initiate the camera for bright star catalog to use.
-        
-        Arguments:
-            camera {[camera]} -- A collection of detectors that also supports 
-                                           coordinate transformation.
+        """Initialize the camera data class.
+
+        Parameters
+        ----------
+        camera : lsst.afw.cameraGeom.camera.camera.Camera
+            A collection of Detectors that also supports coordinate
+            transformation. (the default is None.)
         """
 
         self._wcs = WcsSol(camera=camera)
 
-        # Dictionary of (x, y) coordinates of detector corners and dimensions of detection
+        # List of camera CCD name
+        self._wfsCcd = []
+        self._sciCcd = []
+
+        # Dictionary of (x, y) coordinates of detector corners and dimensions
+        # of detection. The dictonary key is the ccd name.
         self._corners = {}
         self._dimension = {}
 
-        # List of camera CCD
-        self._wfsCcd = []
-        self._sciCcd = []
+        # Initialize the attribute data.
+        self._initDetectors()
+
+    def _initDetectors(self):
+        """Initializes the camera detectors."""
+
+        for detector in self._wcs.getCamera():
+            if detector.getType() in (WAVEFRONT, SCIENCE):
+
+                detectorName = detector.getName()
+
+                # Collect the ccd name
+                if (detector.getType() == WAVEFRONT):
+                    self._wfsCcd.append(detectorName)
+                elif (detector.getType() == SCIENCE):
+                    self._sciCcd.append(detectorName)
+
+                # Get the detector corners
+                bbox = detector.getBBox()
+                xmin = bbox.getMinX()
+                xmax = bbox.getMaxX()
+                ymin = bbox.getMinY()
+                ymax = bbox.getMaxY()
+                self._corners[detectorName] = \
+                                (np.array([xmin, xmin, xmax, xmax]), 
+                                 np.array([ymin, ymax, ymin, ymax]))
+
+                # The CCD dimension here is an estimation. 
+                # Based on LCA-13381, there are three types of sensors.
+                # e2V CCD250: 40.04 mm x 40.96 mm
+                # STA 4400: 20.00 mm x 40.72 mm
+                # STA 3800C: 40.00 mm x 40.72 mm
+
+                dim1, dim2 = bbox.getDimensions()
+                self._dimension[detectorName] = (int(dim1), int(dim2))
 
     def setObsMetaData(self, ra, dec, rotSkyPos, mjd=59580.0):
         """Set the observation meta data.
@@ -44,47 +81,18 @@ class CameraData(object):
 
         self._wcs.setObsMetaData(ra, dec, rotSkyPos, mjd=mjd)
 
-    def initializeDetectors(self):
-        """
-        Initializes the camera wavefront detectors.
-        """
-
-        for detector in self._wcs.getCamera():
-                if detector.getType() in (WAVEFRONT, SCIENCE):
-
-                    detectorName = detector.getName()
-
-                    # Collect the ccd name
-                    if (detector.getType() == WAVEFRONT):
-                        self._wfsCcd.append(detectorName)
-                    elif (detector.getType() == SCIENCE):
-                        self._sciCcd.append(detectorName)
-
-                    bbox = detector.getBBox()
-                    xmin = bbox.getMinX()
-                    xmax = bbox.getMaxX()
-                    ymin = bbox.getMinY()
-                    ymax = bbox.getMaxY()
-                    self._corners[detectorName] = (np.array([xmin, xmin, xmax, xmax]), 
-                                                    np.array([ymin, ymax, ymin, ymax]))
-
-                    # The CCD dimension here is an estimation. 
-                    # Based on LCA-13381, there are three types of sensors.
-                    # e2V CCD250: 40.04 mm x 40.96 mm
-                    # STA 4400: 20.00 mm x 40.72 mm
-                    # STA 3800C: 40.00 mm x 40.72 mm
-
-                    dim1, dim2 = bbox.getDimensions()
-                    self._dimension[detectorName] = (int(dim1), int(dim2))  
-
     def populatePixelFromRADecl(self, stars):
-        """
-        
-        Populates the RAInPixel and DeclInPixel coordinates in the StarData stars using the lsst-sims 
-        stack.
-        
-        Arguments:
-            stars {[StarData]} -- The stars to populate.
+        """Populates the RAInPixel and DeclInPixel coordinates to the stars.
+
+        Parameters
+        ----------
+        stars : StarData
+            The stars to populate.
+
+        Returns
+        -------
+        StarData
+            The stars with x-, y-pixel data populated.
         """
 
         ra = stars.getRA()
@@ -95,85 +103,95 @@ class CameraData(object):
 
         stars.setRaInPixel(raInPixel)
         stars.setDeclInPixel(declInPixel)
-        
-    def removeStarsNotOnDetectorSimple(self, stars, offset):
-        """
-        
-        Removes the stars from the StarData stars that are not on the detector using pixel data.
 
-        Arguments:
-            stars {[StarData]} -- Star information.
-            offset {[float]} -- The offset to dimension of camera. This is for generating the local 
-                                database of bright star catalog for the condition that the bright star 
-                                is near the edge of ccd.
-        """
-        
-        keep = [index for index in range(len(stars.getRA())) 
-                if stars.getRaInPixel()[index] >= -offset and stars.getRaInPixel()[index] <= self._dimension[stars.getDetector()][0]+offset 
-                and stars.getDeclInPixel()[index] >= -offset and stars.getDeclInPixel()[index] <= self._dimension[stars.getDetector()][1]+offset]
-        
-        starsRA = [stars.getRA()[index] for index in keep]
-        stars.setRA(starsRA)
+        return stars
 
-        starsRAInPixel = [stars.getRaInPixel()[index] for index in keep]
-        stars.setRaInPixel(starsRAInPixel)
-     
-        starsDecl = [stars.getDecl()[index] for index in keep]
-        stars.setDecl(starsDecl)
+    def removeStarsNotOnDetector(self, stars, offset):
+        """Remove the 'stars' from the input stars that are not on the detector
+        according to the pixel position.
 
-        stars.DeclInPixel = [stars.getDeclInPixel()[index] for index in keep]
-        stars.setDeclInPixel(starsDecl)
-        
-        # Check the empty information
-        if (len(stars.getMag(FilterType.U)) != 0):
-            starsLSSTMagU = [stars.getMag(FilterType.U)[index] for index in keep]
-            stars.setMag(FilterType.U, starsLSSTMagU)
-         
-        if (len(stars.getMag(FilterType.G)) != 0):
-            starsLSSTMagG = [stars.getMag(FilterType.G)[index] for index in keep]
-            stars.setMag(FilterType.G, starsLSSTMagG)
+        Parameters
+        ----------
+        stars : StarData
+            Star information.
+        offset : float
+            The offset to dimension of camera. This is for generating the local
+            database of bright star catalog for the condition that the bright
+            star is near the edge of ccd.
 
-        if (len(stars.getMag(FilterType.R)) != 0):
-            starsLSSTMagR = [stars.getMag(FilterType.R)[index] for index in keep]
-            stars.setMag(FilterType.R, starsLSSTMagR)
-
-        if (len(stars.getMag(FilterType.I)) != 0):
-            starsLSSTMagI = [stars.getMag(FilterType.I)[index] for index in keep]
-            stars.setMag(FilterType.I, starsLSSTMagI)
-
-        if (len(stars.getMag(FilterType.Z)) != 0):
-            starsLSSTMagZ = [stars.getMag(FilterType.Z)[index] for index in keep]
-            stars.setMag(FilterType.Z, starsLSSTMagZ)
-
-        if (len(stars.getMag(FilterType.Y)) != 0):
-            starsLSSTMagY = [stars.getMag(FilterType.Y)[index] for index in keep]
-            stars.setMag(FilterType.Y, starsLSSTMagY)
-
-    def getDetectorRaDec(self, camera_mapper):
-        """
-        
-        Get the (ra, dec) of ccd corners.
-
-        Arguments:
-            camera_mapper {[metadata]} -- camera_mapper is the sensor ID on LSST camera map. 
-                                          The detail of map is at:
-                    https://confluence.lsstcorp.org/display/LSWUG/Representation+of+a+Camera
-                                          The format looks like 'R:2,2 S:2,0' for science sensor 
-                                          and 'R:0,0 S:2,2B' for corner wavefront sensor. 
-        
-        Returns:
-            [list] -- This method returns a dict of list.  The dict is keyed on the name of the
-                      wavefront sensor.  The list contains the (RA, Dec) coordinates of the corners
-                      of that sensor (RA, Dec are paired as tuples). For example, 
-                      output['R:0,0 S:2,2B'] = [(23.0, -5.0), (23.1, -5.0), (23.0, -5.1), (23.1, -5.1)]
-                      would mean that the wavefront sensor named 'R:0,0 S:2,2B' has its corners at
-                      RA 23, Dec -5; RA 23.1, Dec -5; RA 23, Dec -5.1; and RA 23.1, Dec -5.1 
-                      Coordinates are in degrees.
+        Returns
+        -------
+        StarData
+            The stars object without the removed 'stars' that are not on the
+            detector.
         """
 
-        ra_dec_out = {}
+        # Get the index that will keep the data
+        starsRaInPixel = stars.getRaInPixel()
+        starsDeclInPixel = stars.getDeclInPixel()
+        ccdDim = self.getCcdDim(stars.getDetector())
 
-        for detector in camera_mapper:
+        keep = []
+        for ii in range(len(starsRaInPixel)):
+            if (-offset <= starsRaInPixel[ii] <= ccdDim[0] + offset and 
+                -offset <= starsDeclInPixel[ii] <= ccdDim[1] + offset):
+                keep.append(ii)
+
+        # Remove the stars that are not on the detector
+        stars.setId(self._getKeepItem(stars.getId(), keep))
+        stars.setRA(self._getKeepItem(stars.getRA(), keep))
+        stars.setDecl(self._getKeepItem(stars.getDecl(), keep))
+        stars.setRaInPixel(self._getKeepItem(starsRaInPixel, keep))
+        stars.setDeclInPixel(self._getKeepItem(starsDeclInPixel, keep))
+
+        for filterType in FilterType:
+            magArray = stars.getMag(filterType)
+            if (len(magArray) != 0):
+                stars.setMag(filterType, self._getKeepItem(magArray, keep))
+
+        return stars
+
+    def _getKeepItem(self, valArray, keep):
+        """Get the keep items in array.
+
+        Parameters
+        ----------
+        valArray : list or 1-D numpy.ndarray
+            Value array.
+        keep : list[int]
+            List of keep index.
+
+        Returns
+        -------
+        list
+            The array that has only the keep values.
+        """
+
+        return [valArray[idx] for idx in keep]
+
+    def getDetectorRaDec(self, detectorList):
+        """Get the (ra, dec) of CCD corners in the detector list.
+
+        Parameters
+        ----------
+        detectorList : list
+            List of detectors. For example, ["R:2,2 S:1,1", "R:2,2 S:0,1"].
+
+        Returns
+        -------
+        dict
+            This method returns a dict of list.  The dict is keyed on the name
+            of the wavefront sensor.  The list contains the (RA, Dec)
+            coordinates of the corners of that sensor (RA, Dec are paired as
+            tuples). For example, output['R:0,0 S:2,2B'] = [(23.0, -5.0),
+            (23.1, -5.0), (23.0, -5.1), (23.1, -5.1)] would mean that the
+            wavefront sensor named 'R:0,0 S:2,2B' has its corners at RA 23,
+            Dec -5; RA 23.1, Dec -5; RA 23, Dec -5.1; and RA 23.1, Dec -5.1 
+            Coordinates are in degrees.
+        """
+
+        ra_dec_out = dict()
+        for detector in detectorList:
 
             coords = self._corners[detector]
             xPix = coords[0]
@@ -189,43 +207,45 @@ class CameraData(object):
         return ra_dec_out
 
     def getWfsCCdList(self):
-        """
-        
-        Get the list of wavefront sensor list.
-        
-        Returns:
-            [list] -- CCD list.
+        """Get the list of wavefront sensor CCD list.
+
+        Returns
+        -------
+        list
+            Wavefront sensor CCD list.
         """
 
         return self._wfsCcd
 
     def getSciCcdList(self):
-        """
-        
-        Get the list of science sensor list.
-        
-        Returns:
-            [list] -- CCD list.
+        """Get the list of science sensor CCD list.
+
+        Returns
+        -------
+        list
+            Science sensor CCD list.
         """
 
         return self._sciCcd
 
     def getCcdDim(self, detectorName):
-        """
+        """Get the CCD dimension.
+
+        Parameters
+        ----------
+        detectorName : str
+            Detector Name (e.g. "R:2,2 S:1,1").
         
-        Get the CCD dimension.
-        
-        Arguments:
-            detectorName {[string]} -- Detector Name.
-        
-        Returns:
-            [tuple] -- CCD dimension in pixel.
+        Returns
+        -------
+        tuple
+            CCD dimension in pixel.
         """
 
         return self._dimension[detectorName]
 
     def getWavefrontSensor(self):
-        raise NotImplementedError("Subclass must implement the abstract method.")
+        raise NotImplementedError("Child class should implemented this.")
 
 
 if __name__ == "__main__":

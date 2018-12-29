@@ -30,7 +30,7 @@ class ComCam(CameraData):
     def getSensor(self, orientation):
         """
         
-        Get the sensors of Comcam in (ra, dec) based on the camera_mapper list below.
+        Get the sensors of Comcam in (ra, dec) based on the camera list below.
         The reference is at:
         https://confluence.lsstcorp.org/display/LSWUG/Representation+of+a+Camera
         
@@ -43,15 +43,15 @@ class ComCam(CameraData):
 
         # Camera object
         if (orientation == "center"):
-            camera_mapper = ["R:2,2 S:1,1"]
+            detectorList = ["R:2,2 S:1,1"]
         elif (orientation == "corner"):
-            camera_mapper = ["R:2,2 S:0,2", "R:2,2 S:2,2", "R:2,2 S:0,0", "R:2,2 S:2,0"]
+            detectorList = ["R:2,2 S:0,2", "R:2,2 S:2,2", "R:2,2 S:0,0", "R:2,2 S:2,0"]
         elif (orientation == "all"):
-            camera_mapper = ["R:2,2 S:0,2", "R:2,2 S:1,2", "R:2,2 S:2,2", "R:2,2 S:0,1", 
-                             "R:2,2 S:1,1", "R:2,2 S:2,1", "R:2,2 S:0,0", "R:2,2 S:1,0", 
-                             "R:2,2 S:2,0"]
+            detectorList = ["R:2,2 S:0,2", "R:2,2 S:1,2", "R:2,2 S:2,2", "R:2,2 S:0,1", 
+                            "R:2,2 S:1,1", "R:2,2 S:2,1", "R:2,2 S:0,0", "R:2,2 S:1,0", 
+                            "R:2,2 S:2,0"]
 
-        ra_dec_out = self.getDetectorRaDec(camera_mapper)
+        ra_dec_out = self.getDetectorRaDec(detectorList)
 
         return ra_dec_out
 

@@ -83,10 +83,10 @@ def getTargetStar(database, tableName, camera, RA, Dec, cameraRotation, cameraMJ
         stars.setDetector(detector)
          
         # Populate pixel information for stars
-        camera.populatePixelFromRADecl(stars, obs)
+        stars = camera.populatePixelFromRADecl(stars)
                 
         # Remove stars that are not on the detector
-        camera.removeStarsNotOnDetectorSimple(stars, offset)
+        stars = camera.removeStarsNotOnDetector(stars, offset)
         starMap[detector] = stars
         
         starsOnDetector = len(stars.RA)
@@ -134,7 +134,6 @@ if __name__ == "__main__":
     # Camera instance (Two classes: LsstCamera and ComCam) 
     # camera = CameraData.LsstCamera()
     camera = CameraData.ComCam()
-    camera.initializeDetectors()
   
     # Camera orientation ("center" or "corner" or "all")
     # For ComCam, orientation = "center" or "corner" or "all"

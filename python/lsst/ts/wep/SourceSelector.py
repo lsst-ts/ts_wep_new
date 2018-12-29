@@ -81,7 +81,6 @@ class SourceSelector(object):
             raise ValueError("No '%s' camera." % cameraType)
 
         self.camera = camera
-        self.camera.initializeDetectors()
 
         # Set the camera MJD
         self.cameraMJD = cameraMJD
@@ -209,10 +208,10 @@ class SourceSelector(object):
             stars.setDetector(detector)
 
             # Populate pixel information for stars
-            self.camera.populatePixelFromRADecl(stars, obs)
+            stars = self.camera.populatePixelFromRADecl(stars)
 
             # Remove stars that are not on the detector
-            self.camera.removeStarsNotOnDetectorSimple(stars, offset)
+            stars = self.camera.removeStarsNotOnDetector(stars, offset)
             starMap[detector] = stars
 
             starsOnDetector = len(stars.RA)

@@ -2,6 +2,8 @@ import unittest
 
 from lsst.ts.wep.bsc.StarData import StarData
 from lsst.ts.wep.bsc.ComCam import ComCam
+from lsst.ts.wep.Utility import FilterType
+
 
 
 class TestComCam(unittest.TestCase):
@@ -21,12 +23,10 @@ class TestComCam(unittest.TestCase):
         self.camera = ComCam()
         self.camera.setObsMetaData(ra, dec, rotSkyPos, mjd=59580.0)
 
-        self.camera.initializeDetectors()
         self.stars = StarData([123, 456, 789], [0.1, 0.2, 0.3],
                               [2.1, 2.2, 2.3], [2.0, 3.0, 4.0],
                               [2.1, 2.1, 4.1], [2.2, 3.2, 4.2],
-                              [2.3, 3.3, 4.3], [2.4, 3.4, 4.4],
-                              [2.5, 3.5, 4.5])
+                              [2.3, 3.3, 4.3], [], [])
 
     def testCamera(self):
 
@@ -43,15 +43,34 @@ class TestComCam(unittest.TestCase):
         
         # Test to transform the stars coordinate to pixel
         stars.setDetector("R:2,2 S:1,1")
-        camera.populatePixelFromRADecl(stars)
+        stars = camera.populatePixelFromRADecl(stars)
 
         self.assertEqual(len(stars.getRaInPixel()), 3)
 
         # Test to remove stars not on detector
-        camera.removeStarsNotOnDetectorSimple(stars, 1e7)
+        stars = camera.removeStarsNotOnDetector(stars, 1e7)
         self.assertEqual(len(stars.getRA()), 3)
-        camera.removeStarsNotOnDetectorSimple(stars, 0)
+        self.assertEqual(len(stars.getId()), 3)
+        self.assertEqual(len(stars.getRaInPixel()), 3)
+        self.assertEqual(len(stars.getDeclInPixel()), 3)
+        self.assertEqual(len(stars.getMag(FilterType.U)), 3)
+        self.assertEqual(len(stars.getMag(FilterType.G)), 3)
+        self.assertEqual(len(stars.getMag(FilterType.R)), 3)
+        self.assertEqual(len(stars.getMag(FilterType.I)), 3)
+        self.assertEqual(len(stars.getMag(FilterType.Z)), 0)
+        self.assertEqual(len(stars.getMag(FilterType.Y)), 0)
+
+        stars = camera.removeStarsNotOnDetector(stars, 0)
         self.assertEqual(stars.getRA().tolist(), [])
+        self.assertEqual(stars.getId().tolist(), [])
+        self.assertEqual(stars.getRaInPixel().tolist(), [])
+        self.assertEqual(stars.getDeclInPixel().tolist(), [])
+        self.assertEqual(stars.getMag(FilterType.U).tolist(), [])
+        self.assertEqual(stars.getMag(FilterType.G).tolist(), [])
+        self.assertEqual(stars.getMag(FilterType.R).tolist(), [])
+        self.assertEqual(stars.getMag(FilterType.I).tolist(), [])
+        self.assertEqual(stars.getMag(FilterType.Z).tolist(), [])
+        self.assertEqual(stars.getMag(FilterType.Y).tolist(), [])
 
         # Test to get the correct sensor type
         self.assertEqual(len(camera.getSciCcdList()), 189)

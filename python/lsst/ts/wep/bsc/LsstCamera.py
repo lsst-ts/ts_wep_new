@@ -19,8 +19,8 @@ class LsstCamera(CameraData):
         """
 
         # Camera object
-        camera_mapper = self.getWfsCCdList()
-        ra_dec_out = self.getDetectorRaDec(camera_mapper)
+        detectorList = self.getWfsCCdList()
+        ra_dec_out = self.getDetectorRaDec(detectorList)
 
         return ra_dec_out
 
@@ -34,8 +34,8 @@ class LsstCamera(CameraData):
         """
 
         # Camera object
-        camera_mapper = self.getSciCcdList()
-        ra_dec_out = self.getDetectorRaDec(camera_mapper)
+        detectorList = self.getSciCcdList()
+        ra_dec_out = self.getDetectorRaDec(detectorList)
 
         return ra_dec_out
 

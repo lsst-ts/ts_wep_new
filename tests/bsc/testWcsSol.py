@@ -16,12 +16,12 @@ class TestWcsSol(unittest.TestCase):
         rotSkyPos = 0.0
         self.wcs.setObsMetaData(self.ra, self.dec, rotSkyPos)
 
-    def testSetCamera(self):
+    def testSetAndGetCamera(self):
 
         camera = "FaultCamera"
         self.wcs.setCamera(camera)
 
-        self.assertEqual(self.wcs._camera, camera)
+        self.assertEqual(self.wcs.getCamera(), camera)
 
     def testSetObservationMetaData(self):
 

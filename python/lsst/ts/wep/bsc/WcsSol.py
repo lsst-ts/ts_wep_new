@@ -8,22 +8,46 @@ from lsst.sims.coordUtils.CameraUtils import raDecFromPixelCoords, \
 
 class WcsSol(object):
 
-    def __init__(self):
-        
-        self._camera = LsstSimMapper().camera
+    def __init__(self, camera=None):
+        """Initialize the world coordinate system (WCS) solution class.
+
+        Parameters
+        ----------
+        camera : lsst.afw.cameraGeom.camera.camera.Camera, optional
+            A collection of Detectors that also supports coordinate
+            transformation. (the default is None.)
+        """
+
         self._obs = ObservationMetaData()
+
+        if (camera is None):
+            self._camera = LsstSimMapper().camera
+        else:
+            self._camera = camera
 
     def setCamera(self, camera):
         """Set the camera object.
 
         Parameters
         ----------
-        camera : Camera
+        camera : lsst.afw.cameraGeom.camera.camera.Camera
             A collection of Detectors that also supports coordinate
-            transformation
+            transformation.
         """
 
         self._camera = camera
+
+    def getCamera(self):
+        """Get the camera object.
+
+        Returns
+        -------
+        lsst.afw.cameraGeom.camera.camera.Camera
+            A collection of Detectors that also supports coordinate
+            transformation.
+        """
+
+        return self._camera
 
     def setObsMetaData(self, ra, dec, rotSkyPos, mjd=59580.0):
         """Set the observation meta data.
@@ -70,7 +94,7 @@ class WcsSol(object):
             If True (default), then this method will expect the true pixel
             coordinates with optical distortion included.  If False, this
             method will expect TAN_PIXEL coordinates, which are the pixel
-            coordinates with estimated optical distortion removed.  See the
+            coordinates with estimated optical distortion removed. See the
             documentation in afw.cameraGeom for more details. (the default is
             True.)
 
@@ -79,7 +103,7 @@ class WcsSol(object):
         numpy.ndarray
             A 2-D numpy array in which the first row is the RA coordinate and
             the second row is the Dec coordinate (both in degrees; in the
-            International Celestial Reference System)
+            International Celestial Reference System).
         """
 
         if isinstance(chipName, np.ndarray):
@@ -118,7 +142,7 @@ class WcsSol(object):
             If True (default), then this method will expect the true pixel
             coordinates with optical distortion included.  If False, this
             method will expect TAN_PIXEL coordinates, which are the pixel
-            coordinates with estimated optical distortion removed.  See the
+            coordinates with estimated optical distortion removed. See the
             documentation in afw.cameraGeom for more details. (the default is
             True.)
 
@@ -126,7 +150,7 @@ class WcsSol(object):
         -------
         numpy.ndarray
             A 2-D numpy array in which the first row is the x pixel coordinate
-            and the second row is the y pixel coordinate
+            and the second row is the y pixel coordinate.
         """
 
         return pixelCoordsFromRaDec(ra, dec, obs_metadata=self._obs,
@@ -152,7 +176,7 @@ class WcsSol(object):
         numpy.ndarray
             A 2-D numpy array in which the first row is the x focal plane
             coordinate and the second row is the y focal plane coordinate
-            (both in millimeters)
+            (both in millimeters).
         """
 
         return focalPlaneCoordsFromRaDec(ra, dec, obs_metadata=self._obs,

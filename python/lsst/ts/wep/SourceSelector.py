@@ -178,12 +178,12 @@ class SourceSelector(object):
         wavefrontSensors = []
         if (self.camera.name == self.camera.COMCAM):
             if orientation in ("corner", "center", "all"):
-                wavefrontSensors = self.camera.getSensor(obs, orientation)
+                wavefrontSensors = self.camera.getSensor(orientation)
         elif (self.camera.name == self.camera.LSST):
             if (orientation == "corner"):
-                wavefrontSensors = self.camera.getWavefrontSensor(obs)
+                wavefrontSensors = self.camera.getWavefrontSensor()
             elif (orientation == "all"):
-                wavefrontSensors = self.camera.getScineceSensor(obs)
+                wavefrontSensors = self.camera.getScineceSensor()
 
         if not (wavefrontSensors):
             print("No wavefront sensor is allocated.")
@@ -212,7 +212,7 @@ class SourceSelector(object):
             self.camera.populatePixelFromRADecl(stars, obs)
 
             # Remove stars that are not on the detector
-            self.camera.removeStarsNotOnDetectorSimple(stars, obs, offset)
+            self.camera.removeStarsNotOnDetectorSimple(stars, offset)
             starMap[detector] = stars
 
             starsOnDetector = len(stars.RA)

@@ -10,7 +10,7 @@ class ComCam(CameraData):
         # raft of lsst camera.    
         super(ComCam, self).__init__(LsstSimMapper().camera)
 
-    def getWavefrontSensor(self, obs):
+    def getWavefrontSensor(self):
         """
         
         Get the corner sensors of Comcam in (ra, dec) based on the camera_mapper list below.
@@ -25,9 +25,9 @@ class ComCam(CameraData):
             [list] -- (ra, dec) of four corners of each sensor with the name of sensor as a list
         """
 
-        return self.getSensor(obs, "corner")
+        return self.getSensor("corner")
     
-    def getSensor(self, obs, orientation):
+    def getSensor(self, orientation):
         """
         
         Get the sensors of Comcam in (ra, dec) based on the camera_mapper list below.
@@ -35,8 +35,6 @@ class ComCam(CameraData):
         https://confluence.lsstcorp.org/display/LSWUG/Representation+of+a+Camera
         
         Arguments:
-            obs {[metadata]} -- Instantiation of ObservationMetaData that describes the pointing
-        of the telescope.
             orientation {[string]} -- Orientation of camera to decide which sensor to use.
         
         Returns:
@@ -53,7 +51,7 @@ class ComCam(CameraData):
                              "R:2,2 S:1,1", "R:2,2 S:2,1", "R:2,2 S:0,0", "R:2,2 S:1,0", 
                              "R:2,2 S:2,0"]
 
-        ra_dec_out = self.getDetectorRaDec(camera_mapper, obs)
+        ra_dec_out = self.getDetectorRaDec(camera_mapper)
 
         return ra_dec_out
 

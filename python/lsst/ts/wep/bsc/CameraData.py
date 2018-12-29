@@ -1,35 +1,23 @@
 import numpy as np
 
-
-from lsst.sims.coordUtils.CameraUtils import raDecFromPixelCoords, \
-                                             pixelCoordsFromRaDec
-
-from lsst.sims.utils import ObservationMetaData
-
-from lsst.ts.wep.bsc.WcsSol import WcsSol
-
 from lsst.afw.cameraGeom import WAVEFRONT, SCIENCE
 
-from lsst.ts.wep.bsc.StarData import StarData
-
+from lsst.ts.wep.bsc.WcsSol import WcsSol
 from lsst.ts.wep.Utility import FilterType
-
-# Ignore the warning of "WARNING: ErfaWarning: ERFA function "taiutc" yielded 1 
-# of "dubious year (Note 4)" [astropy._erfa.core]"
 
 class CameraData(object):
     
-    def __init__(self, cameraCollection):
+    def __init__(self, camera):
         """
         
         Initiate the camera for bright star catalog to use.
         
         Arguments:
-            cameraCollection {[camera]} -- A collection of detectors that also supports 
+            camera {[camera]} -- A collection of detectors that also supports 
                                            coordinate transformation.
         """
 
-        self._camera = cameraCollection
+        self._wcs = WcsSol(camera=camera)
 
         # Dictionary of (x, y) coordinates of detector corners and dimensions of detection
         self._corners = {}
@@ -39,23 +27,29 @@ class CameraData(object):
         self._wfsCcd = []
         self._sciCcd = []
 
-    def getCameraCollection(self):
+    def setObsMetaData(self, ra, dec, rotSkyPos, mjd=59580.0):
+        """Set the observation meta data.
+
+        Parameters
+        ----------
+        ra : float
+            Pointing ra in degree.
+        dec : float
+            Pointing decl in degree.
+        rotSkyPos : float
+            The orientation of the telescope in degrees.
+        mjd : float
+            Camera MJD. (the default is 59580.0.)
         """
-        
-        Get the camera collection.
-        
-        Returns:
-            [camera] -- A collection of detectors that also supports coordinate transformation.
-        """
-        
-        return self._camera
-        
+
+        self._wcs.setObsMetaData(ra, dec, rotSkyPos, mjd=mjd)
+
     def initializeDetectors(self):
         """
         Initializes the camera wavefront detectors.
         """
 
-        for detector in self._camera:
+        for detector in self._wcs.getCamera():
                 if detector.getType() in (WAVEFRONT, SCIENCE):
 
                     detectorName = detector.getName()
@@ -83,7 +77,7 @@ class CameraData(object):
                     dim1, dim2 = bbox.getDimensions()
                     self._dimension[detectorName] = (int(dim1), int(dim2))  
 
-    def populatePixelFromRADecl(self, stars, obs):
+    def populatePixelFromRADecl(self, stars):
         """
         
         Populates the RAInPixel and DeclInPixel coordinates in the StarData stars using the lsst-sims 
@@ -91,28 +85,24 @@ class CameraData(object):
         
         Arguments:
             stars {[StarData]} -- The stars to populate.
-            obs {[metadata]} -- The observation meta data (found in the lsst-sims stack) that defines 
-                                the pointing.
         """
 
         ra = stars.getRA()
         decl = stars.getDecl()
-        raInPixel, declInPixel = pixelCoordsFromRaDec(ra = ra, dec = decl, obs_metadata = obs,
-                                                      epoch = 2000.0, 
-                                                      chipName = np.array([stars.getDetector()] * len(ra)), 
-                                                      camera = self._camera, includeDistortion = True)
+        chipName = np.array([stars.getDetector()] * len(ra))
+        raInPixel, declInPixel = self._wcs.pixelCoordsFromRaDec(
+            ra, decl, chipName=chipName, epoch=2000.0, includeDistortion=True)
+
         stars.setRaInPixel(raInPixel)
         stars.setDeclInPixel(declInPixel)
         
-    def removeStarsNotOnDetectorSimple(self, stars, obs, offset):
+    def removeStarsNotOnDetectorSimple(self, stars, offset):
         """
         
         Removes the stars from the StarData stars that are not on the detector using pixel data.
 
         Arguments:
             stars {[StarData]} -- Star information.
-            obs {[metadata]} -- The observation meta data (found in the lsst-sims stack) that defines 
-                                the pointing.
             offset {[float]} -- The offset to dimension of camera. This is for generating the local 
                                 database of bright star catalog for the condition that the bright star 
                                 is near the edge of ccd.
@@ -159,7 +149,7 @@ class CameraData(object):
             starsLSSTMagY = [stars.getMag(FilterType.Y)[index] for index in keep]
             stars.setMag(FilterType.Y, starsLSSTMagY)
 
-    def getDetectorRaDec(self, camera_mapper, obs):
+    def getDetectorRaDec(self, camera_mapper):
         """
         
         Get the (ra, dec) of ccd corners.
@@ -170,8 +160,6 @@ class CameraData(object):
                     https://confluence.lsstcorp.org/display/LSWUG/Representation+of+a+Camera
                                           The format looks like 'R:2,2 S:2,0' for science sensor 
                                           and 'R:0,0 S:2,2B' for corner wavefront sensor. 
-            obs {[metadata]} -- Instantiation of ObservationMetaData that describes the pointing
-                                of the telescope.
         
         Returns:
             [list] -- This method returns a dict of list.  The dict is keyed on the name of the
@@ -188,12 +176,15 @@ class CameraData(object):
         for detector in camera_mapper:
 
             coords = self._corners[detector]
+            xPix = coords[0]
+            yPix = coords[1]
 
-            ra, dec = raDecFromPixelCoords(coords[0], coords[1], [detector]*len(coords[0]),
-                                           camera=self._camera, obs_metadata=obs,
-                                           epoch=2000.0, includeDistortion=True)   
+            chipName = np.array([detector] * len(xPix))
+            ra, dec = self._wcs.raDecFromPixelCoords(
+                xPix, yPix, chipName, epoch=2000.0, includeDistortion=True)
 
-            ra_dec_out[detector] = [(ra[0], dec[0]), (ra[1], dec[1]), (ra[2], dec[2]), (ra[3], dec[3])]
+            ra_dec_out[detector] = [(ra[0], dec[0]), (ra[1], dec[1]),
+                                    (ra[2], dec[2]), (ra[3], dec[3])]
 
         return ra_dec_out
 

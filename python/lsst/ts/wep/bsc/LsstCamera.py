@@ -8,42 +8,34 @@ class LsstCamera(CameraData):
     def __init__(self):
         super(LsstCamera, self).__init__(LsstSimMapper().camera)
 
-    def getWavefrontSensor(self, obs):
+    def getWavefrontSensor(self):
         """
         
         Get the corners of LSST curvature wavefront sensors in (ra, dec) based on the camera_mapper
         list below.
-        
-        Arguments:
-            obs {[metadata]} -- Instantiation of ObservationMetaData that describes the pointing
-                                of the telescope.
-        
+                
         Returns:
             [list] -- (ra, dec) of four corners of each sensor with the name of sensor as a list
         """
 
         # Camera object
         camera_mapper = self.getWfsCCdList()
-        ra_dec_out = self.getDetectorRaDec(camera_mapper, obs)
+        ra_dec_out = self.getDetectorRaDec(camera_mapper)
 
         return ra_dec_out
 
-    def getScineceSensor(self, obs):
+    def getScineceSensor(self):
         """
         
         Get the corners of LSST science sensors in (ra, dec) based on the camera_mapper list below.
-        
-        Arguments:
-            obs {[metadata]} -- Instantiation of ObservationMetaData that describes the pointing
-                                of the telescope.
-        
+                
         Returns:
             [list] -- (ra, dec) of four corners of each sensor with the name of sensor as a list
         """
 
         # Camera object
         camera_mapper = self.getSciCcdList()
-        ra_dec_out = self.getDetectorRaDec(camera_mapper, obs)
+        ra_dec_out = self.getDetectorRaDec(camera_mapper)
 
         return ra_dec_out
 

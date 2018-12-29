@@ -1,7 +1,5 @@
 import unittest
 
-from lsst.sims.utils import ObservationMetaData
-
 from lsst.ts.wep.bsc.StarData import StarData
 from lsst.ts.wep.bsc.ComCam import ComCam
 
@@ -9,24 +7,20 @@ from lsst.ts.wep.bsc.ComCam import ComCam
 class TestComCam(unittest.TestCase):
     """Test the ComCam class."""
 
-    # Boresight (unit: degree)
-    RA = 0.0    # 0 <= RA <= 360
-    Dec = 30.0   # -90 <= Dec <= 90
-
-    # Camera rotation
-    cameraRotation = 0.0
-    cameraMJD = 59580.0
-
-    # Get corners of wavefront sensors for this observation field
-    obs = ObservationMetaData(pointingRA = RA, pointingDec = Dec, 
-                              rotSkyPos = cameraRotation, mjd = cameraMJD)
     camera = None
 
     # Stars
     stars = None
 
     def setUp(self):
+
+        # Boresight (unit: degree)
+        ra = 0.0    # 0 <= RA <= 360
+        dec = 30.0   # -90 <= Dec <= 90
+        rotSkyPos = 0.0
         self.camera = ComCam()
+        self.camera.setObsMetaData(ra, dec, rotSkyPos, mjd=59580.0)
+
         self.camera.initializeDetectors()
         self.stars = StarData([123, 456, 789], [0.1, 0.2, 0.3],
                               [2.1, 2.2, 2.3], [2.0, 3.0, 4.0],
@@ -40,7 +34,7 @@ class TestComCam(unittest.TestCase):
         stars = self.stars
 
         # Test to get the camera sensor
-        detector = camera.getSensor(self.obs, "center")
+        detector = camera.getSensor("center")
         self.assertEqual(list(detector), ["R:2,2 S:1,1"]) 
 
         # Test to get four camera corners
@@ -49,14 +43,14 @@ class TestComCam(unittest.TestCase):
         
         # Test to transform the stars coordinate to pixel
         stars.setDetector("R:2,2 S:1,1")
-        camera.populatePixelFromRADecl(stars, self.obs)
+        camera.populatePixelFromRADecl(stars)
 
         self.assertEqual(len(stars.getRaInPixel()), 3)
 
         # Test to remove stars not on detector
-        camera.removeStarsNotOnDetectorSimple(stars, self.obs, 1e7)
+        camera.removeStarsNotOnDetectorSimple(stars, 1e7)
         self.assertEqual(len(stars.getRA()), 3)
-        camera.removeStarsNotOnDetectorSimple(stars, self.obs, 0)
+        camera.removeStarsNotOnDetectorSimple(stars, 0)
         self.assertEqual(stars.getRA().tolist(), [])
 
         # Test to get the correct sensor type

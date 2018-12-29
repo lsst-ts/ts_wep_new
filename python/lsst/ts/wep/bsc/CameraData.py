@@ -32,15 +32,15 @@ class CameraData(object):
         """
 
         self.name = name
-        self.__camera = cameraCollection
+        self._camera = cameraCollection
 
         # Dictionary of (x, y) coordinates of detector corners and dimensions of detection
-        self.__corners = {}
-        self.__dimension = {}
+        self._corners = {}
+        self._dimension = {}
 
         # List of camera CCD
-        self.__wfsCcd = []
-        self.__sciCcd = []
+        self._wfsCcd = []
+        self._sciCcd = []
 
     def getCameraCollection(self):
         """
@@ -51,30 +51,30 @@ class CameraData(object):
             [camera] -- A collection of detectors that also supports coordinate transformation.
         """
         
-        return self.__camera
+        return self._camera
         
     def initializeDetectors(self):
         """
         Initializes the camera wavefront detectors.
         """
 
-        for detector in self.__camera:
+        for detector in self._camera:
                 if detector.getType() in (WAVEFRONT, SCIENCE):
 
                     detectorName = detector.getName()
 
                     # Collect the ccd name
                     if (detector.getType() == WAVEFRONT):
-                        self.__wfsCcd.append(detectorName)
+                        self._wfsCcd.append(detectorName)
                     elif (detector.getType() == SCIENCE):
-                        self.__sciCcd.append(detectorName)
+                        self._sciCcd.append(detectorName)
 
                     bbox = detector.getBBox()
                     xmin = bbox.getMinX()
                     xmax = bbox.getMaxX()
                     ymin = bbox.getMinY()
                     ymax = bbox.getMaxY()
-                    self.__corners[detectorName] = (np.array([xmin, xmin, xmax, xmax]), 
+                    self._corners[detectorName] = (np.array([xmin, xmin, xmax, xmax]), 
                                                     np.array([ymin, ymax, ymin, ymax]))
 
                     # The CCD dimension here is an estimation. 
@@ -84,7 +84,7 @@ class CameraData(object):
                     # STA 3800C: 40.00 mm x 40.72 mm
 
                     dim1, dim2 = bbox.getDimensions()
-                    self.__dimension[detectorName] = (int(dim1), int(dim2))  
+                    self._dimension[detectorName] = (int(dim1), int(dim2))  
 
     def populatePixelFromRADecl(self, stars, obs):
         """
@@ -103,7 +103,7 @@ class CameraData(object):
         raInPixel, declInPixel = pixelCoordsFromRaDec(ra = ra, dec = decl, obs_metadata = obs,
                                                       epoch = 2000.0, 
                                                       chipName = np.array([stars.getDetector()] * len(ra)), 
-                                                      camera = self.__camera, includeDistortion = True)
+                                                      camera = self._camera, includeDistortion = True)
         stars.setRaInPixel(raInPixel)
         stars.setDeclInPixel(declInPixel)
         
@@ -122,8 +122,8 @@ class CameraData(object):
         """
         
         keep = [index for index in range(len(stars.getRA())) 
-                if stars.getRaInPixel()[index] >= -offset and stars.getRaInPixel()[index] <= self.__dimension[stars.getDetector()][0]+offset 
-                and stars.getDeclInPixel()[index] >= -offset and stars.getDeclInPixel()[index] <= self.__dimension[stars.getDetector()][1]+offset]
+                if stars.getRaInPixel()[index] >= -offset and stars.getRaInPixel()[index] <= self._dimension[stars.getDetector()][0]+offset 
+                and stars.getDeclInPixel()[index] >= -offset and stars.getDeclInPixel()[index] <= self._dimension[stars.getDetector()][1]+offset]
         
         starsRA = [stars.getRA()[index] for index in keep]
         stars.setRA(starsRA)
@@ -190,10 +190,10 @@ class CameraData(object):
 
         for detector in camera_mapper:
 
-            coords = self.__corners[detector]
+            coords = self._corners[detector]
 
             ra, dec = raDecFromPixelCoords(coords[0], coords[1], [detector]*len(coords[0]),
-                                           camera=self.__camera, obs_metadata=obs,
+                                           camera=self._camera, obs_metadata=obs,
                                            epoch=2000.0, includeDistortion=True)   
 
             ra_dec_out[detector] = [(ra[0], dec[0]), (ra[1], dec[1]), (ra[2], dec[2]), (ra[3], dec[3])]
@@ -209,7 +209,7 @@ class CameraData(object):
             [list] -- CCD list.
         """
 
-        return self.__wfsCcd
+        return self._wfsCcd
 
     def getSciCcdList(self):
         """
@@ -220,7 +220,7 @@ class CameraData(object):
             [list] -- CCD list.
         """
 
-        return self.__sciCcd
+        return self._sciCcd
 
     def getCcdDim(self, detectorName):
         """
@@ -234,7 +234,7 @@ class CameraData(object):
             [tuple] -- CCD dimension in pixel.
         """
 
-        return self.__dimension[detectorName]
+        return self._dimension[detectorName]
 
     def getWavefrontSensor(self):
         raise NotImplementedError("Subclass must implement the abstract method.")

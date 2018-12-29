@@ -104,8 +104,8 @@ class CameraData(object):
                                                       epoch = 2000.0, 
                                                       chipName = np.array([stars.getDetector()] * len(ra)), 
                                                       camera = self.__camera, includeDistortion = True)
-        stars.populateRAData(raInPixel)
-        stars.populateDeclData(declInPixel)
+        stars.setRaInPixel(raInPixel)
+        stars.setDeclInPixel(declInPixel)
         
     def removeStarsNotOnDetectorSimple(self, stars, obs, offset):
         """
@@ -129,13 +129,13 @@ class CameraData(object):
         stars.setRA(starsRA)
 
         starsRAInPixel = [stars.getRaInPixel()[index] for index in keep]
-        stars.populateRAData(starsRAInPixel)
+        stars.setRaInPixel(starsRAInPixel)
      
         starsDecl = [stars.getDecl()[index] for index in keep]
         stars.setDecl(starsDecl)
 
         stars.DeclInPixel = [stars.getDeclInPixel()[index] for index in keep]
-        stars.populateDeclData(starsDecl)
+        stars.setDeclInPixel(starsDecl)
         
         # Check the empty information
         if (len(stars.getMag(FilterType.U)) != 0):

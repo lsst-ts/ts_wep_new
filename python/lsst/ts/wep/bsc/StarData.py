@@ -60,19 +60,54 @@ class StarData(object):
         self.setMag(FilterType.Y, lsstMagY)
 
     def setId(self, starId):
+        """Set the star Id.
+
+        Parameters
+        ----------
+        starId : int, list[int], or numpy.ndarray[int]
+            Star Id.
+        """
 
         starIdArray = self._changeToNpArrayIfNeeded(starId)
         self.starId = starIdArray.astype(int)
 
     def setRA(self, ra):
+        """Set the star right ascension (RA) in degree.
+
+        Parameters
+        ----------
+        ra : float, list[float], or numpy.ndarray[float]
+            Star right ascension in degree.
+        """
 
         self.ra = self._changeToNpArrayIfNeeded(ra)
 
     def setDecl(self, decl):
+        """Set the star declination (Decl) in degree.
+
+        Parameters
+        ----------
+        decl : float, list[float], or numpy.ndarray[float]
+            Star declination in degree.
+        """
 
         self.decl = self._changeToNpArrayIfNeeded(decl)
 
     def setMag(self, filterType, mag):
+        """Set the star magnitude.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
+        mag : float, list[float], or numpy.ndarray[float]
+            Star magnitude under the specific filter type.
+
+        Raises
+        ------
+        ValueError
+            No filter type matches.
+        """
 
         if (filterType == FilterType.U):
             self.lsstMagU = self._changeToNpArrayIfNeeded(mag) 
@@ -210,8 +245,8 @@ class StarData(object):
 
         return self.detector
 
-    def populateDetector(self, detector):
-        """Populates the detector name for this set of stars.
+    def setDetector(self, detector):
+        """Set the detector name for this set of stars.
 
         Parameters
         ----------
@@ -221,8 +256,8 @@ class StarData(object):
 
         self.detector = detector
 
-    def populateRAData(self, raInPixel):
-        """Populates the RA pixel data for this set of stars.
+    def setRaInPixel(self, raInPixel):
+        """Set the RA pixel data for this set of stars.
 
         Parameters
         ----------
@@ -232,8 +267,8 @@ class StarData(object):
 
         self.raInPixel = self._changeToNpArrayIfNeeded(raInPixel)
 
-    def populateDeclData(self, declInPixel):
-        """Populates the Decl pixel data for this set of stars.
+    def setDeclInPixel(self, declInPixel):
+        """Set the Decl pixel data for this set of stars.
 
         Parameters
         ----------

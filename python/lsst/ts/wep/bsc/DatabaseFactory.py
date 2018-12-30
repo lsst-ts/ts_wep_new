@@ -17,10 +17,17 @@ class DatabaseFactory(object):
         -------
         LocalDatabase
             Database object.
+
+        Raises
+        ------
+        ValueError
+            The database type does not match.
         """
 
         if (dbType == BscDbType.LocalDb):
             return LocalDatabase()
+        else:
+            raise ValueError("The database type does not match.")
 
 
 if __name__ == "__main__":

@@ -19,6 +19,11 @@ class CamFactory(object):
         -------
         LsstCam, LsstFamCam, or ComCam
             Camera object.
+
+        Raises
+        ------
+        ValueError
+            The camera type does not match.
         """
 
         if (camType == CamType.LsstCam):
@@ -27,6 +32,8 @@ class CamFactory(object):
             return LsstFamCam()
         elif (camType == CamType.ComCam):
             return ComCam()
+        else:
+            raise ValueError("The camera type does not match.")
 
 
 if __name__ == "__main__":

@@ -174,15 +174,17 @@ class SourceSelector(object):
         obs = self.__getObs(pointing, cameraRotation, self.cameraMJD)
 
         # Assign the wavefront sensors 
-        wavefrontSensors = []
-        if (self.camera.name == self.camera.COMCAM):
-            if orientation in ("corner", "center", "all"):
-                wavefrontSensors = self.camera.getSensor(orientation)
-        elif (self.camera.name == self.camera.LSST):
-            if (orientation == "corner"):
-                wavefrontSensors = self.camera.getWavefrontSensor()
-            elif (orientation == "all"):
-                wavefrontSensors = self.camera.getScineceSensor()
+        # wavefrontSensors = []
+        # if (self.camera.name == self.camera.COMCAM):
+        #     if orientation in ("corner", "center", "all"):
+        #         wavefrontSensors = self.camera.getSensor(orientation)
+        # elif (self.camera.name == self.camera.LSST):
+        #     if (orientation == "corner"):
+        #         wavefrontSensors = self.camera.getWavefrontSensor()
+        #     elif (orientation == "all"):
+        #         wavefrontSensors = self.camera.getScineceSensor()
+
+        wavefrontSensors = self.camera.getWavefrontSensor()
 
         if not (wavefrontSensors):
             print("No wavefront sensor is allocated.")

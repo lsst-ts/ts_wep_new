@@ -34,8 +34,10 @@ class TestComCam(unittest.TestCase):
         stars = self.stars
 
         # Test to get the camera sensor
-        detector = camera.getSensor("center")
-        self.assertEqual(list(detector), ["R:2,2 S:1,1"]) 
+        # detector = camera.getSensor("center")
+        # self.assertEqual(list(detector), ["R:2,2 S:1,1"]) 
+
+        detector = self.camera.getWavefrontSensor()
 
         # Test to get four camera corners
         corners = detector["R:2,2 S:1,1"]
@@ -73,8 +75,8 @@ class TestComCam(unittest.TestCase):
         self.assertEqual(stars.getMag(FilterType.Y).tolist(), [])
 
         # Test to get the correct sensor type
-        self.assertEqual(len(camera.getSciCcdList()), 189)
-        self.assertEqual(len(camera.getWfsCCdList()), 8)
+        # self.assertEqual(len(camera.getSciCcdList()), 189)
+        # self.assertEqual(len(camera.getWfsCcdList()), 8)
 
         # Test to get the CCD dimension
         self.assertEqual(camera.getCcdDim("R:2,2 S:1,1"), (4072, 4000))

@@ -5,6 +5,7 @@ from lsst.afw.cameraGeom import WAVEFRONT, SCIENCE
 from lsst.ts.wep.bsc.WcsSol import WcsSol
 from lsst.ts.wep.Utility import FilterType
 
+
 class CameraData(object):
     
     def __init__(self, camera):

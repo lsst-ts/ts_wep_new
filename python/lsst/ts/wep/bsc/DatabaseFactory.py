@@ -16,7 +16,7 @@ class DatabaseFactory(object):
         Returns
         -------
         LocalDatabase
-            Database.
+            Database object.
         """
 
         if (dbType == BscDbType.LocalDb):

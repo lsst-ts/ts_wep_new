@@ -14,6 +14,12 @@ class FilterType(Enum):
     Y = 6
 
 
+class CamType(Enum):
+    LsstCam = 1
+    LsstFamCam = 2
+    ComCam = 3
+
+
 class BscDbType(Enum):
     LocalDb = 1
 

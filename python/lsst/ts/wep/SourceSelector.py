@@ -5,7 +5,7 @@ from astropy.io.fits import getheader
 from lsst.sims.utils import ObservationMetaData
 
 from lsst.ts.wep.bsc.BrightStarDatabase import BrightStarDatabase
-from lsst.ts.wep.bsc.LsstCamera import LsstCamera
+from lsst.ts.wep.bsc.LsstCam import LsstCam
 from lsst.ts.wep.bsc.ComCam import ComCam 
 from lsst.ts.wep.bsc.Filter import Filter
 from lsst.ts.wep.LocalDatabaseDecorator import LocalDatabaseDecorator
@@ -74,7 +74,7 @@ class SourceSelector(object):
 
         # Set the camera and do the initialization
         if (cameraType == self.LSST):
-            camera = LsstCamera()
+            camera = LsstCam()
         elif (cameraType == self.COMCAM):
             camera = ComCam()
         else:

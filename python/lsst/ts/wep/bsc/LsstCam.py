@@ -3,10 +3,10 @@ from lsst.obs.lsstSim import LsstSimMapper
 from lsst.ts.wep.bsc.CameraData import CameraData
 
 
-class LsstCamera(CameraData):
+class LsstCam(CameraData):
 
     def __init__(self):
-        super(LsstCamera, self).__init__(LsstSimMapper().camera)
+        super(LsstCam, self).__init__(LsstSimMapper().camera)
 
     def getWavefrontSensor(self):
         """

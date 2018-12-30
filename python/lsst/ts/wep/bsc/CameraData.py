@@ -1,7 +1,5 @@
 import numpy as np
 
-from lsst.afw.cameraGeom import WAVEFRONT, SCIENCE
-
 from lsst.ts.wep.bsc.WcsSol import WcsSol
 from lsst.ts.wep.Utility import FilterType
 
@@ -20,31 +18,46 @@ class CameraData(object):
 
         self._wcs = WcsSol(camera=camera)
 
-        # List of camera CCD name
+        # List of wavefront sensor CCD name
         self._wfsCcd = []
-        self._sciCcd = []
 
         # Dictionary of (x, y) coordinates of detector corners and dimensions
         # of detection. The dictonary key is the ccd name.
-        self._corners = {}
-        self._dimension = {}
+        self._corners = dict()
+        self._dimension = dict()
 
-        # Initialize the attribute data.
-        self._initDetectors()
+    def setWfsCcdList(self, wfsCcdList):
 
-    def _initDetectors(self):
-        """Initializes the camera detectors."""
+        self._wfsCcd = wfsCcdList
+
+    def setWfsCorners(self, wfsCorners):
+
+        self._corners = wfsCorners
+
+    def getWfsCorners(self):
+
+        return self._corners
+
+    def setCcdDims(self, ccdDims):
+
+        self._dimension = ccdDims
+
+    def _initDetectors(self, detectorType):
+        """Initializes the camera detectors.
+
+        Parameters
+        ----------
+        detectorType : lsst.afw.cameraGeom.detector.detector.DetectorType
+            Detector type.
+        """
 
         for detector in self._wcs.getCamera():
-            if detector.getType() in (WAVEFRONT, SCIENCE):
 
-                detectorName = detector.getName()
+            if (detector.getType() == detectorType):
 
                 # Collect the ccd name
-                if (detector.getType() == WAVEFRONT):
-                    self._wfsCcd.append(detectorName)
-                elif (detector.getType() == SCIENCE):
-                    self._sciCcd.append(detectorName)
+                detectorName = detector.getName()
+                self._wfsCcd.append(detectorName)
 
                 # Get the detector corners
                 bbox = detector.getBBox()
@@ -170,7 +183,31 @@ class CameraData(object):
 
         return [valArray[idx] for idx in keep]
 
-    def getDetectorRaDec(self, detectorList):
+    def getWfsCcdList(self):
+        """Get the list of wavefront sensor CCD list.
+
+        Returns
+        -------
+        list
+            Wavefront sensor CCD list.
+        """
+
+        return self._wfsCcd
+
+    def getWavefrontSensor(self):
+        """
+
+        Get the corners of LSST curvature wavefront sensors in (ra, dec) based
+        on the wavefront sensor list.
+
+        Returns:
+            [dict] -- (ra, dec) of four corners of each sensor with the name
+            of sensor as a list. The dictionary key is the sensor name.
+        """
+
+        return self._getDetectorRaDec(self._wfsCcd)
+
+    def _getDetectorRaDec(self, detectorList):
         """Get the (ra, dec) of CCD corners in the detector list.
 
         Parameters
@@ -207,28 +244,6 @@ class CameraData(object):
 
         return ra_dec_out
 
-    def getWfsCCdList(self):
-        """Get the list of wavefront sensor CCD list.
-
-        Returns
-        -------
-        list
-            Wavefront sensor CCD list.
-        """
-
-        return self._wfsCcd
-
-    def getSciCcdList(self):
-        """Get the list of science sensor CCD list.
-
-        Returns
-        -------
-        list
-            Science sensor CCD list.
-        """
-
-        return self._sciCcd
-
     def getCcdDim(self, detectorName):
         """Get the CCD dimension.
 
@@ -236,7 +251,7 @@ class CameraData(object):
         ----------
         detectorName : str
             Detector Name (e.g. "R:2,2 S:1,1").
-        
+
         Returns
         -------
         tuple
@@ -244,9 +259,6 @@ class CameraData(object):
         """
 
         return self._dimension[detectorName]
-
-    def getWavefrontSensor(self):
-        raise NotImplementedError("Child class should implemented this.")
 
 
 if __name__ == "__main__":

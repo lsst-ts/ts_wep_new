@@ -1,4 +1,5 @@
 from lsst.obs.lsstSim import LsstSimMapper
+from lsst.afw.cameraGeom import SCIENCE
 
 from lsst.ts.wep.bsc.CameraData import CameraData
 
@@ -6,54 +7,39 @@ from lsst.ts.wep.bsc.CameraData import CameraData
 class ComCam(CameraData):
 
     def __init__(self):
+        """Initialize the commissioning camera class."""
+
         # The comcam's configuration here is approximated by taking the central 
         # raft of lsst camera.    
         super(ComCam, self).__init__(LsstSimMapper().camera)
+        self._initDetectors(SCIENCE)
 
-    def getWavefrontSensor(self):
-        """
-        
-        Get the corner sensors of Comcam in (ra, dec) based on the camera_mapper list below.
-        The reference is at:
-        https://confluence.lsstcorp.org/display/LSWUG/Representation+of+a+Camera
-        
-        Arguments:
-            obs {[metadata]} -- Instantiation of ObservationMetaData that describes the pointing
-                                of the telescope.
-        
-        Returns:
-            [list] -- (ra, dec) of four corners of each sensor with the name of sensor as a list
-        """
+        # Remove the ccd data that are not belong to ComCam
+        detectorList = ["R:2,2 S:0,2", "R:2,2 S:1,2", "R:2,2 S:2,2",
+                        "R:2,2 S:0,1", "R:2,2 S:1,1", "R:2,2 S:2,1",
+                        "R:2,2 S:0,0", "R:2,2 S:1,0", "R:2,2 S:2,0"]
+        self.setWfsCcdList(detectorList)
 
-        return self.getSensor("corner")
-    
-    def getSensor(self, orientation):
-        """
-        
-        Get the sensors of Comcam in (ra, dec) based on the camera list below.
-        The reference is at:
-        https://confluence.lsstcorp.org/display/LSWUG/Representation+of+a+Camera
-        
-        Arguments:
-            orientation {[string]} -- Orientation of camera to decide which sensor to use.
-        
-        Returns:
-            [list] -- (ra, dec) of four corners of each sensor with the name of sensor as a list.
-        """
+        wfsCorners = self._rmDictDataNotInList(self.getWfsCorners(),
+                                               detectorList)
+        self.setWfsCorners(wfsCorners)
 
-        # Camera object
-        if (orientation == "center"):
-            detectorList = ["R:2,2 S:1,1"]
-        elif (orientation == "corner"):
-            detectorList = ["R:2,2 S:0,2", "R:2,2 S:2,2", "R:2,2 S:0,0", "R:2,2 S:2,0"]
-        elif (orientation == "all"):
-            detectorList = ["R:2,2 S:0,2", "R:2,2 S:1,2", "R:2,2 S:2,2", "R:2,2 S:0,1", 
-                            "R:2,2 S:1,1", "R:2,2 S:2,1", "R:2,2 S:0,0", "R:2,2 S:1,0", 
-                            "R:2,2 S:2,0"]
+        ccdDims = dict()
+        for detector in detectorList:
+            ccdDims[detector] = self.getCcdDim(detector)
+        self.setCcdDims(ccdDims)
 
-        ra_dec_out = self.getDetectorRaDec(detectorList)
+    def _rmDictDataNotInList(self, dataDict, keepList):
 
-        return ra_dec_out
+        # Make a shallow copy
+        newDataDict = dict(dataDict)
+
+        # Remove the dictionary data not in the keep list
+        for aKey in dataDict.keys():
+            if aKey not in keepList:
+                newDataDict.pop(aKey)
+
+        return newDataDict
 
 
 if __name__ == "__main__":

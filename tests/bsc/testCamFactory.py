@@ -21,6 +21,8 @@ class TestCamFactory(unittest.TestCase):
         comCam = CamFactory.createCam(CamType.ComCam)
         self.assertTrue(isinstance(comCam, ComCam))
 
+        self.assertRaises(ValueError, CamFactory.createCam, "wrongType")
+
 
 if __name__ == "__main__":
 

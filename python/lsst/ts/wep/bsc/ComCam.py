@@ -20,26 +20,14 @@ class ComCam(CameraData):
                         "R:2,2 S:0,0", "R:2,2 S:1,0", "R:2,2 S:2,0"]
         self.setWfsCcdList(detectorList)
 
-        wfsCorners = self._rmDictDataNotInList(self.getWfsCorners(),
-                                               detectorList)
-        self.setWfsCorners(wfsCorners)
-
+        wfsCorners = dict()
         ccdDims = dict()
         for detector in detectorList:
+            wfsCorners[detector] = self.getWfsCorner(detector)
             ccdDims[detector] = self.getCcdDim(detector)
+
+        self.setWfsCorners(wfsCorners)
         self.setCcdDims(ccdDims)
-
-    def _rmDictDataNotInList(self, dataDict, keepList):
-
-        # Make a shallow copy
-        newDataDict = dict(dataDict)
-
-        # Remove the dictionary data not in the keep list
-        for aKey in dataDict.keys():
-            if aKey not in keepList:
-                newDataDict.pop(aKey)
-
-        return newDataDict
 
 
 if __name__ == "__main__":

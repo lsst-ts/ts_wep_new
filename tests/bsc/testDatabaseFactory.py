@@ -13,6 +13,8 @@ class TestDatabaseFactory(unittest.TestCase):
         db = DatabaseFactory.createDb(BscDbType.LocalDb)
         self.assertTrue(isinstance(db, LocalDatabase))
 
+        self.assertRaises(ValueError, DatabaseFactory.createDb, "wrongType")
+
 
 if __name__ == "__main__":
 

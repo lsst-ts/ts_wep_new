@@ -202,8 +202,7 @@ class CameraData(object):
         Returns
         -------
         StarData
-            The stars object without the removed 'stars' that are not on the
-            detector.
+            The stars on the detector.
         """
 
         # Do the shallow copy

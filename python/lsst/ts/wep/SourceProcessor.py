@@ -2,7 +2,6 @@ import os, re
 import numpy as np
 
 from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
-from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.Utility import readPhoSimSettingData
 
 

@@ -2,8 +2,8 @@ import os
 import numpy as np
 import unittest
 
-from lsst.ts.wep.SourceSelector import SourceSelector, calcPixPos
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.SourceSelector import SourceSelector
+from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType
 
 
 class TestSourceSelector(unittest.TestCase):
@@ -14,136 +14,91 @@ class TestSourceSelector(unittest.TestCase):
         # Get the path of module
         self.modulePath = getModulePath()
 
-        # Camera type: "lsst" or "comcam"
-        cameraType = "comcam"
+        self.sourSelc = SourceSelector(CamType.ComCam, BscDbType.LocalDb)
 
-        # Active filter type
-        aFilterType = "r"
+        # Set the survey parameters
+        ra = 0.0
+        dec = 63.0
+        rotSkyPos = 0.0
+        self.sourSelc.setObsMetaData(ra, dec, rotSkyPos)
+        self.sourSelc.setFilter(FilterType.U)
 
         # Address of local database
-        dbAdress = os.path.join(self.modulePath, "tests", "testData",
-                                "bsc.db3")
-
-        # Remote database setting
-        databaseHost = "localhost:51433"
-        databaseUser = "LSST-2"
-        databasePassword = "L$$TUser"
-        databaseName = "LSSTCATSIM"
-
-        # Set the database
-        self.remoteDb = SourceSelector()
-        self.localDb = SourceSelector()
-
-        self.remoteDb.configSelector(cameraType=cameraType, dbType="UWdb",
-                                     aFilter=aFilterType)
-        self.localDb.configSelector(cameraType=cameraType, dbType="LocalDb",
-                                    aFilter=aFilterType)
-
-        # Remote database infomation
-        remoteDbInfo = [databaseHost, databaseUser, databasePassword,
-                        databaseName]
+        self.dbAdress = os.path.join(self.modulePath, "tests", "testData",
+                                     "bsc.db3")
 
         # Connect to database
-        self.remoteDb.connect(*remoteDbInfo)
-        self.localDb.connect(dbAdress)
+        self.sourSelc.connect(self.dbAdress)
 
     def tearDown(self):
 
-        # Disconnect database
-        self.remoteDb.disconnect()
-        self.localDb.disconnect()
+        self.sourSelc.disconnect()
 
-    def testFunctions(self):
+    def testInit(self):
 
-        # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-        pointing = (20.0, 30.0)
+        self.assertEqual(self.sourSelc.maxDistance,
+                         self.sourSelc.STAR_RADIUS_IN_PIXEL * \
+                         self.sourSelc.SPACING_COEFF)
+        self.assertEqual(self.sourSelc.maxNeighboringStar, 0)
 
-        # Camera rotation
-        cameraRotation = 0.0
+    def testConfigNbrCriteria(self):
 
-        # Camera orientation for ComCam ("center" or "corner" or "all")
-        # Camera orientation for LSSTcam ("corner" or "all")
-        orientation = "center"
+        starRadiusInPixel = 100
+        spacingCoefficient = 2
+        maxNeighboringStar = 3
+        self.sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
+                                        maxNeighboringStar=maxNeighboringStar)
 
-        # Maximum distance in units of radius one donut must be considered as
-        # a neighbor.
-        spacingCoefficient = 2.5
+        self.assertEqual(self.sourSelc.maxDistance,
+                         starRadiusInPixel * spacingCoefficient)
+        self.assertEqual(self.sourSelc.maxNeighboringStar, maxNeighboringStar)
 
-        # For the defocus = 1.5 mm, the star's radius is 63 pixel.
-        starRadiusInPixel = 63
+    def testSetAndGetFilter(self):
+        
+        filterType = FilterType.Z
+        self.sourSelc.setFilter(filterType)
 
-        # Set the configuration to select the scientific target
-        self.remoteDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
-                                        maxNeighboringStar=99)
-        self.localDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
-                                       maxNeighboringStar=99)
+        self.assertEqual(self.sourSelc.getFilter(), filterType)
 
-        # Set the active filter
-        # self.remoteDb.setFilter(self.aFilterType)
-        # self.localDb.setFilter(self.aFilterType)
+    def testGetTargetStarWithZeroOffset(self):
 
-        # Test to get the active filter
-        self.assertEqual(self.localDb.getFilter(), "r")
-
-        # Test to get the standard deviation 
-        # self.assertEqual(self.localDb.getStddevSplit(), 20.0)
-
-        # Get the scientific target by querying the remote database
         neighborStarMap, starMap, wavefrontSensors = \
-            self.remoteDb.getTargetStar(pointing, cameraRotation,
-                                        orientation=orientation)
+                                    self.sourSelc.getTargetStar(offset=0)
 
-        # Test to get at least one star
-        allStars = starMap["R:2,2 S:1,1"]
-        self.assertTrue(len(allStars.SimobjID)>=1)
+        self.assertEqual(len(wavefrontSensors), 8)
 
-        # Get the scientific target by querying the local database
-        neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = \
-            self.localDb.getTargetStar(pointing, cameraRotation,
-                                       orientation=orientation)
+    def testGetTargetStarWithNotZeroOffset(self):
 
-        # Test the get the empty star map
-        allStarsLocal = starMapLocal["R:2,2 S:1,1"]
-        self.assertEqual(allStarsLocal.SimobjID, [])
+        neighborStarMap, starMap, wavefrontSensors = \
+                                    self.sourSelc.getTargetStar(offset=-1000)
 
-        # Insert the neighboring star map into the database
-        self.localDb.insertToBSC(neighborStarMap)
+        self.assertEqual(len(wavefrontSensors), 3)
 
-        # Query the local database again
-        neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = \
-            self.localDb.getTargetStar(pointing, cameraRotation,
-                                       orientation=orientation)
+    def testGetTargetStarByFileWithWrongDbType(self):
 
-        # Test to get all neighboring stars
-        allNeighborStarLocal = neighborStarMapLocal["R:2,2 S:1,1"]
-        allNeighborStar = neighborStarMap["R:2,2 S:1,1"]
-        self.assertEqual(len(allNeighborStarLocal.SimobjID),
-                         len(allNeighborStar.SimobjID))
+        self.assertRaises(TypeError, self.sourSelc.getTargetStarByFile,
+                          "skyFile")
 
-        # Test to trim the margin
-        self.remoteDb.trimMargin(neighborStarMap, 1000)
+    def testGetTargetStarByFile(self):
 
-        # Test to search the id of star based on (ra, decl)
-        searchStarId = self.localDb.searchRaDecl(20.088157, 29.983533)
+        self.sourSelc = SourceSelector(CamType.LsstCam,
+                                       BscDbType.LocalDbForStarFile)
+        self.sourSelc.setObsMetaData(0, 0, 0)
+        self.sourSelc.setFilter(FilterType.G)
+        self.sourSelc.connect(self.dbAdress)
 
-        # Test to update the value
-        self.localDb.updateBSC([searchStarId[0][0], searchStarId[0][0]],
-                               ["ra", "decl"], [200, 200])
-        newSearchStarId = self.localDb.searchRaDecl(200, 200)
-        self.assertEqual(searchStarId, newSearchStarId)
+        skyFilePath = os.path.join(self.modulePath, "tests", "testData",
+                                   "phosimOutput", "realWfs", "output",
+                                   "skyWfsInfo.txt")
 
-        # Delete all data in local database
-        allStarList = np.arange(1,len(allNeighborStarLocal.RaDecl)+1)
-        self.localDb.db.deleteData(self.localDb.getFilter(), allStarList.tolist())
+        neighborStarMap, starMap, wavefrontSensors = \
+                    self.sourSelc.getTargetStarByFile(skyFilePath, offset=0)
 
-    def testCoorFun(self):
-        fitsFilePath = os.path.join(self.modulePath, "tests", "testData",
-                                    "eimage", "v99999999-fr", "E000", "R22",
-                                    "eimage_99999999_R22_S11_E000.fits.gz")
-        raList = [0]
-        decList = [0]
-        xPosList, yPosList = calcPixPos(fitsFilePath, raList, decList)
-        self.assertEqual((xPosList[0], yPosList[0]), (2000, 2036))
+        self.assertEqual(len(wavefrontSensors), 8)
+
+        for detector in wavefrontSensors:
+            self.assertEqual(len(starMap[detector].getId()), 2)
+            self.assertEqual(len(neighborStarMap[detector].getId()), 2)
 
 
 if __name__ == "__main__":

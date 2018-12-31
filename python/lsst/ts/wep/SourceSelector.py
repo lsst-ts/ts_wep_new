@@ -237,7 +237,7 @@ class SourceSelector(object):
                             self.getTargetStar(offset=offset)
 
         # Delete the table
-        self.sourSelc.db.deleteTable(filterType)
+        self.db.deleteTable(filterType)
 
         return neighborStarMap, starMap, wavefrontSensors
 

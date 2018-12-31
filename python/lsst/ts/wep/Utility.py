@@ -22,6 +22,7 @@ class CamType(Enum):
 
 class BscDbType(Enum):
     LocalDb = 1
+    LocalDbForStarFile = 2
 
 
 def getModulePath(module=lsst.ts.wep, startIdx=1, endIdx=-4):

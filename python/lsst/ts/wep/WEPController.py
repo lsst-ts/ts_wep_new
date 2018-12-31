@@ -115,10 +115,10 @@ class WEPController(object):
         self.sourSelc.connect(dbAdress)
 
         # Create the table
-        self.sourSelc.db.createTable(aFilter, tableName)
+        self.sourSelc.db.createTable(aFilter)
 
         # Insert the sky data
-        self.sourSelc.db.insertDataByFile(aFilter, tableName, skyInfoFilePath, skiprows=1)
+        self.sourSelc.db.insertDataByFile(skyInfoFilePath, aFilter, skiprows=1)
         
         # Do the query and analysis
         neighborStarMap, starMap, wavefrontSensors = self.sourSelc.getTargetStar(pointing, cameraRotation, 
@@ -128,7 +128,7 @@ class WEPController(object):
                                                                                     wavefrontSensors)
 
         # Delete the table
-        self.sourSelc.db.deleteTable(tableName)
+        self.sourSelc.db.deleteTable(aFilter)
         
         # Disconnect the database
         self.sourSelc.disconnect()

@@ -2,12 +2,10 @@ import os
 import numpy as np
 from astropy.io.fits import getheader
 
-from lsst.sims.utils import ObservationMetaData
-
-from lsst.ts.wep.bsc.BrightStarDatabase import BrightStarDatabase
-from lsst.ts.wep.bsc.LsstCam import LsstCam
-from lsst.ts.wep.bsc.ComCam import ComCam 
 from lsst.ts.wep.bsc.Filter import Filter
+from lsst.ts.wep.bsc.CamFactory import CamFactory
+from lsst.ts.wep.bsc.DatabaseFactory import DatabaseFactory
+
 from lsst.ts.wep.LocalDatabaseDecorator import LocalDatabaseDecorator
 
 
@@ -16,247 +14,162 @@ class SourceSelector(object):
     UWdb = "UWdb"
     LocalDb = "LocalDb"
 
-    LSST = "lsst"
-    COMCAM = "comcam"
+    CAMERA_MJD = 59580.0
+    STAR_RADIUS_IN_PIXEL = 63
+    SPACING_COEFF = 2.5
 
-    def __init__(self):
+    def __init__(self, camType, bscDbType):
+        """Initialize the source selector class.
+
+        Parameters
+        ----------
+        camType : CamType
+            Camera type.
+        bscDbType : BscDbType
+            Bright star catalog (BSC) database type.
         """
-        
-        Initialize the SourceSelector class.
-        """
 
-        self.db = None
-        self.tableName = None
-        self.name = None
-
-        self.camera = None
-        self.cameraMJD = None
-
-        self.maxDistance = np.nan
-        self.maxNeighboringStar = np.nan
-
+        self.camera = CamFactory.createCam(camType)
+        self.db = DatabaseFactory.createDb(bscDbType)
         self.filter = Filter()
 
-    def setDb(self, dbType):
-        """
-        
-        Set the database.
-        
-        Arguments:
-            dbType {[str]} -- Type of database ("UWdb" or "LocalDb").
-        """
+        self.maxDistance = 0.0
+        self.maxNeighboringStar = 0
 
-        if (dbType == self.UWdb):
-            db = BrightStarDatabase()
-            tableName = "bright_stars"
-        
-        elif (dbType == self.LocalDb):
-            db = LocalDatabaseDecorator()
-            tableName = "BrightStarCatalog"
-        else:
-            raise ValueError("No '%s' database." % dbType)
+        # Configurate the criteria of neighboring stars
+        self.configNbrCriteria(self.STAR_RADIUS_IN_PIXEL, self.SPACING_COEFF,
+                               maxNeighboringStar=0)
 
-        self.db = db
-        self.tableName = tableName
-        self.name = dbType
+    def configNbrCriteria(self, starRadiusInPixel, spacingCoefficient,
+                          maxNeighboringStar=0):
+        """Set the neighboring star criteria to decide the scientific target.
 
-    def setCamera(self, cameraType, cameraMJD=59580.0):
-        """
-        
-        Set the camera.
-        
-        Arguments:
-            cameraType {[str]} -- Type of camera ("lsst" or "comcam"). (default: {None})
-        
-        Keyword Arguments:
-            cameraMJD {float} -- Camera MJD. (default: {59580.0})
+        Parameters
+        ----------
+        starRadiusInPixel : float, optional
+            Diameter of star. For the defocus = 1.5 mm, the star's radius is
+            63 pixel.
+        spacingCoefficient : float, optional
+            Maximum distance in units of radius one donut must be considered
+            as a neighbor.
+        maxNeighboringStar : int, optional
+            Maximum number of neighboring stars. (the default is 0.)
         """
 
-        # Set the camera and do the initialization
-        if (cameraType == self.LSST):
-            camera = LsstCam()
-        elif (cameraType == self.COMCAM):
-            camera = ComCam()
-        else:
-            raise ValueError("No '%s' camera." % cameraType)
-
-        self.camera = camera
-
-        # Set the camera MJD
-        self.cameraMJD = cameraMJD
-
-    def configSelector(self, cameraType=None, dbType=None, aFilter=None, cameraMJD=59580.0):
-        """
-        
-        Configurate the source selector.
-        
-        Keyword Arguments:
-            cameraType {[str]} -- Type of camera ("lsst" or "comcam"). (default: {None})
-            dbType {[str]} -- Type of database ("UWdb" or "LocalDb"). (default: {None})
-            aFilter {[str]} -- Active filter type ("u", "g", "r", "i", "z", "y"). 
-                                (default: {None})
-            cameraMJD {float} -- Camera MJD. (default: {59580.0})
-        
-        Raises:
-            ValueError -- No database type.
-            ValueError -- No camera type.
-        """
-
-        # Set the data base
-        if (dbType is not None):
-            self.setDb(dbType)
-
-        # Set the camera mapper
-        if (cameraType is not None):
-            self.setCamera(cameraType, cameraMJD=cameraMJD)
-
-        # Set the filter
-        if (aFilter is not None):
-            self.setFilter(aFilter)
+        self.maxDistance = starRadiusInPixel * spacingCoefficient
+        self.maxNeighboringStar = int(maxNeighboringStar)
 
     def connect(self, *kwargs):
-        """
-        
-        Connect the database.
-        
-        Arguments:
-            *kwargs {[string]} -- Information to connect to the database.
+        """Connect the database.
+
+        Parameters
+        ----------
+        *kwargs : str or *list
+            Information to connect to the database.
         """
 
         self.db.connect(*kwargs)
 
     def disconnect(self):
-        """
-        
-        Disconnect the database.
-        """
+        """Disconnect the database."""
 
         self.db.disconnect()
 
-    def getTargetStar(self, pointing, cameraRotation, orientation=None, offset=0, tableName=None):
-        """
-        
-        Get the target stars by querying the database.
-        
-        Arguments:
-            pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
-            cameraRotation {[float]} -- Camera rotation angle in degree.
-        
-        Keyword Arguments:
-            orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
-            offset {[float]} -- Add offset in pixel to sensor dimension for judging stars on detector or not. 
-                                offset=0 for normal use. 
-                                offset=maxDistance to generate the local database. (default: {0})
-            tableName {[str]} -- Table name. (default: {None})
-        
-        Returns:
-            {[dict]} -- Information of neighboring stars and candidate stars with the name of 
-                        sensor as a dictionary.
-            {[dict]} -- Information of stars with the name of sensor as a dictionary.
-            {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
+    def setFilter(self, filterType):
+        """Set the filter type.
+
+        Parameters
+        ----------
+        filterType : FilterType
+            Filter type.
         """
 
-        # Filter type
-        cameraFilter = self.filter.getFilter()
+        self.filter.setFilter(filterType)
 
-        # Regenerate the table name for local database
-        if (tableName is None):
-            if (self.name == self.LocalDb):
-                tableName = self.tableName + self.filter.getFilter().upper()
-            # Keep the same table name
-            else:
-                tableName = self.tableName
+    def getFilter(self):
+        """Get the filter type.
 
-        # Setup the boundary of magnitude based on the filter
+        Returns
+        -------
+        FilterType
+            Filter type.
+        """
+
+        return self.filter.getFilter()
+
+    def setObsMetaData(self, ra, dec, rotSkyPos):
+        """Set the observation meta data.
+
+        Parameters
+        ----------
+        ra : float
+            Pointing ra in degree.
+        dec : float
+            Pointing decl in degree.
+        rotSkyPos : float
+            The orientation of the telescope in degrees.
+        """
+
+        self.camera.setObsMetaData(ra, dec, rotSkyPos, mjd=self.CAMERA_MJD)
+
+    def getTargetStar(self, offset=0):
+        """Get the target stars by querying the database.
+
+        Parameters
+        ----------
+        offset : float, optional
+            Offset to the dimension of camera. If the detector dimension is 10
+            (assume 1-D), the star's position between -offset and 10+offset
+            will be seem to be on the detector. (the default is 0.)
+
+        Returns
+        -------
+        dict
+            Information of neighboring stars and candidate stars with the name
+            of sensor as a dictionary.
+        dict
+            Information of stars with the name of sensor as a dictionary.
+        dict
+            (ra, dec) of four corners of each sensor with the name
+            of sensor as a list. The dictionary key is the sensor name.
+        """
+
+        cameraFilter = self.getFilter()
+        wavefrontSensors = self.camera.getWavefrontSensor()
         lowMagnitude, highMagnitude = self.filter.getMagBoundary()
 
-        # Get corners of wavefront sensors for this observation field
-        obs = self.__getObs(pointing, cameraRotation, self.cameraMJD)
-
-        # Assign the wavefront sensors 
-        # wavefrontSensors = []
-        # if (self.camera.name == self.camera.COMCAM):
-        #     if orientation in ("corner", "center", "all"):
-        #         wavefrontSensors = self.camera.getSensor(orientation)
-        # elif (self.camera.name == self.camera.LSST):
-        #     if (orientation == "corner"):
-        #         wavefrontSensors = self.camera.getWavefrontSensor()
-        #     elif (orientation == "all"):
-        #         wavefrontSensors = self.camera.getScineceSensor()
-
-        wavefrontSensors = self.camera.getWavefrontSensor()
-
-        if not (wavefrontSensors):
-            print("No wavefront sensor is allocated.")
-
-        print("Boresight: (RA, Decl) = (%f, %f) " % (pointing[0], pointing[1]))
-
         # Query the star database
-        starMap = {}
-        neighborStarMap = {}
-        for detector in wavefrontSensors:
-
-            print("Processing detector %s" % detector)
-            wavefrontSensor = wavefrontSensors[detector]
+        starMap = dict()
+        neighborStarMap = dict()
+        for detector, wavefrontSensor in wavefrontSensors.items():
 
             # Get stars in this wavefront sensor for this observation field
-            stars = self.db.query(tableName, cameraFilter, wavefrontSensor[0], wavefrontSensor[1], 
-                                    wavefrontSensor[2], wavefrontSensor[3])
-
-            starsQueried = len(stars.RA)
-            print("\t\tStars queried: %d" % starsQueried)
+            stars = self.db.query(cameraFilter, wavefrontSensor[0],
+                                  wavefrontSensor[1], wavefrontSensor[2],
+                                  wavefrontSensor[3])
 
             # Set the detector information for the stars
             stars.setDetector(detector)
 
             # Populate pixel information for stars
-            stars = self.camera.populatePixelFromRADecl(stars)
+            populatedStar = self.camera.populatePixelFromRADecl(stars)
 
-            # Remove stars that are not on the detector
-            stars = self.camera.removeStarsNotOnDetector(stars, offset)
-            starMap[detector] = stars
-
-            starsOnDetector = len(stars.RA)
-            print("\t\tStars on detector: %d" % starsOnDetector)
+            # Get the stars that are on the detector
+            starsOnDet = self.camera.getStarsOnDetector(populatedStar, offset)
+            starMap[detector] = starsOnDet
 
             # Check the candidate of bright stars based on the magnitude
-            indexCandidate = stars.checkCandidateStars(cameraFilter, lowMagnitude, highMagnitude)
+            indexCandidate = starsOnDet.checkCandidateStars(
+                                cameraFilter, lowMagnitude, highMagnitude)
 
-            # Determine the neighboring stars based on the distance and allowed number 
-            # of neighboring stars
-            neighborStar = stars.getNeighboringStar(indexCandidate, self.maxDistance, 
-                                                    cameraFilter, self.maxNeighboringStar)
+            # Determine the neighboring stars based on the distance and
+            # allowed number of neighboring stars
+            neighborStar = starsOnDet.getNeighboringStar(
+                                indexCandidate, self.maxDistance, cameraFilter,
+                                self.maxNeighboringStar)
             neighborStarMap[detector] = neighborStar
 
-            print("\t\tAvailable candidate stars: %d" % len(neighborStar.SimobjID))
-
         return neighborStarMap, starMap, wavefrontSensors
-
-    def __getObs(self, pointing, cameraRotation, mjd):
-        """
-        
-        Get the observation metadata.
-        
-        Arguments:
-            pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
-            cameraRotation {[float]} -- Camera rotation angle in degree.
-            mjd {[float]} -- Camera mjd.
-        
-        Returns:
-            [metadata] -- The observation meta data (found in the lsst-sims stack) that defines 
-                          the pointing.
-        """
-
-        # Get Ra, Decl
-        RA, Dec = pointing
-
-        obs = []
-        obs = ObservationMetaData(pointingRA = RA, pointingDec = Dec, 
-                                    rotSkyPos = cameraRotation, mjd = mjd)
-        if (not obs):
-            print("No observation metadata.")
-
-        return obs
 
     def insertToBSC(self, neighborStarMap):
         """
@@ -370,57 +283,6 @@ class SourceSelector(object):
 
         # Update the bright star catalog
         self.db.updateData(self.filter.getFilter(), listID, listOfItemToChange, listOfNewValue)
-
-    def configNbrCriteria(self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=99):
-        """
-        
-        Set the neighboring star criteria to decide the scientific target.
-
-        Arguments:
-            starRadiusInPixel {[float]} -- Diameter of star. For the defocus = 1.5 mm, the star's radius 
-                                           is 63 pixel.
-            spacingCoefficient {[float]} -- Maximum distance in units of radius one donut must be 
-                                            considered as a neighbor.
-        
-        Keyword Arguments:
-            maxNeighboringStar {[int]} -- Maximum number of neighboring stars. (default: {99})
-        """
-
-        self.maxDistance = starRadiusInPixel*spacingCoefficient
-        self.maxNeighboringStar = int(maxNeighboringStar)
-
-    def setFilter(self, atype):
-        """
-        
-        Set the active filter type.
-        
-        Arguments:
-            atype {[string]} -- Filter type.
-        """
-
-        self.filter.setFilter(atype)
-
-    def getFilter(self):
-        """
-        
-        Get the active filter type.
-        
-        Returns:
-            [string] -- Filter type.
-        """
-
-        return self.filter.getFilter()
-
-    def getStddevSplit(self):
-        """
-        
-        Get the standard deviation in database to decide the camera crosses RA=0 or not.
-        
-        Returns:
-            [float] -- Standard deviation.
-        """
-
-        return self.db.stddevSplit
 
     def trimMargin(self, neighborStarMap, trimMarginInPixel):
         """

@@ -86,7 +86,7 @@ class TestSourceSelector(unittest.TestCase):
         self.assertEqual(self.localDb.getFilter(), "r")
 
         # Test to get the standard deviation 
-        self.assertEqual(self.localDb.getStddevSplit(), 20.0)
+        # self.assertEqual(self.localDb.getStddevSplit(), 20.0)
 
         # Get the scientific target by querying the remote database
         neighborStarMap, starMap, wavefrontSensors = \

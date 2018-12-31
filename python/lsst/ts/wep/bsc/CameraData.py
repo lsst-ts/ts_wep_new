@@ -187,9 +187,8 @@ class CameraData(object):
 
         return populatedStar
 
-    def removeStarsNotOnDetector(self, stars, offset):
-        """Remove the 'stars' from the input stars that are not on the detector
-        according to the pixel position.
+    def getStarsOnDetector(self, stars, offset):
+        """Get the stars on the detector according to the pixel position.
 
         Parameters
         ----------

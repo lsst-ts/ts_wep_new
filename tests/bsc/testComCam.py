@@ -91,7 +91,7 @@ class TestComCam(unittest.TestCase):
     def testRemoveStarsNotOnDetectorWithLargeOffset(self):
 
         stars = self._populatePixelFromRADecl()
-        starsOnDet = self.camera.removeStarsNotOnDetector(stars, 1e7)
+        starsOnDet = self.camera.getStarsOnDetector(stars, 1e7)
 
         self.assertEqual(len(starsOnDet.getId()), 3) 
         self.assertEqual(len(starsOnDet.getRA()), 3)
@@ -110,7 +110,7 @@ class TestComCam(unittest.TestCase):
     def testRemoveStarsNotOnDetectorWithZeroOffset(self):
 
         stars = self._populatePixelFromRADecl()
-        starsOnDet = self.camera.removeStarsNotOnDetector(stars, 0)
+        starsOnDet = self.camera.getStarsOnDetector(stars, 0)
 
         self.assertEqual(len(starsOnDet.getId()), 0) 
         self.assertEqual(len(starsOnDet.getRA()), 0)

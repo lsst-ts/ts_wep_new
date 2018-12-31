@@ -86,7 +86,7 @@ def getTargetStar(database, tableName, camera, RA, Dec, cameraRotation, cameraMJ
         stars = camera.populatePixelFromRADecl(stars)
                 
         # Remove stars that are not on the detector
-        stars = camera.removeStarsNotOnDetector(stars, offset)
+        stars = camera.getStarsOnDetector(stars, offset)
         starMap[detector] = stars
         
         starsOnDetector = len(stars.RA)

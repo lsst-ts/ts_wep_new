@@ -5,18 +5,18 @@ from lsst.ts.wep.Utility import BscDbType
 class DatabaseFactory(object):
 
     @staticmethod
-    def createDb(dbType):
+    def createDb(bscDbType):
         """Create the database.
 
         Parameters
         ----------
-        dbType : BscDbType
-            Database type.
+        bscDbType : BscDbType
+            Bright star catalog (BSC) database type.
 
         Returns
         -------
         LocalDatabase
-            Database object.
+            BSC database object.
 
         Raises
         ------
@@ -24,7 +24,7 @@ class DatabaseFactory(object):
             The database type does not match.
         """
 
-        if (dbType == BscDbType.LocalDb):
+        if (bscDbType == BscDbType.LocalDb):
             return LocalDatabase()
         else:
             raise ValueError("The database type does not match.")

@@ -1,4 +1,4 @@
-import os, re
+import os
 import numpy as np
 
 from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
@@ -51,7 +51,7 @@ class SourceProcessor(object):
 
         # Read the focal plane data
         if (folderPath2FocalPlane is not None):
-            self.__readFocalPlane(folderPath2FocalPlane, pixel2Arcsec=pixel2Arcsec)
+            self._readFocalPlane(folderPath2FocalPlane, pixel2Arcsec=pixel2Arcsec)
 
         # Set the unit of pixel to arcsec
         self.pixel2Arcsec = pixel2Arcsec
@@ -59,7 +59,7 @@ class SourceProcessor(object):
         # Set the unit of pixel to micron
         self.pixel2um = pixel2um
 
-    def __readFocalPlane(self, folderPath, pixel2Arcsec, fileName="focalplanelayout.txt"):
+    def _readFocalPlane(self, folderPath, pixel2Arcsec, fileName="focalplanelayout.txt"):
         """
 
         Read the focal plane data used in PhoSim to get the ccd dimension and fieldXY in chip 
@@ -83,7 +83,7 @@ class SourceProcessor(object):
         for akey, aitem in ccdData.items():
 
             # Consider the x-translation in corner wavefront sensors
-            aitem = self.__shiftCenterWfs(akey, aitem)
+            aitem = self._shiftCenterWfs(akey, aitem)
 
             # Change the unit from um to degree
             fieldX = float(aitem[0])/float(aitem[2])*pixel2Arcsec/3600
@@ -101,7 +101,7 @@ class SourceProcessor(object):
         self.sensorEulerRot = readPhoSimSettingData(folderPath, fileName,
                                                     "eulerRot")
 
-    def __shiftCenterWfs(self, sensorName, focalPlaneData):
+    def _shiftCenterWfs(self, sensorName, focalPlaneData):
         """
 
         Get the fieldXY of center of wavefront sensors. The input data is the center of 
@@ -198,7 +198,7 @@ class SourceProcessor(object):
         deltaY = (pixelY-pixelYc)*self.pixel2Arcsec/3600.0
 
         # Calculate the transformed coordinate in degree.
-        fieldX, fieldY = self.__rotCam2FocalPlane(self.sensorName, fieldXc, fieldYc, 
+        fieldX, fieldY = self._rotCam2FocalPlane(self.sensorName, fieldXc, fieldYc, 
                                                   deltaX, deltaY)
 
         return fieldX, fieldY
@@ -229,12 +229,12 @@ class SourceProcessor(object):
         deltaY = (yInUm-yc)/self.pixel2um
 
         # Calculate the transformed coordinate
-        pixelX, pixelY = self.__rotCam2FocalPlane(self.sensorName, pixelXc, pixelYc, deltaX, 
+        pixelX, pixelY = self._rotCam2FocalPlane(self.sensorName, pixelXc, pixelYc, deltaX, 
                                                     deltaY, counterClockWise=False)
 
         return pixelX, pixelY
 
-    def __rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY, 
+    def _rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY, 
                             counterClockWise=True):
         """
         
@@ -484,11 +484,11 @@ class SourceProcessor(object):
         cenXright = ccdD2 - cenX
 
         # If central x or y plus d/2 will over the boundary, shift the central x, y values
-        cenY = self.__shiftCenter(cenY, ccdD1, d/2)
-        cenY = self.__shiftCenter(cenY, 0, d/2)
+        cenY = self._shiftCenter(cenY, ccdD1, d/2)
+        cenY = self._shiftCenter(cenY, 0, d/2)
 
-        cenX = self.__shiftCenter(cenX, ccdD2, d/2)
-        cenX = self.__shiftCenter(cenX, 0, d/2)
+        cenX = self._shiftCenter(cenX, ccdD2, d/2)
+        cenX = self._shiftCenter(cenX, 0, d/2)
 
         # Get the bright star and neighboring stas image
         offsetX = cenX-d/2
@@ -515,7 +515,7 @@ class SourceProcessor(object):
 
         return singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY
 
-    def __shiftCenter(self, center, boundary, distance):
+    def _shiftCenter(self, center, boundary, distance):
         """
 
         Shift the center if its distance to boundary is less than required.
@@ -612,8 +612,8 @@ class SourceProcessor(object):
             randNum = np.random.randint(0, high=numFile)
 
             # Choose a random donut image from the file
-            donutImageIntra = self.__getDonutImgFromFile(imageFolderPath, intraFileList[randNum])
-            donutImageExtra = self.__getDonutImgFromFile(imageFolderPath, extraFileList[randNum])
+            donutImageIntra = self._getDonutImgFromFile(imageFolderPath, intraFileList[randNum])
+            donutImageExtra = self._getDonutImgFromFile(imageFolderPath, extraFileList[randNum])
 
             # Get the bright star magnitude
             magBS = starMag[brightStar]
@@ -639,12 +639,12 @@ class SourceProcessor(object):
                 magRatio = 1/100**(magDiff/5.0)
 
                 # Add the donut image
-                self.__addDonutImage(magRatio*donutImageIntra, starX, starY, ccdImgIntra)
-                self.__addDonutImage(magRatio*donutImageExtra, starX, starY, ccdImgExtra)
+                self._addDonutImage(magRatio*donutImageIntra, starX, starY, ccdImgIntra)
+                self._addDonutImage(magRatio*donutImageExtra, starX, starY, ccdImgExtra)
 
         return ccdImgIntra, ccdImgExtra
 
-    def __getDonutImgFromFile(self, imageFolderPath, fileName):
+    def _getDonutImgFromFile(self, imageFolderPath, fileName):
         """
 
         Read the donut image from the file.
@@ -662,7 +662,7 @@ class SourceProcessor(object):
 
         return self.blendedImageDecorator.image.copy()
 
-    def __addDonutImage(self, donutImage, starX, starY, ccdImg):
+    def _addDonutImage(self, donutImage, starX, starY, ccdImg):
         """
 
         Add the donut image to simulated CCD image frame.
@@ -683,56 +683,6 @@ class SourceProcessor(object):
 
         # Add the donut image on the CCD image
         ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += donutImage
-
-def expandDetectorName(abbrevName):
-    """Convert a detector name of the form Rxy_Sxy[_Ci] to canonical form: R:x,y S:x,y[,c]
-    C0 -> A, C1 -> B
-
-    This is copied from lsst.obs.lsstSim:
-    https://github.com/lsst/obs_lsstSim/blob/master/bin.src/makeLsstCameraRepository.py
-    """
-    m = re.match(r"R(\d)(\d)_S(\d)(\d)(?:_C([0,1]))?$", abbrevName)
-    if m is None:
-        raise RuntimeError("Cannot parse abbreviated name %r" % (abbrevName,))
-    fullName = "R:%s,%s S:%s,%s" % tuple(m.groups()[0:4])
-    subSensor = m.groups()[4]
-    if subSensor is not None:
-        fullName = fullName + "," + {"0": "A", "1": "B"}[subSensor]
-    return fullName
-
-def abbrevDectectorName(canonicalForm):
-    """
-    
-    Convert a canonical name to abbreviate name (R:x,y S:x,y[,c] --> Rxy_Sxy[_Ci]).
-    
-    Arguments:
-        canonicalForm {[str]} -- Detector canonical name.
-    
-    Returns:
-        [str] -- Abbreviated name.
-    
-    Raises:
-        RuntimeError -- Input does not match the canonical form of detector name.
-    """
-
-    # Use the regular expression to analyze the input name
-    m = re.match(r"R:(\d),(\d) S:(\d),(\d)(?:,([A,B]))?$", canonicalForm)
-
-    # Raise error if the input does not match the form of regular expression
-    if m is None:
-        raise RuntimeError("Cannot parse canonical name %r" % (canonicalForm,))
-
-    # Generate the abbreviated name
-    abbrevName = "R%s%s_S%s%s" % tuple(m.groups()[0:4])
-
-    # Check the sensor is wavefront sensor or not
-    subSensor = m.groups()[4]
-    if (subSensor is not None):
-        # Label the WFS sensor
-        abbrevName = abbrevName + "_C" + {"A": "0", "B": "1"}[subSensor]
-
-    # Return the abbreviate name
-    return abbrevName
 
 
 if __name__ == "__main__":

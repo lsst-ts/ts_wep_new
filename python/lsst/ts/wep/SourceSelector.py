@@ -171,6 +171,8 @@ class SourceSelector(object):
                                  wavefrontSensors):
         """Remove the data that has no bright stars on the detector.
 
+        The data in inputs will be changed directly.
+
         Parameters
         ----------
         neighborStarMap : dict

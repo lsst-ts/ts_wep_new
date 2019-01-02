@@ -7,128 +7,118 @@ from lsst.ts.wep.Utility import readPhoSimSettingData
 
 class SourceProcessor(object):
 
-    def __init__(self):
+    # Donut radius is 63 pixel if the defocal distance is 1.5 mm
+    STAR_RADIUS_IN_PIXEL = 63
+
+    # 1 pixel = 0.2 arcsec
+    PIXEL_TO_ARCSEC = 0.2
+
+    # 1 pixel = 10 um
+    PIXEL_TO_UM = 10
+
+    PHOSIM_FOCALPLANE = "focalplanelayout.txt"
+
+    def __init__(self, folderPath2FocalPlane=None):
+        """Initialize the SourceProcessor class.
+
+        Parameters
+        ----------
+        folderPath2FocalPlane : str, optional
+            Directory of focal plane file. (the default is None.)
         """
-        
-        Initialize the SourceProcessor class.
-        """
 
-        self.sensorName = None
-        self.donutRadiusInPixel = None
-
-        self.sensorFocaPlaneInDeg = None
-        self.sensorFocaPlaneInUm = None
-        self.sensorDimList = None
-        self.sensorEulerRot = None
-
-        self.pixel2Arcsec = None
-        self.pixel2um = None
-
+        self.sensorName = ""
         self.blendedImageDecorator = BlendedImageDecorator()
 
-    def config(self, sensorName=None, donutRadiusInPixel=None, folderPath2FocalPlane=None, 
-                pixel2Arcsec=0.2, pixel2um=10.0):
-        """
-        
-        Do the configuration.
-        
-        Keyword Arguments:
-            sensorName {[str]} -- Sensor name. (default: {None})
-            donutRadiusInPixel {[float]} -- Donut radius in pixel. (default: {None})
-            folderPath2FocalPlane {[str]} -- Path to the directory of focal plane data 
-                                             ("focalplanelayout.txt"). (default: {None})
-            pixel2Arcsec {[float]} -- [Pixel to arcsec. (default: {0.2})
-            pixel2um {[float]} -- Pixel to um. (default: {10.0})
-        """
+        self.sensorFocaPlaneInDeg = dict()
+        self.sensorFocaPlaneInUm = dict()
+        self.sensorDimList = dict()
+        self.sensorEulerRot = dict()
 
-        # Give the sensor name
-        if (sensorName is not None):
-            self.sensorName = sensorName
-
-        # Give the donut radius in pixel
-        if (donutRadiusInPixel is not None):
-            self.donutRadiusInPixel = donutRadiusInPixel
-
-        # Read the focal plane data
         if (folderPath2FocalPlane is not None):
-            self._readFocalPlane(folderPath2FocalPlane, pixel2Arcsec=pixel2Arcsec)
+            self._readFocalPlane(folderPath2FocalPlane)
 
-        # Set the unit of pixel to arcsec
-        self.pixel2Arcsec = pixel2Arcsec
+    def _readFocalPlane(self, folderPath):
+        """Read the focal plane data used in PhoSim to get the ccd dimension
+        and fieldXY in chip center.
 
-        # Set the unit of pixel to micron
-        self.pixel2um = pixel2um
-
-    def _readFocalPlane(self, folderPath, pixel2Arcsec, fileName="focalplanelayout.txt"):
-        """
-
-        Read the focal plane data used in PhoSim to get the ccd dimension and fieldXY in chip 
-        center.
-
-        Arguments:
-            folderPath {[str]} -- Directory of focal plane file.
-            pixel2Arcsec {float} -- Pixel to arcsec.
-
-        Keyword Arguments:
-            fileName {[str]} -- Filename of focal plane. (default: {"focalplanelayout.txt"})
+        Parameters
+        ----------
+        folderPath : str
+            Directory of focal plane file.
         """
 
         # Read the focal plane data by the delegation
-        ccdData = readPhoSimSettingData(folderPath, fileName, "fieldCenter")
+        ccdData = readPhoSimSettingData(folderPath, self.PHOSIM_FOCALPLANE,
+                                        "fieldCenter")
 
         # Collect the focal plane data
-        sensorFocaPlaneInDeg = {}
-        sensorFocaPlaneInUm = {}
-        sensorDimList = {}
-        for akey, aitem in ccdData.items():
+        sensorFocaPlaneInDeg = dict()
+        sensorFocaPlaneInUm = dict()
+        sensorDimList = dict()
+        for sensorName, data in ccdData.items():
 
             # Consider the x-translation in corner wavefront sensors
-            aitem = self._shiftCenterWfs(akey, aitem)
+            self._shiftCenterWfs(sensorName, data)
 
             # Change the unit from um to degree
-            fieldX = float(aitem[0])/float(aitem[2])*pixel2Arcsec/3600
-            fieldY = float(aitem[1])/float(aitem[2])*pixel2Arcsec/3600
+            xInUm = float(data[0])
+            yInUm = float(data[1])
+            pixelSizeInUm = float(data[2])
+            sizeXinPixel = int(data[3])
+            sizeYinPixel = int(data[4])
+
+            # 1 degree = 3600 arcsec
+            fieldX = xInUm / pixelSizeInUm * self.PIXEL_TO_ARCSEC / 3600
+            fieldY = yInUm / pixelSizeInUm * self.PIXEL_TO_ARCSEC / 3600
 
             # Get the data
-            sensorFocaPlaneInDeg.update({akey: (fieldX, fieldY)})
-            sensorFocaPlaneInUm.update({akey: (float(aitem[0]), float(aitem[1]))})
-            sensorDimList.update({akey: (int(aitem[3]), int(aitem[4]))})
+            sensorFocaPlaneInDeg[sensorName] = (fieldX, fieldY)
+            sensorFocaPlaneInUm[sensorName] = (xInUm, yInUm)
+            sensorDimList[sensorName] = (sizeXinPixel, sizeYinPixel)
 
         # Assign the values
         self.sensorDimList = sensorDimList
         self.sensorFocaPlaneInDeg = sensorFocaPlaneInDeg
         self.sensorFocaPlaneInUm = sensorFocaPlaneInUm
-        self.sensorEulerRot = readPhoSimSettingData(folderPath, fileName,
-                                                    "eulerRot")
+        self.sensorEulerRot = readPhoSimSettingData(
+                                folderPath, self.PHOSIM_FOCALPLANE, "eulerRot")
 
     def _shiftCenterWfs(self, sensorName, focalPlaneData):
+        """Shift the fieldXY of center of wavefront sensors.
+
+        The input data is the center of combined chips (C0+C1). The input data
+        will be updated directly.
+
+        Parameters
+        ----------
+        sensorName : str
+            Abbreviated sensor name.
+        focalPlaneData : list
+            Data of focal plane: [x position (microns), y position (microns),
+            pixel size (microns), number of x pixels, number of y pixels].
         """
 
-        Get the fieldXY of center of wavefront sensors. The input data is the center of 
-        combined chips (C0+C1). The layout is shown in the following:
+        # The layout is shown in the following:
 
-        R04_S20              R44_S00
-        --------           -----------       /\ +y
-        |  C0  |           |    |    |        |
-        |------|           | C1 | C0 |        |
-        |  C1  |           |    |    |        |
-        --------           -----------        -----> +x
+        # R04_S20              R44_S00
+        # --------           -----------       /\ +y
+        # |  C0  |           |    |    |        |
+        # |------|           | C1 | C0 |        |
+        # |  C1  |           |    |    |        |
+        # --------           -----------        -----> +x
 
-        R00_S22              R40_S02
-        -----------          --------
-        |    |    |          |  C1  |
-        | C0 | C1 |          |------|
-        |    |    |          |  C0  |
-        -----------          --------
+        # R00_S22              R40_S02
+        # -----------          --------
+        # |    |    |          |  C1  |
+        # | C0 | C1 |          |------|
+        # |    |    |          |  C0  |
+        # -----------          --------
 
-        Arguments:
-            sensorName {[str]} -- Sensor name.
-            focalPlaneData {[list]} -- Data of focal plane: x position (microns), y position 
-                                       (microns), pixel size (microns), number of x pixels, 
-                                       number of y pixels.
-        Returns:
-            [list] -- Updated focal plane data.
-        """
+        xInUm = float(focalPlaneData[0])
+        yInUm = float(focalPlaneData[1])
+        pixelSizeInUm = float(focalPlaneData[2])
+        sizeXinPixel = float(focalPlaneData[3])
 
         # Consider the x-translation in corner wavefront sensors
         tempX = None
@@ -136,16 +126,16 @@ class SourceProcessor(object):
 
         if sensorName in ("R44_S00_C0", "R00_S22_C1"):
             # Shift center to +x direction
-            tempX = float(focalPlaneData[0]) + float(focalPlaneData[3])/2*float(focalPlaneData[2])
+            tempX = xInUm + sizeXinPixel / 2 * pixelSizeInUm
         elif sensorName in ("R44_S00_C1", "R00_S22_C0"):
             # Shift center to -x direction
-            tempX = float(focalPlaneData[0]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
+            tempX = xInUm - sizeXinPixel / 2 * pixelSizeInUm
         elif sensorName in ("R04_S20_C1", "R40_S02_C0"):
             # Shift center to -y direction
-            tempY = float(focalPlaneData[1]) - float(focalPlaneData[3])/2*float(focalPlaneData[2])
+            tempY = yInUm - sizeXinPixel / 2 * pixelSizeInUm
         elif sensorName in ("R04_S20_C0", "R40_S02_C1"):
             # Shift center to +y direction
-            tempY = float(focalPlaneData[1]) + float(focalPlaneData[3])/2*float(focalPlaneData[2])
+            tempY = yInUm + sizeXinPixel / 2 * pixelSizeInUm
 
         # Replace the value by the shifted one
         if (tempX is not None):
@@ -153,55 +143,141 @@ class SourceProcessor(object):
         elif (tempY is not None):
             focalPlaneData[1] = str(tempY)
 
-        # Return the center position of wave front sensor
-        return focalPlaneData
+    def config(self, sensorName=None, folderPath2FocalPlane=None):
+        """Do the configuration.
+
+        Parameters
+        ----------
+        sensorName : str, optional
+            Abbreviated sensor name. (the default is None.)
+        folderPath2FocalPlane : str, optional
+            Directory of focal plane file. (the default is None.)
+        """
+
+        # Give the sensor name
+        if (sensorName is not None):
+            self.sensorName = sensorName
+
+        # Read the focal plane data
+        if (folderPath2FocalPlane is not None):
+            self._readFocalPlane(folderPath2FocalPlane)
+
+    def getEulerZinDeg(self, sensorName):
+        """Get the Euler Z angle of sensor in degree.
+
+        Parameters
+        ----------
+        sensorName : str
+            Abbreviated sensor name.
+
+        Returns
+        -------
+        float
+            Euler Z angle in degree.
+        """
+
+        return float(self.sensorEulerRot[sensorName][0])
 
     def camXYtoFieldXY(self, pixelX, pixelY):
+        """Get the field X, Y from the pixel x, y position on CCD.
+
+        Parameters
+        ----------
+        pixelX : float
+            Pixel x on camera coordinate.
+        pixelY : float
+            Pixel y on camera coordinate.
+
+        Returns
+        -------
+        float
+            Field x in degree.
+        float
+            Field y in degree.
         """
 
-        Get the field X, Y of the pixel postion in CCD. It is noted that the wavefront 
-        sensors will do the counter-clockwise rotation as the following based on the euler 
-        angle:
+        # The wavefront sensors will do the counter-clockwise rotation as the
+        # following based on the euler angle:
 
-        R04_S20              R44_S00
-        O-------           -----O----O       /\ +y
-        |  C0  |           |    |    |        |
-        O------|           | C1 | C0 |        |
-        |  C1  |           |    |    |        |
-        --------           -----------        O----> +x
+        # R04_S20              R44_S00
+        # O-------           -----O----O       /\ +y
+        # |  C0  |           |    |    |        |
+        # O------|           | C1 | C0 |        |
+        # |  C1  |           |    |    |        |
+        # --------           -----------        O----> +x
 
-        R00_S22              R40_S02
-        -----------          --------
-        |    |    |          |  C1  |
-        | C0 | C1 |          |------O
-        |    |    |          |  C0  |
-        O----O-----          -------O
-
-        Arguments:
-            pixelX {[float]} -- Pixel x on camera coordinate.
-            pixelY {[float]} -- Pixel y on camera coordinate.
-
-        Returns:
-            [float] -- Field X, Y in degree.
-        """
+        # R00_S22              R40_S02
+        # -----------          --------
+        # |    |    |          |  C1  |
+        # | C0 | C1 |          |------O
+        # |    |    |          |  C0  |
+        # O----O-----          -------O
 
         # Get the field X, Y of sensor's center
         fieldXc, fieldYc = self.sensorFocaPlaneInDeg[self.sensorName]
 
         # Get the center pixel position
         pixelXc, pixelYc = self.sensorDimList[self.sensorName]
-        pixelXc = pixelXc/2
-        pixelYc = pixelYc/2
+        pixelXc = pixelXc / 2
+        pixelYc = pixelYc / 2
 
         # Calculate the delta x and y in degree
-        deltaX = (pixelX-pixelXc)*self.pixel2Arcsec/3600.0
-        deltaY = (pixelY-pixelYc)*self.pixel2Arcsec/3600.0
+        # 1 degree = 3600 arcsec
+        deltaX = (pixelX - pixelXc) * self.PIXEL_TO_ARCSEC / 3600.0
+        deltaY = (pixelY - pixelYc) * self.PIXEL_TO_ARCSEC / 3600.0
 
         # Calculate the transformed coordinate in degree.
-        fieldX, fieldY = self._rotCam2FocalPlane(self.sensorName, fieldXc, fieldYc, 
-                                                  deltaX, deltaY)
+        fieldX, fieldY = self._rotCam2FocalPlane(
+                            self.sensorName, fieldXc, fieldYc, deltaX, deltaY)
 
         return fieldX, fieldY
+
+    def _rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY, 
+                           clockWise=False):
+        """Do the rotation from camera coordinate to focal plane coordinate or
+        vice versa.
+
+        Parameters
+        ----------
+        sensorName : str
+            Abbreviated sensor name.
+        centerX : float
+            CCD center x.
+        centerY : float
+            CCD center y.
+        deltaX : float
+            Delta x from the CCD's center.
+        deltaY : float
+            Delta y from the CCD's center.
+        clockWise : bool, optional
+            Rotation direction (True: clockwise, False: counter-clockwise).
+            (the default is False.)
+
+        Returns
+        -------
+        float
+            Transformed x position.
+        float
+            Transformed y position.
+        """
+
+        # Get the euler angle in z direction (only consider the z rotatioin at
+        # this moment)
+        eulerZ = round(self.getEulerZinDeg(sensorName))
+        eulerZinRad = np.deg2rad(eulerZ)
+
+        # Counter-clockwise or clockwise rotation
+        if (clockWise):
+            eulerZinRad = -eulerZinRad
+
+        # Calculate the new x, y by the rotation. This is important for
+        # wavefront sensor.
+        newX = centerX + np.cos(eulerZinRad) * deltaX - \
+               np.sin(eulerZinRad) * deltaY
+        newY = centerY + np.sin(eulerZinRad) * deltaX + \
+               np.cos(eulerZinRad)*deltaY
+
+        return newX, newY
 
     def focalPlaneXY2CamXY(self, xInUm, yInUm):
         """
@@ -225,65 +301,14 @@ class SourceProcessor(object):
         pixelYc = pixelYc/2
 
         # Calculate the delta x and y in pixel
-        deltaX = (xInUm-xc)/self.pixel2um
-        deltaY = (yInUm-yc)/self.pixel2um
+        deltaX = (xInUm-xc) / self.PIXEL_TO_UM
+        deltaY = (yInUm-yc) / self.PIXEL_TO_UM
 
         # Calculate the transformed coordinate
         pixelX, pixelY = self._rotCam2FocalPlane(self.sensorName, pixelXc, pixelYc, deltaX, 
-                                                    deltaY, counterClockWise=False)
+                                                    deltaY, clockWise=True)
 
         return pixelX, pixelY
-
-    def _rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY, 
-                            counterClockWise=True):
-        """
-        
-        Do the rotation from camera coordinate to focal plane coordinate or vice versa.
-        
-        Arguments:
-            sensorName {[str]} -- Sensor name.
-            centerX {[float]} -- CCD center X.
-            centerY {[float]} -- CCD center Y.
-            deltaX {[float]} -- Delta X from the CCD's center.
-            deltaY {[float]} -- Delta Y from the CCD's center.
-        
-        Keyword Arguments:
-            counterClockWise {bool} -- Direction of rotation: counter-clockwise or 
-                                        clockwise. (default: {True})
-        
-        Returns:
-            [float] -- Transformed X, Y position.
-        """
-
-        # Get the euler angle in z direction (only consider the z rotatioin at this moment)
-        eulerZ = round(self.getEulerZinDeg(sensorName))
-
-        # Change the unit to radian
-        eulerZ = eulerZ/180.0*np.pi
-
-        # Counter-clockwise or clockwise rotation
-        if (not counterClockWise):
-            eulerZ = -eulerZ
-
-        # Calculate the new x, y by the rotation. This is important for wavefront sensor.
-        newX = centerX + np.cos(eulerZ)*deltaX - np.sin(eulerZ)*deltaY
-        newY = centerY + np.sin(eulerZ)*deltaX + np.cos(eulerZ)*deltaY
-
-        return newX, newY
-
-    def getEulerZinDeg(self, abbrevName):
-        """
-        
-        Get the Euler Z angle of sensor in degree.
-        
-        Arguments:
-            abbrevName {[str]} -- Abbreviated sensor name.
-        
-        Returns:
-            [float] -- Euler Z angle in degree.
-        """
-
-        return float(self.sensorEulerRot[abbrevName][0])
 
     def dmXY2CamXY(self, pixelDmX, pixelDmY):
         """
@@ -470,8 +495,8 @@ class SourceProcessor(object):
         cenY = int(np.mean([minY, maxY]))
 
         # Get the image dimension
-        d1 = (maxY-minY) + 4*self.donutRadiusInPixel
-        d2 = (maxX-minX) + 4*self.donutRadiusInPixel
+        d1 = (maxY-minY) + 4 * self.STAR_RADIUS_IN_PIXEL
+        d2 = (maxX-minX) + 4 * self.STAR_RADIUS_IN_PIXEL
 
         # Make d1 and d2 to be symmetric and even
         d = max(d1, d2)

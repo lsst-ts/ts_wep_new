@@ -2,14 +2,10 @@ import os
 import numpy as np
 import unittest
 
-from lsst.sims.utils import ObservationMetaData
-from lsst.sims.coordUtils.CameraUtils import focalPlaneCoordsFromRaDec
-from lsst.obs.lsstSim import LsstSimMapper
-
 from lsst.ts.wep.SourceSelector import SourceSelector
-from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName, \
-                                        expandDetectorName
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.SourceProcessor import SourceProcessor
+from lsst.ts.wep.Utility import getModulePath, abbrevDectectorName, \
+                                expandDetectorName
 
 
 class testClass(object):
@@ -55,15 +51,8 @@ class TestSourceProcessor(unittest.TestCase):
         self.assertTrue(self.sourProc.evalVignette(2, 2))
         self.assertFalse(self.sourProc.evalVignette(1, 1))
 
-        # Test the name transformation
-        sciSensorName = "R22_S11"
-        wfsSensorName = "R40_S02_C1"
-        self.assertEqual(abbrevDectectorName(
-                            expandDetectorName(sciSensorName)), sciSensorName)
-        self.assertEqual(abbrevDectectorName(
-                            expandDetectorName(wfsSensorName)), wfsSensorName)
-
         # Test the Euler Z angle
+        wfsSensorName = "R40_S02_C1"
         eulerZ = self.sourProc.getEulerZinDeg(wfsSensorName)
         self.assertEqual(eulerZ, 90.004585)
 
@@ -110,111 +99,111 @@ class TestSourceProcessor(unittest.TestCase):
         self.assertEqual((oxR40S02C1+oxR04S20C1, oyR40S02C1+oyR04S20C1),
                          (0, 0))
 
-    def testDmXY2CamXY(self):
+    # def testDmXY2CamXY(self):
 
-        # Define the database and get the neighboring star map
-        # Address of local database
-        dbAdress = os.path.join(self.modulePath, "tests", "testData",
-                                "bsc.db3")
+    #     # Define the database and get the neighboring star map
+    #     # Address of local database
+    #     dbAdress = os.path.join(self.modulePath, "tests", "testData",
+    #                             "bsc.db3")
 
-        # Use the focal plane as a reference to double check the DM XY to
-        # Camera XY
-        # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-        pointing = (20.0, 30.0)
+    #     # Use the focal plane as a reference to double check the DM XY to
+    #     # Camera XY
+    #     # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
+    #     pointing = (20.0, 30.0)
 
-        # Camera rotation
-        cameraRotation = 0.0
+    #     # Camera rotation
+    #     cameraRotation = 0.0
 
-        # Active filter type
-        aFilterType = "u"
+    #     # Active filter type
+    #     aFilterType = "u"
 
-        # Camera type: "lsst" or "comcam"
-        cameraType = "lsst"
+    #     # Camera type: "lsst" or "comcam"
+    #     cameraType = "lsst"
 
-        # Set the camera MJD
-        cameraMJD = 59580.0
+    #     # Set the camera MJD
+    #     cameraMJD = 59580.0
 
-        # Camera orientation for ComCam ("center" or "corner" or "all")
-        # Camera orientation for LSSTcam ("corner" or "all")
-        orientation = "corner"
+    #     # Camera orientation for ComCam ("center" or "corner" or "all")
+    #     # Camera orientation for LSSTcam ("corner" or "all")
+    #     orientation = "corner"
 
-        # Maximum distance in units of radius one donut must be considered as
-        # a neighbor.
-        spacingCoefficient = 2.5
+    #     # Maximum distance in units of radius one donut must be considered as
+    #     # a neighbor.
+    #     spacingCoefficient = 2.5
 
-        # For the defocus = 1.5 mm, the star's radius is 63 pixel.
-        starRadiusInPixel = 63
+    #     # For the defocus = 1.5 mm, the star's radius is 63 pixel.
+    #     starRadiusInPixel = 63
 
-        # Collect the data from bright star catalog
+    #     # Collect the data from bright star catalog
 
-        # Get the neighboring star map
-        localDb = SourceSelector()
-        localDb.configSelector(cameraType=cameraType, dbType="LocalDb",
-                               aFilter=aFilterType)
-        localDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
-                                  maxNeighboringStar=1)
+    #     # Get the neighboring star map
+    #     localDb = SourceSelector()
+    #     localDb.configSelector(cameraType=cameraType, dbType="LocalDb",
+    #                            aFilter=aFilterType)
+    #     localDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
+    #                               maxNeighboringStar=1)
         
-        localDb.connect(dbAdress)
-        neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = \
-            localDb.getTargetStar(pointing, cameraRotation,
-                                  orientation=orientation)
-        localDb.disconnect()
+    #     localDb.connect(dbAdress)
+    #     neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = \
+    #         localDb.getTargetStar(pointing, cameraRotation,
+    #                               orientation=orientation)
+    #     localDb.disconnect()
 
-        # Collect the data
-        neighborStarMapLocal = neighborStarMapLocal
-        sensorList = wavefrontSensorsLocal.keys()
+    #     # Collect the data
+    #     neighborStarMapLocal = neighborStarMapLocal
+    #     sensorList = wavefrontSensorsLocal.keys()
 
-        # Test the DM XY to Camera XY directly
-        self.sourProc.config(sensorName="R22_S11")
-        self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
+    #     # Test the DM XY to Camera XY directly
+    #     self.sourProc.config(sensorName="R22_S11")
+    #     self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
 
-        # Test the Camera XY to DM XY directly
-        self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
+    #     # Test the Camera XY to DM XY directly
+    #     self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
 
-        # Change the DM name to camera team
+    #     # Change the DM name to camera team
 
-        # Test to get the focal plane position
-        # When writing the test cases, need to add four corners
-        camera = LsstSimMapper().camera
-        obs = ObservationMetaData(pointingRA=pointing[0],
-                                  pointingDec=pointing[1], 
-                                  rotSkyPos=cameraRotation, mjd=cameraMJD)
+    #     # Test to get the focal plane position
+    #     # When writing the test cases, need to add four corners
+    #     camera = LsstSimMapper().camera
+    #     obs = ObservationMetaData(pointingRA=pointing[0],
+    #                               pointingDec=pointing[1], 
+    #                               rotSkyPos=cameraRotation, mjd=cameraMJD)
 
-        # Veriry the function of DmXY2CamXY() by (ra, decl) to
-        # (focal X, focal Y) and then to (cam X, cam Y)
-        # The focal plane coordinate system is the reference of DM
-        # and Camera teams
-        abbrevNameList = ["R40_S02_C0", "R00_S22_C0", "R04_S20_C0",
-                          "R44_S00_C0", "R40_S02_C1", "R00_S22_C1",
-                          "R04_S20_C1", "R44_S00_C1"]
-        for abbrevName in abbrevNameList: 
-            self.sourProc.config(sensorName=abbrevName)
+    #     # Veriry the function of DmXY2CamXY() by (ra, decl) to
+    #     # (focal X, focal Y) and then to (cam X, cam Y)
+    #     # The focal plane coordinate system is the reference of DM
+    #     # and Camera teams
+    #     abbrevNameList = ["R40_S02_C0", "R00_S22_C0", "R04_S20_C0",
+    #                       "R44_S00_C0", "R40_S02_C1", "R00_S22_C1",
+    #                       "R04_S20_C1", "R44_S00_C1"]
+    #     for abbrevName in abbrevNameList: 
+    #         self.sourProc.config(sensorName=abbrevName)
 
-            # Transfrom the abbreviated name to full name
-            fullName = expandDetectorName(abbrevName)
+    #         # Transfrom the abbreviated name to full name
+    #         fullName = expandDetectorName(abbrevName)
 
-            stars = neighborStarMapLocal[fullName]
-            for starID in stars.RaDecl.keys():
-                # Transform star (ra, dec) to focal plane coordinate in mm
-                focalX, focalY = focalPlaneCoordsFromRaDec(
-                        stars.RaDecl[starID][0], stars.RaDecl[starID][1], 
-                        obs_metadata=obs, camera=camera)
+    #         stars = neighborStarMapLocal[fullName]
+    #         for starID in stars.RaDecl.keys():
+    #             # Transform star (ra, dec) to focal plane coordinate in mm
+    #             focalX, focalY = focalPlaneCoordsFromRaDec(
+    #                     stars.RaDecl[starID][0], stars.RaDecl[starID][1], 
+    #                     obs_metadata=obs, camera=camera)
 
-                # Transform focal plane coordinate in mm to pixel position
-                # in camera coordinate 
-                # The input unit is "um" instead of "mm"
-                camX, camY = self.sourProc.focalPlaneXY2CamXY(focalX*1000,
-                                                              focalY*1000)
+    #             # Transform focal plane coordinate in mm to pixel position
+    #             # in camera coordinate 
+    #             # The input unit is "um" instead of "mm"
+    #             camX, camY = self.sourProc.focalPlaneXY2CamXY(focalX*1000,
+    #                                                           focalY*1000)
 
-                # Transform to camera coordinate directly from the DM
-                # coordinate
-                camX1, camY1 = self.sourProc.dmXY2CamXY(
-                                        stars.RaDeclInPixel[starID][0],
-                                        stars.RaDeclInPixel[starID][1])
+    #             # Transform to camera coordinate directly from the DM
+    #             # coordinate
+    #             camX1, camY1 = self.sourProc.dmXY2CamXY(
+    #                                     stars.RaDeclInPixel[starID][0],
+    #                                     stars.RaDeclInPixel[starID][1])
 
-                # Do the comparison
-                delta = np.sqrt( (camX-camX1)**2 + (camY-camY1)**2 )
-                self.assertLess(delta, 10)
+    #             # Do the comparison
+    #             delta = np.sqrt( (camX-camX1)**2 + (camY-camY1)**2 )
+    #             self.assertLess(delta, 10)
 
     def testDeblending(self):
 

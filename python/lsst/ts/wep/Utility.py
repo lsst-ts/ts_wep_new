@@ -1,5 +1,6 @@
 import os
 import subprocess
+import re
 from enum import Enum
 
 import lsst.ts.wep
@@ -80,7 +81,90 @@ def runProgram(command, binDir=None, argstring=None):
         raise RuntimeError("Error running: %s" % command)
 
 
+def expandDetectorName(abbrevName):
+    """Convert a detector name of the form Rxy_Sxy[_Ci] to canonical form:
+    R:x,y S:x,y[,c] C0 -> A, C1 -> B.
+
+    This is copied from lsst.obs.lsstSim:
+    https://github.com/lsst/obs_lsstSim/blob/master/bin.src/
+    makeLsstCameraRepository.py
+
+    Parameters
+    ----------
+    abbrevName : str
+        Abbreviated name.
+
+    Returns
+    -------
+    str
+        Detector canonical name.
+
+    Raises
+    ------
+    ValueError
+        Input does not match the abbreviated form of detector name.
+    """
+
+    m = re.match(r"R(\d)(\d)_S(\d)(\d)(?:_C([0,1]))?$", abbrevName)
+    if m is None:
+        raise ValueError("Cannot parse abbreviated name %r" % (abbrevName,))
+    fullName = "R:%s,%s S:%s,%s" % tuple(m.groups()[0:4])
+    subSensor = m.groups()[4]
+    if subSensor is not None:
+        fullName = fullName + "," + {"0": "A", "1": "B"}[subSensor]
+    return fullName
+
+
+def abbrevDectectorName(canonicalForm):
+    """Convert a canonical name to abbreviate name (R:x,y S:x,y[,c] -->
+    Rxy_Sxy[_Ci]).
+
+    Parameters
+    ----------
+    canonicalForm : str
+        Detector canonical name.
+
+    Returns
+    -------
+    str
+        Abbreviated name.
+
+    Raises
+    ------
+    ValueError
+        Input does not match the canonical form of detector name.
+    """
+
+    # Use the regular expression to analyze the input name
+    m = re.match(r"R:(\d),(\d) S:(\d),(\d)(?:,([A,B]))?$", canonicalForm)
+
+    # Raise error if the input does not match the form of regular expression
+    if (m is None):
+        raise ValueError("Cannot parse canonical name %r" % (canonicalForm,))
+
+    # Generate the abbreviated name
+    abbrevName = "R%s%s_S%s%s" % tuple(m.groups()[0:4])
+
+    # Check the sensor is wavefront sensor or not
+    subSensor = m.groups()[4]
+    if (subSensor is not None):
+        # Label the WFS sensor
+        abbrevName = abbrevName + "_C" + {"A": "0", "B": "1"}[subSensor]
+
+    # Return the abbreviate name
+    return abbrevName
+
+
 def writeFile(filePath, content):
+    """Write the content to file.
+
+    Parameters
+    ----------
+    filePath : str
+        File path.
+    content : str
+        File content.
+    """
 
     with open(filePath, "w") as file:
         file.write(content)
@@ -103,7 +187,7 @@ def readPhoSimSettingData(folderPath, fileName, atype):
     -------
     dict
         Needed CCD data.
-    
+
     Raises
     ------
     ValueError
@@ -154,13 +238,14 @@ def readPhoSimSettingData(folderPath, fileName, atype):
 
         elif (fileName == "focalplanelayout.txt"):
 
-                # Analyze the sensor name to make sure this line of data is needed
+                # Analyze the sensor name to make sure this line of data is
+                # needed
                 sensorNameStr = lineElement[0].split("_")
                 if (len(sensorNameStr) == 2 or len(sensorNameStr) == 3):
                     if (atype == "fieldCenter"):
                         # Collect the field center:
-                        # x position (microns), y position (microns), pixel size (microns)
-                        # number of x pixels, number of y pixels
+                        # x position (microns), y position (microns), pixel
+                        # size (microns) number of x pixels, number of y pixels
                         data = lineElement[1:6]
                     elif (atype == "eulerRot"):
                         # Collect the euler Rotation (degrees)

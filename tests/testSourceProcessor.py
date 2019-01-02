@@ -2,15 +2,10 @@ import os
 import numpy as np
 import unittest
 
-from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.SourceProcessor import SourceProcessor
+from lsst.ts.wep.bsc.NbrStar import NbrStar
 from lsst.ts.wep.Utility import getModulePath, abbrevDectectorName, \
-                                expandDetectorName
-
-
-class testClass(object):
-    # Used only for the test class
-    pass
+                                expandDetectorName, FilterType
 
 
 class TestSourceProcessor(unittest.TestCase):
@@ -102,190 +97,106 @@ class TestSourceProcessor(unittest.TestCase):
 
         return fieldX, fieldY
 
-    def testFocalPlaneXY2CamXY(self):
-        pass
-
-    # def testDmXY2CamXY(self):
-
-    #     # Define the database and get the neighboring star map
-    #     # Address of local database
-    #     dbAdress = os.path.join(self.modulePath, "tests", "testData",
-    #                             "bsc.db3")
-
-    #     # Use the focal plane as a reference to double check the DM XY to
-    #     # Camera XY
-    #     # Boresight (RA, Dec) (unit: degree) (0 <= RA <= 360, -90 <= Dec <= 90)
-    #     pointing = (20.0, 30.0)
-
-    #     # Camera rotation
-    #     cameraRotation = 0.0
-
-    #     # Active filter type
-    #     aFilterType = "u"
-
-    #     # Camera type: "lsst" or "comcam"
-    #     cameraType = "lsst"
-
-    #     # Set the camera MJD
-    #     cameraMJD = 59580.0
-
-    #     # Camera orientation for ComCam ("center" or "corner" or "all")
-    #     # Camera orientation for LSSTcam ("corner" or "all")
-    #     orientation = "corner"
-
-    #     # Maximum distance in units of radius one donut must be considered as
-    #     # a neighbor.
-    #     spacingCoefficient = 2.5
-
-    #     # For the defocus = 1.5 mm, the star's radius is 63 pixel.
-    #     starRadiusInPixel = 63
-
-    #     # Collect the data from bright star catalog
-
-    #     # Get the neighboring star map
-    #     localDb = SourceSelector()
-    #     localDb.configSelector(cameraType=cameraType, dbType="LocalDb",
-    #                            aFilter=aFilterType)
-    #     localDb.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
-    #                               maxNeighboringStar=1)
+    def testDmXY2CamXY(self):
         
-    #     localDb.connect(dbAdress)
-    #     neighborStarMapLocal, starMapLocal, wavefrontSensorsLocal = \
-    #         localDb.getTargetStar(pointing, cameraRotation,
-    #                               orientation=orientation)
-    #     localDb.disconnect()
+        self.sourProc.config(sensorName="R22_S11")
+        self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
 
-    #     # Collect the data
-    #     neighborStarMapLocal = neighborStarMapLocal
-    #     sensorList = wavefrontSensorsLocal.keys()
+    def testCamXY2DmXY(self):
+        
+        self.sourProc.config(sensorName="R22_S11")
+        self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
 
-    #     # Test the DM XY to Camera XY directly
-    #     self.sourProc.config(sensorName="R22_S11")
-    #     self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
+    def testIsVignette(self):
+        
+        isVignette = self.sourProc.isVignette(1.76, 0)
+        self.assertTrue(isVignette)
 
-    #     # Test the Camera XY to DM XY directly
-    #     self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
+        noVignette = self.sourProc.isVignette(0.2, 0.2)
+        self.assertFalse(noVignette)
 
-    #     # Change the DM name to camera team
+    def testSimulateImg(self):
 
-    #     # Test to get the focal plane position
-    #     # When writing the test cases, need to add four corners
-    #     camera = LsstSimMapper().camera
-    #     obs = ObservationMetaData(pointingRA=pointing[0],
-    #                               pointingDec=pointing[1], 
-    #                               rotSkyPos=cameraRotation, mjd=cameraMJD)
+        ccdImgIntra, ccdImgExtra = self._simulateImg()
 
-    #     # Veriry the function of DmXY2CamXY() by (ra, decl) to
-    #     # (focal X, focal Y) and then to (cam X, cam Y)
-    #     # The focal plane coordinate system is the reference of DM
-    #     # and Camera teams
-    #     abbrevNameList = ["R40_S02_C0", "R00_S22_C0", "R04_S20_C0",
-    #                       "R44_S00_C0", "R40_S02_C1", "R00_S22_C1",
-    #                       "R04_S20_C1", "R44_S00_C1"]
-    #     for abbrevName in abbrevNameList: 
-    #         self.sourProc.config(sensorName=abbrevName)
+        self.assertEqual(ccdImgIntra.shape, (4072, 2000))
+        self.assertNotEqual(np.sum(np.abs(ccdImgIntra)), 0)
 
-    #         # Transfrom the abbreviated name to full name
-    #         fullName = expandDetectorName(abbrevName)
+    def _simulateImg(self):
 
-    #         stars = neighborStarMapLocal[fullName]
-    #         for starID in stars.RaDecl.keys():
-    #             # Transform star (ra, dec) to focal plane coordinate in mm
-    #             focalX, focalY = focalPlaneCoordsFromRaDec(
-    #                     stars.RaDecl[starID][0], stars.RaDecl[starID][1], 
-    #                     obs_metadata=obs, camera=camera)
+        imageFolderPath = os.path.join(self.modulePath, "tests", "testData",
+                                       "testImages", "LSST_C_SN26")
+        defocalDis = 0.25
+        nbrStar = self._generateNbrStar()
+        ccdImgIntra, ccdImgExtra = self.sourProc.simulateImg(
+                        imageFolderPath, defocalDis, nbrStar, FilterType.U,
+                        noiseRatio=0)
 
-    #             # Transform focal plane coordinate in mm to pixel position
-    #             # in camera coordinate 
-    #             # The input unit is "um" instead of "mm"
-    #             camX, camY = self.sourProc.focalPlaneXY2CamXY(focalX*1000,
-    #                                                           focalY*1000)
+        return ccdImgIntra, ccdImgExtra
 
-    #             # Transform to camera coordinate directly from the DM
-    #             # coordinate
-    #             camX1, camY1 = self.sourProc.dmXY2CamXY(
-    #                                     stars.RaDeclInPixel[starID][0],
-    #                                     stars.RaDeclInPixel[starID][1])
+    def _generateNbrStar(self):
 
-    #             # Do the comparison
-    #             delta = np.sqrt( (camX-camX1)**2 + (camY-camY1)**2 )
-    #             self.assertLess(delta, 10)
+        nbrStar = NbrStar()
+        nbrStar.starId = {523572575: [], 
+                          523572679: [523572671]}
+        nbrStar.lsstMagU = {523572575: 14.66652, 
+                            523572671: 16.00000, 
+                            523572679: 13.25217}
+        nbrStar.raDeclInPixel = {523572679: (3966.44, 1022.91), 
+                                 523572671: (3968.77, 1081.02),
+                                 523572575: (3475.48, 479.33)}
+        return nbrStar
 
-    # def testDeblending(self):
+    def testGetSingleTargetImage(self):
 
-    #     # Donut image folder
-    #     imageFolder = os.path.join(self.modulePath, "tests", "testData",
-    #                                "testImages")
-    #     donutImageFolder = "LSST_C_SN26"
+        sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
+                                                    self._getSingleTargetImage()
 
-    #     # Give the path to the image folder
-    #     imageFolderPath = os.path.join(imageFolder, donutImageFolder)
+        self.assertEqual(sglSciNeiImg.shape, (310, 310))
+        self.assertAlmostEqual(allStarPosX[0], 126.98)
+        self.assertAlmostEqual(allStarPosX[1], 185.09)
+        self.assertAlmostEqual(allStarPosY[0], 206.77)
+        self.assertAlmostEqual(allStarPosY[1], 204.44)
+        self.assertAlmostEqual(magRatio[0], 0.07959174)
+        self.assertEqual(magRatio[1], 1)
+        self.assertEqual(offsetX, 792.0)
+        self.assertEqual(offsetY, 3762.0)
 
-    #     # Generate the simulated image
-    #     defocalDis = 0.25
-    #     afilter = "u"
-    #     self.sourProc.config(sensorName="R04_S20_C1")
+    def _getSingleTargetImage(self):
 
-    #     # Create a mocked neighboring star map
-    #     neighborStarMap = testClass()
-    #     SimobjID = {523572575: [], 
-    #                 523572679: [523572671]}
-    #     setattr(neighborStarMap, "SimobjID", SimobjID)
-    #     LSSTMagU = {523572575: 14.66652, 
-    #                 523572671: 16.00000, 
-    #                 523572679: 13.25217}
-    #     setattr(neighborStarMap, "LSSTMagU", LSSTMagU)
-    #     RaDeclInPixel = {523572679: (3966.4462129591157, 1022.9153550029878), 
-    #                      523572671: (3968.7766808905071, 1081.0241833910586),
-    #                      523572575: (3475.4821263515223, 479.33235991200854)}
-    #     setattr(neighborStarMap, "RaDeclInPixel", RaDeclInPixel)
+        nbrStar = self._generateNbrStar()
+        ccdImgIntra, ccdImgExtra = self._simulateImg()
+        starIndex = list(nbrStar.getId()).index(523572679)
+        sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
+            self.sourProc.getSingleTargetImage(ccdImgIntra, nbrStar,
+                                               starIndex, FilterType.U)
 
-    #     # Simulate the image
-    #     ccdImgIntra, ccdImgExtra = self.sourProc.simulateImg(
-    #         imageFolderPath, defocalDis, neighborStarMap, afilter,
-    #         noiseRatio=0)
+        return sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, \
+               offsetY
 
-    #     # Check the dimension and the image is not zero
-    #     self.assertEqual(ccdImgIntra.shape, (4072, 2000))
-    #     self.assertNotEqual(np.sum(np.abs(ccdImgIntra)), 0)
+    def testDoDeblending(self):
+        
+        sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
+                                            self._getSingleTargetImage()
 
-    #     # Show the image
-    #     # poltExposureImage(ccdImgIntra, name="Intra focal image", scale="log",
-    #     #                   cmap=None)
-    #     # poltExposureImage(ccdImgIntra, name="Intra focal image",
-    #     #                   scale="linear", cmap=None)
+        imgDeblend, realcx, realcy = self.sourProc.doDeblending(
+                    sglSciNeiImg, allStarPosX, allStarPosY, magRatio)
 
-    #     # Get the images of one bright star map
-    #     starIndex = list(neighborStarMap.SimobjID).index(523572679)
-    #     singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-    #         self.sourProc.getSingleTargetImage(ccdImgIntra, neighborStarMap,
-    #                                            starIndex, afilter)
+        self.assertEqual(imgDeblend.shape, (310, 310))
+        self.assertLess(np.abs(realcx-184.49), 3)
+        self.assertLess(np.abs(realcy-205.00), 3)
 
-    #     # Show the image
-    #     # poltExposureImage(singleSciNeiImg, name="Single intra focal image",
-    #     #                   scale="log", cmap=None)
-    #     # poltExposureImage(singleSciNeiImg, name="Single intra focal image",
-    #     #                   scale="linear", cmap=None)
+        # Get the real camera position x, y after the deblending
+        realCameraX = realcx + offsetX
+        realCameraY = realcy + offsetY
 
-    #     # Do the deblending and determine the real position on camera
-    #     imgDeblend, realcx, realcy = self.sourProc.doDeblending(
-    #             singleSciNeiImg, allStarPosX, allStarPosY, magRatio)
-
-    #     # Show the deblended image
-    #     # poltExposureImage(imgDeblend, name="Deblended image", scale="log",
-    #     #                   cmap=None)
-    #     # poltExposureImage(imgDeblend, name="Deblended image", scale="linear",
-    #     #                   cmap=None)
-
-    #     # Get the real camera position x, y after the deblending
-    #     realCameraX = realcx + offsetX
-    #     realCameraY = realcy + offsetY
-
-    #     # Compared with DM prediction
-    #     dmX, dmY = self.sourProc.dmXY2CamXY(RaDeclInPixel[523572679][0],
-    #                                         RaDeclInPixel[523572679][1])
-    #     delta = np.sqrt( (realCameraX-dmX)**2 + (realCameraY-dmY)**2 )
-    #     self.assertLess(delta, 10)
+        # Compared with DM prediction
+        nbrStar = self._generateNbrStar()
+        raDeclInPixel = nbrStar.getRaDeclInPixel()
+        camX, camY = self.sourProc.dmXY2CamXY(raDeclInPixel[523572679][0],
+                                              raDeclInPixel[523572679][1])
+        delta = np.sqrt( (realCameraX-camX)**2 + (realCameraY-camY)**2 )
+        self.assertLess(delta, 10)
 
 
 if __name__ == "__main__":

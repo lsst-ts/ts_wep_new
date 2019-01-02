@@ -16,7 +16,11 @@ class SourceProcessor(object):
     # 1 pixel = 10 um
     PIXEL_TO_UM = 10
 
+    # Focal plane file name in PhoSim instrument directory
     PHOSIM_FOCALPLANE = "focalplanelayout.txt"
+
+    # Distance to be vignette
+    DIST_VIGNETTE = 1.75
 
     def __init__(self, folderPath2FocalPlane=None):
         """Initialize the SourceProcessor class.
@@ -279,311 +283,135 @@ class SourceProcessor(object):
 
         return newX, newY
 
-    def focalPlaneXY2CamXY(self, xInUm, yInUm):
-        """
-        
-        Get the x, y position on camera plane from the focal plane position.
-        
-        Arguments:
-            xInUm {[float]} -- Position x on focal plane in um.
-            yInUm {[float]} -- Position y on focal plane in um.
-
-        Returns:
-            [float] -- Pixel x, y position on camera plane.
-        """
-
-        # Get the central position of sensor in um
-        xc, yc = self.sensorFocaPlaneInUm[self.sensorName]
-
-        # Get the center pixel position
-        pixelXc, pixelYc = self.sensorDimList[self.sensorName]
-        pixelXc = pixelXc/2
-        pixelYc = pixelYc/2
-
-        # Calculate the delta x and y in pixel
-        deltaX = (xInUm-xc) / self.PIXEL_TO_UM
-        deltaY = (yInUm-yc) / self.PIXEL_TO_UM
-
-        # Calculate the transformed coordinate
-        pixelX, pixelY = self._rotCam2FocalPlane(self.sensorName, pixelXc, pixelYc, deltaX, 
-                                                    deltaY, clockWise=True)
-
-        return pixelX, pixelY
-
     def dmXY2CamXY(self, pixelDmX, pixelDmY):
+        """Transform the pixel x, y from DM library to camera to use.
+
+        Camera coordinate is defined in LCA-13381. Define camera coordinate
+        (x, y) and DM coordinate (x', y'), then the relation is dx' = -dy,
+        dy' = dx.
+
+        Parameters
+        ----------
+        pixelDmX : float
+            Pixel x defined in DM coordinate.
+        pixelDmY : float
+            Pixel y defined in DM coordinate.
+
+        Returns
+        -------
+        float
+            Pixel x defined in camera coordinate based on LCA-13381.
+        float
+            Pixel y defined in camera coordinate based on LCA-13381.
         """
 
-        Transform the pixel x, y from DM library to camera to use. Camera coordinate is defined
-        in LCA-13381. Define camera coordinate (x, y) and DM coordinate (x', y'), then the relation
-        is dx' = -dy, dy' = dx.
-
-         O---->y
-         |
-         |   ----------------------
-         \/ |                      |   (x', y') = (200, 500) => (x, y) = (-500, 200) -> (3500, 200)
-         x  |                      |
-            |4000                  |
-        y'  |                      |
-         /\ |       4072           |
-         |  |----------------------
-         |
-         O-----> x'
-
-        Arguments:
-            pixelDmX {[float]} -- Pixel x defined in DM coordinate.
-            pixelDmY {[float]} -- Pixel y defined in DM coordinate.
-
-        Returns:
-            [float] -- Pixel x, y defined in camera coordinate based on LCA-13381.
-        """
+        #  O---->y
+        #  |
+        #  |   ----------------------
+        #  \/ |                      |   (x', y') = (200, 500) =>
+        #  x  |                      |   (x, y) = (-500, 200) -> (3500, 200)
+        #     |4000                  |
+        # y'  |                      |
+        #  /\ |       4072           |
+        #  |  |----------------------
+        #  |
+        #  O-----> x'
 
         # Get the CCD dimension
         dimX, dimY = self.sensorDimList[self.sensorName]
 
         # Calculate the transformed coordinate
-        pixelCamX = dimX-pixelDmY
+        pixelCamX = dimX - pixelDmY
         pixelCamY = pixelDmX
 
         return pixelCamX, pixelCamY
 
     def camXY2DmXY(self, pixelCamX, pixelCamY):
+        """Transform the pixel x, y from camera coordinate to DM coordinate.
+
+        Camera coordinate is defined in LCA-13381.
+
+        Parameters
+        ----------
+        pixelCamX : float
+            Pixel x defined in Camera coordinate based on LCA-13381.
+        pixelCamY : float
+            Pixel y defined in Camera coordinate based on LCA-13381.
+
+        Returns
+        -------
+        float
+            Pixel x defined in DM coordinate.
+        float
+            Pixel y defined in DM coordinate.
         """
-        
-        Transform the pixel x, y from camera coordinate to DM coordinate. Camera coordinate is 
-        defined in LCA-13381.
-        
-        Arguments:
-            pixelCamX {[float]} -- Pixel x defined in Camera coordinate based on LCA-13381.
-            pixelCamY {[float]} -- Pixel y defined in Camera coordinate based on LCA-13381.
-        
-        Returns:
-            [float] -- Pixel x, y defined in DM coordinate.
-        """
-        
+
         # Get the CCD dimension
         dimX, dimY = self.sensorDimList[self.sensorName]
 
         # Calculate the transformed coordinate
         pixelDmX = pixelCamY
-        pixelDmY = dimX-pixelCamX
+        pixelDmY = dimX - pixelCamX
 
         return pixelDmX, pixelDmY
 
-    def evalVignette(self, fieldX, fieldY, distanceToVignette=1.75):
-        """
-        
-        Evaluate the donut is vignetted or not by comparing the donut's distance to center with
-        a reference value.
-        
-        Arguments:
-            fieldX {[float]} -- Field x in degree.
-            fieldY {[float]} -- Field y in degree.
-        
-        Keyword Arguments:
-            distanceToVignette {float} -- Reference to be the vignetting. Use the half of field 
-                                            of view as a initial guess. (default: {1.75})
-        
-        Returns:
-            [type] -- [description]
-        """
-        
-        # The donut is vignetted or not.
-        isVignette = False
+    def isVignette(self, fieldX, fieldY):
+        """The donut is vignetted or not by calculating the donut's distance to
+        center.
 
-        # Calculate the distance to center in degree to judge the donut is vignetted or not.
+        Parameters
+        ----------
+        fieldX : float
+            Field x in degree.
+        fieldY : float
+            Field y in degree.
+        
+        Returns
+        -------
+        bool
+            True if the donut is vignette.
+        """
+
+        # Calculate the distance to center in degree to judge the donut is
+        # vignetted or not.
         fldr = np.sqrt(fieldX**2 + fieldY**2)
-        if (fldr >= distanceToVignette):
-            isVignette = True 
+        if (fldr >= self.DIST_VIGNETTE):
+            return True
+        else:
+            return False
 
-        return isVignette
-
-    def doDeblending(self, blendedImg, allStarPosX, allStarPosY, magRatio):
-        """
-        
-        Do the deblending. It is noted that the algorithm now is only for one bright star and 
-        one neighboring star.
-        
-        Arguments:
-            blendedImg {[float]} -- Blended image.
-            allStarPosX {[float]} -- Star's position x in pixel. The final one is the bright star.
-            allStarPosY {[float]} -- Star's position y in pixel. The final one is the bright star.
-            magRatio {[float]} -- Star's magnitude compared with the bright star.
-        
-        Returns:
-            [float] -- Deblended image.
-            [float] -- Pixel x, y of bright star.
-        
-        Raises:
-            ValueError -- The inputs are not one bright star + one neighboring star.
-        """
-
-        # Check there is only one bright star and one neighboring star. This is the limit of 
-        # deblending algorithm now.
-        if (len(magRatio) != 2):
-            raise ValueError("Deblending can only handle one bright star and one neighboring Star now.")
-
-        # Set the image for the deblending
-        self.blendedImageDecorator.setImg(image=blendedImg)
-
-        # Do the deblending
-        imgDeblend, realcx, realcy = self.blendedImageDecorator.deblendDonut([allStarPosX[0], 
-                                                                 allStarPosY[0]], magRatio[0])
-
-        return imgDeblend, realcx, realcy
-
-    def getSingleTargetImage(self, ccdImg, neighboringStarMapOnSingleSensor, index, aFilter):
-        """
-
-        Get the image of single scientific target and related neighboring stars.
-
-        Arguments:
-            ccdImg {[float]} -- CCD image.
-            neighboringStarMapOnSingleSensor {[dict]} -- Neighboring star map.
-            index {[int]} -- Index of science target star in neighboring star map.
-            aFilter {[str]} -- Active filter type
-
-        Returns:
-            [float] -- Ccd image of target stars.
-            [float] -- Star positions in x, y.
-            [float] -- Star magnitude ratio compared with the bright star.
-            [float] -- Offset x, y from the origin of target star image to the origin of 
-                        CCD image.
-
-        Raises:
-            ValueError -- Science star index is out of the neighboring star map.
-        """
-    
-        # Get the target star position
-        if (index >= len(neighboringStarMapOnSingleSensor.SimobjID)):
-            raise ValueError("Index is higher than the length of star map.")
-
-        # Get the star SimobjID
-        brightStar = list(neighboringStarMapOnSingleSensor.SimobjID)[index]
-        neighboringStar = neighboringStarMapOnSingleSensor.SimobjID[brightStar]
-
-        # Get all star SimobjID list
-        allStar = neighboringStar[:]
-        allStar.append(brightStar)
-
-        # Get the pixel positions
-        allStarPosX = []
-        allStarPosY = []
-        for star in allStar:
-
-            # Get the star pixel position 
-            starX, starY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
-
-            # Transform the coordiante from DM team to camera team
-            starX, starY = self.dmXY2CamXY(starX, starY)
-
-            allStarPosX.append(starX)
-            allStarPosY.append(starY)
-
-        # Check the ccd image dimenstion
-        ccdD1, ccdD2 = ccdImg.shape
-
-        # Define the range of image
-        # Get min/ max of x, y
-        minX = int(min(allStarPosX))
-        maxX = int(max(allStarPosX))
-
-        minY = int(min(allStarPosY))
-        maxY = int(max(allStarPosY))
-
-        # Get the central point
-        cenX = int(np.mean([minX, maxX]))
-        cenY = int(np.mean([minY, maxY]))
-
-        # Get the image dimension
-        d1 = (maxY-minY) + 4 * self.STAR_RADIUS_IN_PIXEL
-        d2 = (maxX-minX) + 4 * self.STAR_RADIUS_IN_PIXEL
-
-        # Make d1 and d2 to be symmetric and even
-        d = max(d1, d2)
-        if (d%2 == 1):
-            # Use d-1 instead of d+1 to avoid the boundary touch
-            d = d-1
-
-        # Compare the distances from the central point to four boundaries of ccd image
-        cenYup = ccdD1 - cenY
-        cenXright = ccdD2 - cenX
-
-        # If central x or y plus d/2 will over the boundary, shift the central x, y values
-        cenY = self._shiftCenter(cenY, ccdD1, d/2)
-        cenY = self._shiftCenter(cenY, 0, d/2)
-
-        cenX = self._shiftCenter(cenX, ccdD2, d/2)
-        cenX = self._shiftCenter(cenX, 0, d/2)
-
-        # Get the bright star and neighboring stas image
-        offsetX = cenX-d/2
-        offsetY = cenY-d/2
-        singleSciNeiImg = ccdImg[int(offsetY):int(cenY+d/2), int(offsetX):int(cenX+d/2)]
-
-        # Get the stars position in the new coordinate system
-        # The final one is the bright star
-        allStarPosX = np.array(allStarPosX)-offsetX
-        allStarPosY = np.array(allStarPosY)-offsetY
-
-        # Get the star magnitude
-        magList = getattr(neighboringStarMapOnSingleSensor, "LSSTMag"+aFilter.upper())
-
-        # Get the list of magnitude
-        magRatio = np.array([])
-        for star in allStar:
-            neiMag = magList[star]
-            magRatio = np.append(magRatio, neiMag)
-
-        # Calculate the magnitude ratio
-        magRatio = 1/100**((magRatio-magRatio[-1])/5.0)
-        magRatio = magRatio.tolist()
-
-        return singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY
-
-    def _shiftCenter(self, center, boundary, distance):
-        """
-
-        Shift the center if its distance to boundary is less than required.
-
-        Arguments:
-            center {[float]} -- Center point.
-            boundary {[float]} -- Boundary point.
-            distance {[float]} -- Required distance.
-
-        Returns:
-            [float] -- Shifted center.
-        """
-
-        # Distance between the center and boundary
-        delta = boundary - center
-
-        # Shift the center if needed
-        if (abs(delta) < distance):
-            center = boundary - np.sign(delta)*distance
-
-        return center
-
-    def simulateImg(self, imageFolderPath, defocalDis, neighboringStarMapOnSingleSensor, aFilterType, 
+    def simulateImg(self, imageFolderPath, defocalDis, nbrStar, filterType, 
                     noiseRatio=0.01):
-        """
+        """Simulate the defocal CCD images with the neighboring star map.
 
-        Simulate the defocal CCD images with the neighboring star map.
+        This function is only for the test use.
 
-        Arguments:
-            imageFolderPath {[str]} -- Path to image directory.
-            defocalDis {[float]} -- Defocal distance in mm.
-            neighboringStarMapOnSingleSensor {[dict]} -- Neighboring star map.
-            aFilterType {[string]} -- Active filter type.
+        Parameters
+        ----------
+        imageFolderPath : str
+            Path to image directory.
+        defocalDis : float
+            Defocal distance in mm.
+        nbrStar : NbrStar
+            Neighboring star on single detector.
+        filterType : FilterType
+            Filter type.
+        noiseRatio : float, optional
+            The noise ratio. (the default is 0.01.)
 
-        Keyword Arguments:
-            noiseRatio {[float]} -- The noise ratio. (default: {0.01})
+        Returns
+        -------
+        numpy.ndarray
+            Simulated intra-focal images.
+        numpy.ndarray
+            Simulated extra-focal images.
 
-        Returns:
-            [float] -- Simulated intra- and extra-focal images.
-
-        Raises:
-            ValueError -- No intra-focal image files.
-            ValueError -- Numbers of intra- and extra-focal image files are different.
+        Raises
+        -------
+        ValueError
+            No available donut images.
+        ValueError
+            The numbers of intra- and extra-focal images are different.
         """
 
         # Generate the intra- and extra-focal ccd images
@@ -591,11 +419,11 @@ class SourceProcessor(object):
         ccdImgIntra = np.random.random([d2, d1])*noiseRatio
         ccdImgExtra = ccdImgIntra.copy()
 
-        # Redefine the format of defocal distance
-        defocalDis = "%.2f" % defocalDis
-
         # Get all files in the image directory in a sorted order
         fileList = sorted(os.listdir(imageFolderPath))
+
+        # Redefine the format of defocal distance
+        defocalDis = "%.2f" % defocalDis
 
         # Get the available donut files
         intraFileList = []
@@ -624,26 +452,29 @@ class SourceProcessor(object):
 
         # Check the numbers of intra- and extra-focal images should be the same
         if (numFile != len(extraFileList)):
-            raise ValueError("The numbers of intra- and extra-focal images are different.")
+            raise ValueError(
+                "The numbers of intra- and extra-focal images are different.")
 
         # Get the magnitude of stars
-        nameOfMagAttribute = "LSSTMag" + aFilterType.upper()
-        starMag = getattr(neighboringStarMapOnSingleSensor, nameOfMagAttribute)
+        starMag = nbrStar.getMag(filterType)
 
-        # Based on the neighboringStarMapOnSingleSensor to reconstruct the image
-        for brightStar, neighboringStar in neighboringStarMapOnSingleSensor.SimobjID.items():
+        # Based on the nbrStar to reconstruct the image
+        for brightStar, neighboringStar in nbrStar.getId().items():
 
             # Generate a random number
             randNum = np.random.randint(0, high=numFile)
 
             # Choose a random donut image from the file
-            donutImageIntra = self._getDonutImgFromFile(imageFolderPath, intraFileList[randNum])
-            donutImageExtra = self._getDonutImgFromFile(imageFolderPath, extraFileList[randNum])
+            donutImageIntra = self._getDonutImgFromFile(
+                                    imageFolderPath, intraFileList[randNum])
+            donutImageExtra = self._getDonutImgFromFile(
+                                    imageFolderPath, extraFileList[randNum])
 
             # Get the bright star magnitude
             magBS = starMag[brightStar]
 
-            # Combine the bright star and neighboring stars. Put the bright star in the first one.
+            # Combine the bright star and neighboring stars. Put the bright
+            # star in the first one.
             allStars = neighboringStar[:]
             allStars.insert(0, brightStar)
 
@@ -651,52 +482,61 @@ class SourceProcessor(object):
             for star in allStars:
 
                 # Get the brigtstar pixel x, y
-                starX, starY = neighboringStarMapOnSingleSensor.RaDeclInPixel[star]
+                starX, starY = nbrStar.getRaDeclInPixel()[star]
                 magStar = starMag[star]
 
                 # Transform the coordiante from DM team to camera team
                 starX, starY = self.dmXY2CamXY(starX, starY)
 
-                # Ratio of magnitude between donuts (If the magnitudes of stars differs by 5,
-                # the brightness differs by 100.)
+                # Ratio of magnitude between donuts (If the magnitudes of stars
+                # differs by 5, the brightness differs by 100.)
                 # (Magnitude difference shoulbe be >= 1.)
-                magDiff = magStar-magBS
-                magRatio = 1/100**(magDiff/5.0)
+                magDiff = magStar - magBS
+                magRatio = 1 / 100 ** (magDiff / 5.0)
 
                 # Add the donut image
-                self._addDonutImage(magRatio*donutImageIntra, starX, starY, ccdImgIntra)
-                self._addDonutImage(magRatio*donutImageExtra, starX, starY, ccdImgExtra)
+                self._addDonutImage(magRatio * donutImageIntra, starX, starY,
+                                    ccdImgIntra)
+                self._addDonutImage(magRatio * donutImageExtra, starX, starY,
+                                    ccdImgExtra)
 
         return ccdImgIntra, ccdImgExtra
 
     def _getDonutImgFromFile(self, imageFolderPath, fileName):
-        """
+        """Read the donut image from the file.
 
-        Read the donut image from the file.
+        Parameters
+        ----------
+        imageFolderPath : str
+            Path to image directory.
+        fileName : str
+            File name.
 
-        Arguments:
-            imageFolderPath {[str]} -- Path to image directory.
-            fileName {[str]} -- File name.
-
-        Returns:
-            [float] -- Image in numpy array.
+        Returns
+        -------
+        numpy.ndarray
+            Donut image.
         """
 
         # Get the donut image from the file by the delegation
-        self.blendedImageDecorator.setImg(imageFile=os.path.join(imageFolderPath, fileName))
+        self.blendedImageDecorator.setImg(
+                            imageFile=os.path.join(imageFolderPath, fileName))
 
-        return self.blendedImageDecorator.image.copy()
+        return self.blendedImageDecorator.getImg().copy()
 
     def _addDonutImage(self, donutImage, starX, starY, ccdImg):
-        """
+        """Add the donut image to simulated CCD image frame.
 
-        Add the donut image to simulated CCD image frame.
-
-        Arguments:
-            donutImage {[float]} -- Image in numpy array.
-            starX {[float]} -- Star position in pixel x.
-            starY {[float]} -- Star position in pixel y.
-            ccdImg {[float]} -- CCD image in numpy array.
+        Parameters
+        ----------
+        donutImage : numpy.ndarray
+            Donut image.
+        starX : float
+            Star position in pixel x.
+        starY : float
+            Star position in pixel y.
+        ccdImg : numpy.ndarray
+            CCD image.
         """
 
         # Get the dimension of donut image
@@ -707,7 +547,217 @@ class SourceProcessor(object):
         x = int(starX)
 
         # Add the donut image on the CCD image
-        ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += donutImage
+        ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += \
+                                                                    donutImage
+
+    def getSingleTargetImage(self, ccdImg, nbrStar, index, filterType):
+        """Get the image of single scientific target and related neighboring
+        stars.
+
+        Parameters
+        ----------
+        ccdImg : numpy.ndarray
+            CCD image.
+        nbrStar : NbrStar
+            Neighboring star on single detector.
+        index : int
+            Index of science target star in neighboring star.
+        filterType : FilterType
+            Filter type.
+
+        Returns
+        -------
+        numpy.ndarray
+            Ccd image of target stars.
+        numpy.ndarray
+            Star positions in x. The arange is [neighboring stars, bright star].
+        numpy.ndarray
+            Star positions in y. The arange is [neighboring stars, bright star].
+        numpy.ndarray
+            Star magnitude ratio compared with the bright star. The arange is
+            [neighboring stars, bright star].
+        float
+            Offset x from the origin of target star image to the origin of CCD
+            image.
+        float
+            Offset y from the origin of target star image to the origin of CCD
+            image.
+
+        Raises
+        ------
+        ValueError
+            Index is higher than the length of star map.
+        """
+
+        # Get the target star position
+        nbrStarId = nbrStar.getId()
+        if (index >= len(nbrStarId)):
+            raise ValueError("Index is higher than the length of star map.")
+
+        # Get the star SimobjID
+        brightStar = list(nbrStarId)[index]
+        neighboringStar = nbrStarId[brightStar]
+
+        # Get all star SimobjID list
+        allStar = neighboringStar[:]
+        allStar.append(brightStar)
+
+        # Get the pixel positions
+        raDeclInPixel = nbrStar.getRaDeclInPixel()
+        allStarPosX = []
+        allStarPosY = []
+        for star in allStar:
+
+            # Get the star pixel position 
+            starX, starY = raDeclInPixel[star]
+
+            # Transform the coordiante from DM team to camera team
+            starX, starY = self.dmXY2CamXY(starX, starY)
+
+            allStarPosX.append(starX)
+            allStarPosY.append(starY)
+
+        # Check the ccd image dimenstion
+        ccdD1, ccdD2 = ccdImg.shape
+
+        # Define the range of image
+        # Get min/ max of x, y
+        minX = int(min(allStarPosX))
+        maxX = int(max(allStarPosX))
+
+        minY = int(min(allStarPosY))
+        maxY = int(max(allStarPosY))
+
+        # Get the central point
+        cenX = int(np.mean([minX, maxX]))
+        cenY = int(np.mean([minY, maxY]))
+
+        # Get the image dimension
+        d1 = (maxY - minY) + 4 * self.STAR_RADIUS_IN_PIXEL
+        d2 = (maxX - minX) + 4 * self.STAR_RADIUS_IN_PIXEL
+
+        # Make d1 and d2 to be symmetric and even
+        d = max(d1, d2)
+        if (d%2 == 1):
+            # Use d-1 instead of d+1 to avoid the boundary touch
+            d = d-1
+
+        # Compare the distances from the central point to four boundaries of
+        # ccd image
+        cenYup = ccdD1 - cenY
+        cenXright = ccdD2 - cenX
+
+        # If central x or y plus d/2 will over the boundary, shift the
+        # central x, y values
+        cenY = self._shiftCenter(cenY, ccdD1, d / 2)
+        cenY = self._shiftCenter(cenY, 0, d / 2)
+
+        cenX = self._shiftCenter(cenX, ccdD2, d / 2)
+        cenX = self._shiftCenter(cenX, 0, d / 2)
+
+        # Get the bright star and neighboring stas image
+        offsetX = cenX - d / 2
+        offsetY = cenY - d / 2
+        singleSciNeiImg = \
+                ccdImg[int(offsetY):int(cenY + d / 2),
+                       int(offsetX):int(cenX + d / 2)]
+
+        # Get the stars position in the new coordinate system
+        # The final one is the bright star
+        allStarPosX = np.array(allStarPosX) - offsetX
+        allStarPosY = np.array(allStarPosY) - offsetY
+
+        # Get the star magnitude
+        magList = nbrStar.getMag(filterType)
+
+        # Get the list of magnitude
+        magRatio = np.array([])
+        for star in allStar:
+            neiMag = magList[star]
+            magRatio = np.append(magRatio, neiMag)
+
+        # Calculate the magnitude ratio
+        magRatio = 1 / 100 ** ((magRatio - magRatio[-1]) / 5.0)
+
+        return singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, \
+               offsetY
+
+    def _shiftCenter(self, center, boundary, distance):
+        """Shift the center if its distance to boundary is less than required.
+
+        Parameters
+        ----------
+        center : float
+            Center point.
+        boundary : float
+            Boundary point.
+        distance : float
+            Required distance.
+
+        Returns
+        -------
+        float
+            Shifted center.
+        """
+
+        # Distance between the center and boundary
+        delta = boundary - center
+
+        # Shift the center if needed
+        if (abs(delta) < distance):
+            return boundary - np.sign(delta)*distance
+        else:
+            return center
+
+    def doDeblending(self, blendedImg, allStarPosX, allStarPosY, magRatio):
+        """Do the deblending.
+
+        It is noted that the algorithm now is only for one bright star and one
+        neighboring star.
+
+        Parameters
+        ----------
+        blendedImg : numpy.ndarray
+            Blended image.
+        allStarPosX : list or numpy.ndarray
+            Star's position x in pixel. The arange is [neighboring star,
+            bright star].
+        allStarPosY : list or numpy.ndarray
+            Star's position y in pixel. The arange is [neighboring star,
+            bright star].
+        magRatio : list or numpy.ndarray
+            Star magnitude ratio compared with the bright star. The arange is
+            [neighboring stars, bright star].
+
+        Returns
+        -------
+        numpy.ndarray
+            Deblended image.
+        float
+            Pixel x of bright star.
+        float
+            Pixel y of bright star.
+
+        Raises
+        ------
+        ValueError
+            Only one neighboring star allowed.
+        """
+
+        # Check there is only one bright star and one neighboring star.
+        # This is the limit of deblending algorithm now.
+        if (len(magRatio) != 2):
+            raise ValueError("Only one neighboring star allowed.")
+
+        # Set the image for the deblending
+        self.blendedImageDecorator.setImg(image=blendedImg)
+
+        # Do the deblending
+        imgDeblend, realcx, realcy = \
+            self.blendedImageDecorator.deblendDonut(
+                    [allStarPosX[0], allStarPosY[0]], magRatio[0])
+
+        return imgDeblend, realcx, realcy
 
 
 if __name__ == "__main__":

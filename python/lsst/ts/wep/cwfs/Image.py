@@ -18,6 +18,17 @@ class Image(object):
         self.image = None
         self.name = None
 
+    def getImg(self):
+        """Get the image.
+
+        Returns
+        -------
+        Numpy.ndarray
+            Get the image.
+        """
+
+        return self.image
+
     def setImg(self, image=None, imageFile=None):
         """
         

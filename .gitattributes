@@ -51,3 +51,7 @@
 /tests/testData/registry.sqlite3 filter=lfs diff=lfs merge=lfs -text
 /tests/testData/repackagedPhoSimData/raw/20/R00/00000020-R00-S22-det197-000.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/repackagedFiles/lsst_a_20_f5_R00_S22_E000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/phosimOutput/realComCam/repackagedFiles/extra/lsst_a_9005000_f1_R22_S10_E000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/phosimOutput/realComCam/repackagedFiles/extra/lsst_a_9005000_f1_R22_S11_E000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/phosimOutput/realComCam/repackagedFiles/intra/lsst_a_9005001_f1_R22_S10_E000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/phosimOutput/realComCam/repackagedFiles/intra/lsst_a_9005001_f1_R22_S11_E000.fits filter=lfs diff=lfs merge=lfs -text

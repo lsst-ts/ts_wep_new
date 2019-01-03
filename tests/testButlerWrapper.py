@@ -13,7 +13,7 @@ class TestButlerWrapper(unittest.TestCase):
 
         self.inputs = os.path.join(getModulePath(), "tests", "testData",
                                    "repackagedPhoSimData")
-        self.butlerWrapper = ButlerWrapper(inputs=self.inputs)
+        self.butlerWrapper = ButlerWrapper(self.inputs)
 
     def testGetRawExp(self):
 

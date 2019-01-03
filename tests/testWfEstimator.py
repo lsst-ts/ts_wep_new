@@ -6,7 +6,7 @@ from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.Utility import getModulePath
 
 
-class TestWFEsitmator(unittest.TestCase):
+class TestWfEsitmator(unittest.TestCase):
     """Test the wavefront estimator class."""
 
     def setUp(self):

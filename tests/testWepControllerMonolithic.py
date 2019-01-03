@@ -9,7 +9,8 @@ from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.WepController import WepController
 
-from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType
+from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType,\
+                                runProgram
 
 
 class TestWepControllerMonolithic(unittest.TestCase):
@@ -81,17 +82,47 @@ class TestWepControllerMonolithic(unittest.TestCase):
             if name.startswith("step"):
                 yield name, getattr(self, name)
 
+    @unittest.skip
     def tearDown(self):
 
         shutil.rmtree(self.dataDir)
 
     def step1_genCalibsAndIngest(self):
 
-        print("Step 1.")
+        # Generate the fake flat images
+        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
+        self._makeDir(fakeFlatDir)
+
+        detector = "R22_S11 R22_S10"
+        self._genFakeFlat(fakeFlatDir, detector)
+
+        # Generate the PhoSim mapper
+        self.wepCntlr.dataCollector.genPhoSimMapper()
+
+        # Do the ingestion
+        calibFiles = os.path.join(fakeFlatDir, "*")
+        self.wepCntlr.dataCollector.ingestCalibs(calibFiles)
+
+    def _genFakeFlat(self, fakeFlatDir, detector):
+        
+        currWorkDir = os.getcwd()
+
+        os.chdir(fakeFlatDir)
+        self._makeFakeFlat(detector)
+        os.chdir(currWorkDir)
+
+    def _makeFakeFlat(self, detector):
+
+        command = "makeGainImages.py"
+        argstring = "--detector_list %s" % detector
+        runProgram(command, argstring=argstring)
 
     def step2_ingestExp(self):
 
         print("Step 2.")
+
+    def step3_doIsr(self):
+        pass
 
     #     # Instantiate the WEP controller
     #     self.wepCntlr = WEPController()

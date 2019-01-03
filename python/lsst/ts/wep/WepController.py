@@ -138,125 +138,6 @@ class WepController(object):
         
         return neighborStarMap, starMap, wavefrontSensors
 
-    def ingestSimImages(self, fitsFileArg=None, dataDir=None, atype="raw", overwrite=False):
-        """
-        
-        Import the PhoSim simulated data to match with the data butler to use. This means the 
-        registry.sqlite3 repo will be inserted with the meta data if necessary.
-        
-        Keyword Arguments:
-            fitsFileArg {[str]} -- Fits file argument. This is for DM cmd task. (default: {None})
-            dataDir {[str]} -- PhoSim FITS data directory. (default: {None})
-            atype {[str]} -- Dataset type. (default: {"raw"})
-            overwrite {[boolean]} -- Overwrite the existed files or not. (default: {False})
-        
-        Raises:
-            ValueError -- Not allowed type ("raw", "bias", "dark", "flat").
-        """
-
-        if (fitsFileArg is not None):
-            self.dataCollector.ingestSimImages(fitsFileArg=fitsFileArg)
-
-        else:
-
-            # Get all files in the directory
-            fileList = self.__getRawFileList(dataDir)
-
-            # Find the obsId and aFilter
-            obsIdList = []
-            for fileName in fileList:
-                m = re.match(r"\S*_(\d*)_f(\d)_\S*", fileName)
-                if (m is not None):
-                    obsIdList.append(m.groups())
-
-            # Get the unique list
-            obsIdList = list(set(obsIdList))
-            if (len(obsIdList) > 1):
-                raise RuntimeError("There are more than one unique ObdId and filter in directory.")
-            data = obsIdList[0]
-
-            # Import to butler
-            phosimFilterID = {"0": "u", "1": "g", "2": "r", "3": "i", "4": "z", "5": "y"}
-            obsId = int(data[0])
-            aFilter = phosimFilterID[data[1]]
-            self.dataCollector.ingestSimImages(dataDir, obsId=obsId, aFilter=aFilter, atype=atype, 
-                                                        overwrite=overwrite)
-
-    def __getRawFileList(self, dataDir):
-        """
-        
-        Get the raw file list in the directory.
-        
-        Arguments:
-            dataDir {[str]} -- Data directory.
-        
-        Returns:
-            [list] -- File list.
-        """
-
-        # Get all files in the directory
-        fullDataDir = os.path.join(self.dataCollector.pathOfRawData, dataDir)
-        fileList = [f for f in os.listdir(fullDataDir) if os.path.isfile(os.path.join(fullDataDir, f))]
-
-        return fileList
-
-    def doISR(self, visit, sensorName, snap=0, fakeDatasetType="eimage", 
-                outputDatasetType="postISRCCD"):
-        """
-        
-        Do the instrument signature removal (ISR).
-        
-        Arguments:
-            visit {[int]} -- Visit time.
-            sensorName {[str]} -- Sensor name. (e.g. "R:2,2 S:1,1")
-        
-        Keyword Arguments:
-            snap {int} -- Snap time (0 or 1) means first/ second exposure. (default: {0})
-            fakeDatasetType {[str]} -- Use this type of image supported by lsst camera mapper 
-                                        to simulate the post-ISR image. (default: {"eimage"})
-            outputDatasetType {[str]} -- Output data type supported by lsst camera mapper. 
-                                        (default: {"postISRCCD"})
-
-        Returns:
-            [ExposureU] -- Exposure image after ISR.
-        """
-
-        # Use the regular expression to analyze the input name
-        raft, sensor, channel = self.__getSensorInfo(sensorName)
-        if (raft is not None):
-
-            # Do the ISR
-            if (isinstance(self.isrWrapper, SciIsrWrapper)):
-                self.isrWrapper.doISR(visit, snap, raft, sensor)
-            else:
-                self.isrWrapper.doISR(visit, snap, raft, sensor, channel=None, 
-                            fakeDatasetType=fakeDatasetType, outputDatasetType=outputDatasetType)
-        else:
-            raise RuntimeError("Sensor name: '%s' is not allowed." % sensorName)
-
-    def __getSensorInfo(self, sensorName):
-        """
-        
-        Get the sensor information.
-        
-        Arguments:
-            sensorName {[str]} -- Sensor name (e.g. "R:2,2 S:1,1" or "R:0,0 S:2,2,A")
-        
-        Returns:
-            [str] -- Raft.
-            [str] -- Sensor.
-            [str] -- Channel.
-        """
-
-        raft = sensor = channel = None
-        
-        # Use the regular expression to analyze the input name
-        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
-        if (m is not None):
-            raft, sensor, channel = m.groups()[0:3]
-
-        return raft, sensor, channel
-
     def __searchFileName(self, fileList, matchName, snap=0):
         """
         
@@ -365,6 +246,47 @@ class WepController(object):
                         wfsImgMap[sensorName].setImg(extraImg=wfsImg)
 
         return wfsImgMap
+
+    def __getRawFileList(self, dataDir):
+        """
+        
+        Get the raw file list in the directory.
+        
+        Arguments:
+            dataDir {[str]} -- Data directory.
+        
+        Returns:
+            [list] -- File list.
+        """
+
+        # Get all files in the directory
+        fullDataDir = os.path.join(self.dataCollector.pathOfRawData, dataDir)
+        fileList = [f for f in os.listdir(fullDataDir) if os.path.isfile(os.path.join(fullDataDir, f))]
+
+        return fileList
+
+    def __getSensorInfo(self, sensorName):
+        """
+        
+        Get the sensor information.
+        
+        Arguments:
+            sensorName {[str]} -- Sensor name (e.g. "R:2,2 S:1,1" or "R:0,0 S:2,2,A")
+        
+        Returns:
+            [str] -- Raft.
+            [str] -- Sensor.
+            [str] -- Channel.
+        """
+
+        raft = sensor = channel = None
+        
+        # Use the regular expression to analyze the input name
+        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
+        if (m is not None):
+            raft, sensor, channel = m.groups()[0:3]
+
+        return raft, sensor, channel
 
     def __searchDonutListId(self, donutList, starId):
         """

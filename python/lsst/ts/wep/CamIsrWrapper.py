@@ -93,7 +93,7 @@ class CamIsrWrapper(object):
         rerunName : str, optional
             Rerun name. (the default is "run1".)
         """
-        
+
         command = "runIsr.py"
 
         argstring = "%s --id --rerun=%s" % (inputDir, rerunName)

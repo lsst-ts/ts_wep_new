@@ -87,6 +87,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         shutil.rmtree(self.dataDir)
 
+    @unittest.skip
     def step1_genCalibsAndIngest(self):
 
         # Generate the fake flat images
@@ -117,12 +118,31 @@ class TestWepControllerMonolithic(unittest.TestCase):
         argstring = "--detector_list %s" % detector
         runProgram(command, argstring=argstring)
 
+    @unittest.skip
     def step2_ingestExp(self):
 
-        print("Step 2.")
+        intraImgFiles = os.path.join(getModulePath(), "tests", "testData",
+                                     "phosimOutput", "realComCam",
+                                     "repackagedFiles", "intra", "*.fits")
+        extraImgFiles = os.path.join(getModulePath(), "tests", "testData",
+                                     "phosimOutput", "realComCam",
+                                     "repackagedFiles", "extra", "*.fits")
+
+        self.wepCntlr.dataCollector.ingestImages(intraImgFiles)
+        self.wepCntlr.dataCollector.ingestImages(extraImgFiles)
 
     def step3_doIsr(self):
+
+        fileName = "isr_config.py"
+        self.wepCntlr.isrWrapper.config(doFlat=True, fileName=fileName)
+
+        rerunName = "run1"
+        self.wepCntlr.isrWrapper.doISR(self.isrDir, rerunName=rerunName)
+
+    def step4_setButlerInputPath(self):
         pass
+
+        # Set the butler wrapper
 
     #     # Instantiate the WEP controller
     #     self.wepCntlr = WEPController()

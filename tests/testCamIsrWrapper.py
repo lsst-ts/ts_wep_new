@@ -12,7 +12,7 @@ class TestCamIsrWrapper(unittest.TestCase):
 
     def setUp(self):
         
-        self.dataDir = os.path.join(getModulePath(), "tests", "tmp")
+        self.dataDir = os.path.join(getModulePath(), "tests", "tmpIsr")
         self.isrDir = os.path.join(self.dataDir, "input")
         self._makeDir(self.isrDir)
 
@@ -77,7 +77,7 @@ class TestCamIsrWrapper(unittest.TestCase):
         self._doIsrConfig()
 
         # Do the ISR
-        rerunName="run1"
+        rerunName = "run1"
         self.camIsrWrapper.doISR(self.isrDir, rerunName=rerunName)
 
         # Check the condition

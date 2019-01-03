@@ -4,12 +4,12 @@ from lsst.daf.persistence import Butler
 
 class ButlerWrapper(object):
 
-    def __init__(self, inputs=None, outputs=None):
+    def __init__(self, inputs, outputs=None):
         """Initialize the butler wrapper class.
 
         Parameters
         ----------
-        inputs : RepositoryArgs, dict, or str, optional
+        inputs : RepositoryArgs, dict, or str
             Can be a single item or a list. Provides arguments to load an
             existing repository (or repositories). String is assumed to be a
             URI and is used as the cfgRoot (URI to the location of the cfg
@@ -20,7 +20,7 @@ class ButlerWrapper(object):
             'tags', etc. See the 'RepositoryArgs' documentation for more
             details). A dict may be used as shorthand for a 'RepositoryArgs'
             class instance. The dict keys must match parameters to the
-            'RepositoryArgs.__init__' function. (the default is None.)
+            'RepositoryArgs.__init__' function.
         outputs : RepositoryArgs, dict, or str, optional
             Provides arguments to load one or more existing repositories or
             create new ones. The different types are handled the same as for
@@ -29,12 +29,12 @@ class ButlerWrapper(object):
 
         self._butler = Butler(inputs=inputs, outputs=outputs)
 
-    def setInputsAndOutputs(self, inputs=None, outputs=None):
+    def setInputsAndOutputs(self, inputs, outputs=None):
         """Set the inputs and outputs of butler.
 
         Parameters
         ----------
-        inputs : RepositoryArgs, dict, or str, optional
+        inputs : RepositoryArgs, dict, or str
             Can be a single item or a list. Provides arguments to load an
             existing repository (or repositories). String is assumed to be a
             URI and is used as the cfgRoot (URI to the location of the cfg
@@ -45,7 +45,7 @@ class ButlerWrapper(object):
             'tags', etc. See the 'RepositoryArgs' documentation for more
             details). A dict may be used as shorthand for a 'RepositoryArgs'
             class instance. The dict keys must match parameters to the
-            'RepositoryArgs.__init__' function. (the default is None.)
+            'RepositoryArgs.__init__' function.
         outputs : RepositoryArgs, dict, or str, optional
             Provides arguments to load one or more existing repositories or
             create new ones. The different types are handled the same as for

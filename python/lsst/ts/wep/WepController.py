@@ -1,58 +1,42 @@
-import os, re, time, unittest
+import os
+import re
+import time
 import numpy as np
-
-import matplotlib
-# Must be before importing matplotlib.pyplot or pylab!
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 from astropy.io import fits
-from scipy.ndimage.measurements import center_of_mass
 
-from lsst.ts.wep.WFDataCollector import WFDataCollector
-from lsst.ts.wep.SciIsrWrapper import SciIsrWrapper, getImageData
-from lsst.ts.wep.SourceSelector import SourceSelector
-from lsst.ts.wep.SourceProcessor import SourceProcessor, abbrevDectectorName
-from lsst.ts.wep.WFEstimator import WFEstimator
+from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.Utility import getModulePath, abbrevDectectorName, \
+                                searchDonutPos
 
 
-class WEPController(object):
+class WepController(object):
 
-    def __init__(self):
-        """
-        
-        Instantiate the WEP (wavefront estimation pipeline) controller.
-        """
-        
-        self.sourSelc = None
-        self.dataCollector = None
-        self.isrWrapper = None
-        self.sourProc = None
-        self.wfsEsti = None
+    def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfsEsti):
+        """Initialize the wavefront estimation pipeline (WEP) controller class.
 
-    def config(self, sourProc=None, dataCollector=None, isrWrapper=None, sourSelc=None, 
-                wfsEsti=None):
-        """
-        
-        Configurate the WEPController.
-        
-        Keyword Arguments:
-            sourProc {[SourceProcessor]} -- Source Processor. (default: {None})
-            dataCollector {[WFDataCollector]} -- Wavefront data collector. (default: {None})
-            isrWrapper {[SciIsrWrapper]} -- ISR (instrument signature removal) wrapper. 
-                                            (default: {None})
-            sourSelc {[SourceSelector]} -- Source selector. (default: {None})
-            wfsEsti {[WFEstimator]} -- Wavefront estimator. (default: {None})
+        Parameters
+        ----------
+        dataCollector : CamDataCollector
+            Camera data collector.
+        isrWrapper : CamIsrWrapper
+            Instrument signature removal (ISR) wrapper.
+        sourSelc : SourceSelector
+            Source selector.
+        sourProc : SourceProcessor
+            Source processor.
+        wfsEsti : WfEstimator
+            Wavefront estimator.
         """
 
-        self.__setVar(sourSelc, "sourSelc")        
-        self.__setVar(dataCollector, "dataCollector")
-        self.__setVar(isrWrapper, "isrWrapper")
-        self.__setVar(sourProc, "sourProc")
-        self.__setVar(wfsEsti, "wfsEsti")
+        self.dataCollector = dataCollector
+        self.isrWrapper = isrWrapper
+        self.sourSelc = sourSelc
+        self.sourProc = sourProc
+        self.wfsEsti = wfsEsti
+
+        self.butlerWrapper = None
 
     def getWfsList(self):
         """
@@ -67,19 +51,6 @@ class WEPController(object):
                    "R:4,0 S:0,2,A", "R:4,0 S:0,2,B", "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
 
         return wfsList
-
-    def __setVar(self, value, attrName):
-        """
-        
-        Set the value of attribute.
-        
-        Arguments:
-            value {[obj]} -- New value.
-            attrName {[str]} -- Attribute name to set the value.
-        """
-
-        if (value is not None):
-            setattr(self, attrName, value)
 
     def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, 
                             orientation=None, tableName="TempTable"):
@@ -356,7 +327,7 @@ class WEPController(object):
                                                      immediate=True)
 
                     # Get the exposure image in ndarray
-                    img = getImageData(img)
+                    img = self.butlerWrapper.getImageData(img)
 
                     # Change the image to camera coordinate
                     if (expInDmCoor):
@@ -823,7 +794,7 @@ class WEPController(object):
         """
 
         # Calculate the weighting of donut image
-        weightingRatio = calcWeiRatio(donutImgList)
+        weightingRatio = self.calcWeiRatio(donutImgList)
 
         # Calculate the mean wavefront error (z4 - z22)
         numOfZk = self.wfsEsti.algo.parameter["numTerms"] - 3
@@ -841,349 +812,34 @@ class WEPController(object):
 
         return avgErr
 
-    def sortDonut(self, donutList):
-
-        # This function is to sort the donut images in list from high S/N to low.
-        pass
-
-def calcWeiRatio(donutImgList):
-    """
-    
-    Calculate the weighting ratio of donut image in the list.
-    
-    Arguments:
-        donutImgList {[list]} -- List of donut images.
-    
-    Returns:
-        [ndarray] -- Array of Weighting ratio of image donuts.
-    """
-
-    # Weighting of donut image. Use the simple average at this moment.
-    # Need to consider the S/N and other factors in the future
-
-    # Check the available zk and give the ratio
-    weightingRatio = []
-    for donutImg in donutImgList:
-        if (donutImg.zer4UpNm is not None):
-            weightingRatio.append(1)
-        else:
-            weightingRatio.append(0)
-
-    # Do the normalization
-    weightingRatio = np.array(weightingRatio)
-    weightingRatio = weightingRatio/np.sum(weightingRatio)
-
-    return weightingRatio
-
-def searchDonutPos(img):
-    """
-    
-    Search the position of donut on image.
-    
-    Arguments:
-        img {[ndarray]} -- Donut image.
-    
-    Returns:
-        [float] -- x position of donut center in pixel.
-        [float] -- y position of donut center in pixel.
-    """
-
-    # Search the donut position by the center of mass
-    # Need to update this method to the more robust one such as the convolution
-    realcy, realcx = center_of_mass(img)
-
-    return realcx, realcy
-
-def plotDonutImg(donutMap, saveToDir=None, dpi=None):
-    """
-    
-    Plot the donut image.
-    
-    Arguments:
-        donutMap {[dict]} --  Donut image map.
-    
-    Keyword Arguments:
-        saveToDir {[str]} -- Directory to save the images. (default: {None})
-        dpi {[int]} -- The resolution in dots per inch. (default: {None})
-    """
-
-    intraType = "intra"
-    extraType = "extra"
-
-    for sensorName, donutList in donutMap.items():
-        # Generate the image name
-        imgTitle = abbrevDectectorName(sensorName) + "_DonutImg"
-
-        # Collect all images and titles
-        intraImgList = []
-        extraImgList = []
+    def calcWeiRatio(self, donutImgList):
+        """
         
-        intraTitleList = []
-        extraTitleList = []
-
-        intraPixelXYList = []
-        extraPixelXYList = []
+        Calculate the weighting ratio of donut image in the list.
         
-        # Collect intra- and extra-focal donut images
-        for donutImg in donutList:
-            for ii in range(2):
-
-                # Assign the image (0: intra, 1: extra)
-                if (ii == 0):
-                    img = donutImg.intraImg
-                else:
-                    img = donutImg.extraImg
-
-                if (img is not None):
-
-                    pixelXy = (donutImg.pixelX, donutImg.pixelY)
-
-                    if (ii == 0):
-                        intraImgList, intraTitleList, intraPixelXYList = _collectDonutImgList(
-                                                intraImgList, intraTitleList, intraPixelXYList, 
-                                                img, donutImg.starId, intraType, pixelXy)
-                    else:
-                        extraImgList, extraTitleList, extraPixelXYList = _collectDonutImgList(
-                                                extraImgList, extraTitleList, extraPixelXYList, 
-                                                img, donutImg.starId, extraType, pixelXy)
-
-        # Decide the figure grid shape
-        numOfRow = np.max([len(intraImgList), len(extraImgList)])
-
-        if (len(intraImgList) == 0) or (len(extraImgList) == 0):
-            numOfCol = 1
-        else:
-            numOfCol = 2
-
-        gridShape = (numOfRow, numOfCol)
-
-        # Plot the donut figure
-        plt.figure()
-
-        # Plot the intra-focal donut
-        locOfCol = 0
-        for ii in range(len(intraImgList)):
-            _subPlot(plt, gridShape, (ii, locOfCol), intraImgList[ii], intraTitleList[ii], intraPixelXYList[ii])
-
-        # Plot the extra-focal donut
-
-        # Update the location of column if necessary
-        if (numOfCol == 2):
-            locOfCol = 1
+        Arguments:
+            donutImgList {[list]} -- List of donut images.
         
-        for ii in range(len(extraImgList)):
-            _subPlot(plt, gridShape, (ii, locOfCol), extraImgList[ii], extraTitleList[ii], extraPixelXYList[ii])
+        Returns:
+            [ndarray] -- Array of Weighting ratio of image donuts.
+        """
 
-        # Adjust the space between xlabel and title for neighboring sub-figures
-        plt.tight_layout()
+        # Weighting of donut image. Use the simple average at this moment.
+        # Need to consider the S/N and other factors in the future
 
-        # Save the file or not
-        if (saveToDir is not None):
-            # Generate the filepath
-            imgType = ".png"
-            imgFilePath = os.path.join(saveToDir, imgTitle+imgType)
-            plt.savefig(imgFilePath, bbox_inches="tight", dpi=dpi)
-            plt.close()
-        else:
-            plt.show()
+        # Check the available zk and give the ratio
+        weightingRatio = []
+        for donutImg in donutImgList:
+            if (donutImg.zer4UpNm is not None):
+                weightingRatio.append(1)
+            else:
+                weightingRatio.append(0)
 
-def _subPlot(plt, gridShape, loc, img, aTitle, pixelXy):
-    """
-    
-    Do the subplot of figure.
-    
-    Arguments:
-        plt {[pyplot]} -- Plotting framework.
-        gridShape {[tuple]} -- Shape of grid.
-        loc {[tuple]} -- Location of subplot in grid.
-        img {[ndarray]} -- Image of donut.
-        aTitle {[str]} -- Title of subplot.
-        pixelXy {[tuple]} -- Chip position of donut in (x, y).
-    """
+        # Do the normalization
+        weightingRatio = np.array(weightingRatio)
+        weightingRatio = weightingRatio/np.sum(weightingRatio)
 
-    # Chip position of donut
-    pixelXy = np.round(pixelXy)
-    pixelPos = "Pixel XY: (%d, %d)" % (pixelXy[0], pixelXy[1])
-
-    # Decide the position of subplot
-    ax = plt.subplot2grid(gridShape, loc)
-
-    # Show the figure
-    axPlot = ax.imshow(img, origin="lower")
-    
-    # Set the title
-    ax.set_title(aTitle)
-
-    # Set the x lavel
-    ax.set_xlabel(pixelPos)
-
-    # Set the colorbar
-    plt.colorbar(axPlot, ax=ax)
-
-def _collectDonutImgList(imgList, titleList, pixelXyList, img, starId, aType, pixelXy):
-    """
-    
-    Collect the donut data in list.
-    
-    Arguments:
-        imgList {[list]} -- List of image.
-        titleList {[list]} -- List of title.
-        pixelXyList {[list]} -- List of pixel XY.
-        img {[ndarray]} -- Donut image.
-        starId {[int]} -- Star Id.
-        aType {[str]} -- Type of donut.
-        pixelXy {[tuple]} -- Pixel position in (x, y).
-    
-    Returns:
-        [list] -- List of image.
-        [list] -- List of title.
-        [list] -- List of pixel XY.
-    """
-
-    # Get the title
-    aTitle = "_".join([str(starId), aType])    
-
-    # Append the list
-    imgList.append(img)
-    titleList.append(aTitle)
-    pixelXyList.append(pixelXy)
-
-    return imgList, titleList, pixelXyList
-    
-class WEPControllerTest(unittest.TestCase):
-
-    """ 
-    Test the function of WEPController.
-    """
-
-    def setUp(self):
-
-        # Get the path of module
-        self.modulePath = getModulePath()
-
-        # Instantiate the WEP controller
-        self.wepCntlr = WEPController()
-
-    def testCornerWfsFunction(self):
-
-        # Test to get the list of corner wavefront sensors
-        wfsList = self.wepCntlr.getWfsList()
-        self.assertEqual(len(wfsList), 8)
-
-        # Instintiate the components
-        sourSelc = SourceSelector()
-        dataCollector = WFDataCollector()
-        sourProc = SourceProcessor()
-
-        instruFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "instruData")
-        algoFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "algo")
-        wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
-
-        # Configurate the source selector
-        cameraType = "lsst"
-        dbType = "LocalDb"
-        aFilter = "g"
-        cameraMJD = 59580.0
-
-        sourSelc.configSelector(cameraType=cameraType, dbType=dbType, aFilter=aFilter, 
-                                cameraMJD=cameraMJD)
-
-        # Set the criteria of neighboring stars
-        starRadiusInPixel = 63
-        spacingCoefficient = 2.5
-        sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
-
-        # Configurate the WFS data collector
-        # Data butler does not support the corner WFS at this moment.
-        pathOfRawData = os.path.join(self.modulePath, "test", "phosimOutput")
-        destinationPath = butlerInputs = butlerOutputs = os.path.join(self.modulePath, "test")
-        dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
-
-        # Configurate the source processor
-        focalPlaneFolder = os.path.join(self.modulePath, "test")
-        sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
-                        pixel2Arcsec=0.2)
-
-        # Configurate the wavefront estimator
-        defocalDisInMm = None
-        
-        # Size of donut in pixel for corner WFS
-        sizeInPix = 120
-        wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
-                        defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
-
-        # Configurate the WEP controller
-        self.wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, 
-                            sourProc=sourProc, wfsEsti=wfsEsti)
-
-        # Test the configuration
-        self.assertTrue(isinstance(self.wepCntlr.wfsEsti, WFEstimator))
-
-        # Get the target stars by file
-
-        # Set the database address
-        dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
-
-        # Do the query
-        pointing = (0,0)
-        cameraRotation = 0.0
-        skyInfoFilePath = os.path.join(self.modulePath, "test", "phosimOutput", "realWfs", "output", 
-                                       "skyWfsInfo.txt")
-
-        camOrientation = "corner"
-        neighborStarMap, starMap, wavefrontSensors = self.wepCntlr.getTargetStarByFile(dbAdress, 
-                                                        skyInfoFilePath, pointing, cameraRotation, 
-                                                orientation=camOrientation, tableName="TempTable")
-        self.assertEqual(len(starMap), 8)
-
-        starData = starMap["R:0,0 S:2,2,A"]
-        self.assertEqual(len(starData.SimobjID), 2)
-
-        # Get the available sensor name list
-        sensorNameList = list(starMap.keys())
-
-        # Get the eimage
-        wfsDir = os.path.join("realWfs", "output")
-        wfsImgMap = self.wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-
-        wfsImg = wfsImgMap["R:0,0 S:2,2,A"]
-        self.assertNotEqual(np.sum(wfsImg.intraImg), None)
-        self.assertEqual(wfsImg.extraImg, None)
-
-        # Get the donut map
-        donutMap = self.wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, 
-                                            doDeblending=False, sglDonutOnly=True)
-        
-        donutList = donutMap["R:0,0 S:2,2,A"]
-        self.assertEqual(len(donutList), 2)
-
-        donutImg = donutList[0]
-        self.assertNotEqual(np.sum(donutImg.intraImg), None)
-        self.assertEqual(donutImg.extraImg, None)
-        self.assertEqual(donutImg.starId, 6)
-        self.assertEqual(int(donutImg.pixelX), 506)
-        self.assertEqual(int(donutImg.pixelY), 1008)
-
-        # Calculate the wavefront error for the individual donut
-        partDonutMap = dict()
-        partDonutMap["R:0,0 S:2,2,A"] = donutMap["R:0,0 S:2,2,A"]
-        partDonutMap["R:0,0 S:2,2,B"] = donutMap["R:0,0 S:2,2,B"]
-        
-        partDonutMap = self.wepCntlr.calcWfErr(partDonutMap)
-        
-        donutList = partDonutMap["R:0,0 S:2,2,A"]
-        donutImg = donutList[0]
-        self.assertEqual(len(donutImg.zer4UpNm), 19)
-
-        # Test the weighting ratio
-        weightingRatio = calcWeiRatio(donutList)
-        self.assertEqual(np.sum(weightingRatio), 1)
-        self.assertEqual(weightingRatio[0], 0.5)
-
-        # Test to calculate the average wavefront error
-        avgErr = self.wepCntlr.calcSglAvgWfErr(donutList)
-        ans = donutList[0].zer4UpNm*weightingRatio[0] + donutList[1].zer4UpNm*weightingRatio[1]
-        self.assertEqual(np.sum(avgErr), np.sum(ans))
+        return weightingRatio
 
 
 if __name__ == "__main__":

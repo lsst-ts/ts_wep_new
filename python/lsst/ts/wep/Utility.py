@@ -1,6 +1,7 @@
 import os
 import subprocess
 import re
+from scipy.ndimage.measurements import center_of_mass
 from enum import Enum
 
 import lsst.ts.wep
@@ -153,6 +154,29 @@ def abbrevDectectorName(canonicalForm):
 
     # Return the abbreviate name
     return abbrevName
+
+
+def searchDonutPos(img):
+    """Search the position of donut on image.
+
+    Parameters
+    ----------
+    img : numpy.ndarray
+         Donut image.
+
+    Returns
+    -------
+    float
+        X position of donut center in pixel.
+    float
+        Y position of donut center in pixel.
+    """
+
+    # Search the donut position by the center of mass
+    # Need to update this method to the more robust one such as the convolution
+    realcy, realcx = center_of_mass(img)
+
+    return realcx, realcy
 
 
 def writeFile(filePath, content):

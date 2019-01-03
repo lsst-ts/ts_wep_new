@@ -12,7 +12,7 @@ class WfEstimator(object):
     def __init__(self, instruFolderPath, algoFolderPath):
         """
 
-        Initialize the WfEstimator class.
+        Initialize the wavefront estimator class.
 
         Arguments:
             instruFolderPath {[str]} -- Path to instrument directory.

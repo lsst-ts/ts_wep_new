@@ -1,6 +1,6 @@
 import numpy as np
 
-from lsst.ts.wep.Middleware import Middleware
+from lsst.ts.wep.middleware.Middleware import Middleware
 
 
 class MiddlewareWrapper(object):

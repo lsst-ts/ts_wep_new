@@ -1,7 +1,7 @@
 import time
 import unittest
 
-from lsst.ts.wep.Middleware import Middleware
+from lsst.ts.wep.middleware.Middleware import Middleware
 
 
 class TestMiddleware(unittest.TestCase):

@@ -2,7 +2,7 @@ import os
 import numpy as np
 import unittest
 
-from lsst.ts.wep.WFEstimator import WFEstimator
+from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.Utility import getModulePath
 
 
@@ -22,8 +22,8 @@ class TestWFEsitmator(unittest.TestCase):
         algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
                                       "algo")
 
-        # Decalre the WFEstimator
-        self.wfsEst = WFEstimator(instruFolderPath, algoFolderPath)
+        # Decalre the WfEstimator
+        self.wfsEst = WfEstimator(instruFolderPath, algoFolderPath)
 
     def testFunc(self):
 

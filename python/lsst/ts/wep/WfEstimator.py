@@ -7,12 +7,12 @@ from lsst.ts.wep.cwfs.CompensationImageDecorator import \
                                                     CompensationImageDecorator
 
 
-class WFEstimator(object):
+class WfEstimator(object):
 
     def __init__(self, instruFolderPath, algoFolderPath):
         """
 
-        Initialize the WFEstimator class.
+        Initialize the WfEstimator class.
 
         Arguments:
             instruFolderPath {[str]} -- Path to instrument directory.

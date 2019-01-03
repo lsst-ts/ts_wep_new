@@ -187,7 +187,7 @@ class SourceSelector(object):
 
         # Collect the sensor list without the bright star
         noStarSensorList = []
-        for detector, stars in starMap.items():
+        for detector, stars in neighborStarMap.items():
             if (len(stars.getId()) == 0):
                 noStarSensorList.append(detector)
 

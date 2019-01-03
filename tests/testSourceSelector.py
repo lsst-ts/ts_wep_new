@@ -62,6 +62,7 @@ class TestSourceSelector(unittest.TestCase):
 
     def testGetTargetStarWithZeroOffset(self):
 
+        self.sourSelc.configNbrCriteria(63.0, 2.5, maxNeighboringStar=99)
         neighborStarMap, starMap, wavefrontSensors = \
                                     self.sourSelc.getTargetStar(offset=0)
 
@@ -69,6 +70,7 @@ class TestSourceSelector(unittest.TestCase):
 
     def testGetTargetStarWithNotZeroOffset(self):
 
+        self.sourSelc.configNbrCriteria(63.0, 2.5, maxNeighboringStar=99)
         neighborStarMap, starMap, wavefrontSensors = \
                                     self.sourSelc.getTargetStar(offset=-1000)
 

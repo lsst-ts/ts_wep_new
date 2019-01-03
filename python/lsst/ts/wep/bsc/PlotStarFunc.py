@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit):
+def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit,
+               saveFilePath=None):
     """Plot stars in (Ra, Dec) and label the candidate stars and neighboring
     stars.
 
@@ -21,6 +22,8 @@ def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit):
         with the type of NbrStar.
     stddevSplit : float
         Value to decide the condition if the sensor crosses the RA=0.
+    saveFilePath : str, optional
+        Save image to file path.
     """
 
     # Handle the condition if the sensor across the RA=0
@@ -48,7 +51,13 @@ def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit):
 
     plt.xlabel("RA (degree)")
     plt.ylabel("Decl (degree)")
-    plt.show()
+
+    # Save the figure and close or just show the iamge
+    if (saveFilePath is not None):
+        plt.savefig(saveFilePath, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
 
 
 def _plotSingleRaDecl(wavefrontSensor, stars, neighboringStar, acrossRA0):
@@ -149,7 +158,7 @@ def _getQuadrilateral(Xvalues, Yvalues):
 
     # Find the diagonal
     pair = [[2,3], [1,3], [1,2]]
-    indexDiag = []
+    indexDiag = -1
     for ii in range(1,4):
         # Get line equation by "y = m * x + b"
         m = (Yvalues[ii] - Yvalues[0]) / (Xvalues[ii] - Xvalues[0])
@@ -166,7 +175,7 @@ def _getQuadrilateral(Xvalues, Yvalues):
             if (dis1 * dis2<0):
                 indexDiag = ii 
 
-    if (len(indexDiag) != 0):
+    if (indexDiag != -1):
         Xtemp = Xvalues[2]
         Ytemp = Yvalues[2]
 
@@ -183,15 +192,20 @@ def _getQuadrilateral(Xvalues, Yvalues):
     return Xvalues, Yvalues
 
 
-def plotStarInPixelOnDetector(stars, neighboringStar):
+def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None,
+                              saveFilePath=None):
     """Plot stars in pixel and label the candidate stars and neighboring stars.
 
     Parameters
     ----------
     stars : StarData
-        Star Information.
+        Star information.
     neighboringStar : NbrStar
         Information of neighboring stars.
+    xyDim : tuple, optional
+        Dimensions of XY (dim X, dim Y). (the default is None.)
+    saveFilePath : str, optional
+        Save image to file path.
     """
 
     # Star positions in pixel
@@ -226,10 +240,19 @@ def plotStarInPixelOnDetector(stars, neighboringStar):
     plt.plot(neighborStarMapX, neighborStarMapY, "go")
     plt.plot(candidateX, candidateY, "ro")
 
+    if (xyDim is not None):
+        plt.xlim(0, xyDim[0])
+        plt.ylim(0, xyDim[1])
+
     plt.xlabel("x-RA (pixel)")
     plt.ylabel("y-Decl (pixel)")
 
-    plt.show()
+    # Save the figure and close or just show the iamge
+    if (saveFilePath is not None):
+        plt.savefig(saveFilePath, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":

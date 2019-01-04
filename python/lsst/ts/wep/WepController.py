@@ -38,6 +38,199 @@ class WepController(object):
 
         self.butlerWrapper = None
 
+    def setPostIsrCcdInputs(self, inputs):
+        """Set the inputs of post instrument signature removal (ISR) CCD images.
+
+        Parameters
+        ----------
+        inputs : RepositoryArgs, dict, or str
+            Can be a single item or a list. Provides arguments to load an
+            existing repository (or repositories). String is assumed to be a
+            URI and is used as the cfgRoot (URI to the location of the cfg
+            file). (Local file system URI does not have to start with
+            'file://' and in this way can be a relative path). The
+            'RepositoryArgs' class can be used to provide more parameters with
+            which to initialize a repository (such as 'mapper', 'mapperArgs',
+            'tags', etc. See the 'RepositoryArgs' documentation for more
+            details). A dict may be used as shorthand for a 'RepositoryArgs'
+            class instance. The dict keys must match parameters to the
+            'RepositoryArgs.__init__' function.
+        """
+
+        self.butlerWrapper = ButlerWrapper(inputs)
+
+    def getPostIsrImgMapByPistonDefocal(self, sensorNameList, obsIdList):
+        """Get the post ISR image map that the defocal images are by the
+        pistion motion.
+
+        Parameters
+        ----------
+        sensorNameList : list
+            List of sensor name.
+        obsIdList : list
+            Observation Id list in [intraObsId, extraObsId].
+
+        Returns
+        -------
+        dict
+            Post-ISR image map. The dictionary key is the sensor name. The
+            dictionary item is the defocal image on the camera coordinate.
+            (type: DefocalImage).
+        """
+
+        # Get the waveront image map
+        wfsImgMap = dict()
+        for sensorName in sensorNameList:
+
+            # Get the sensor name information
+            raft, sensor = self._getSensorInfo(sensorName)[0:2]
+
+            # The intra/ extra defocal images are decided by obsId
+            imgList = []
+            for visit in obsIdList:
+
+                # Get the exposure image in ndarray
+                exp = self.butlerWrapper.getPostIsrCcd(int(visit), raft, sensor)
+                img = self.butlerWrapper.getImageData(exp)
+
+                # Transpose the images by PhoSim mapper. This is a bug.
+                # (x, y) to (y, x)
+                # This statement should be removed in the final.
+                imgTranspose = img.T
+
+                # Collect the image
+                imgList.append(imgTranspose)
+
+            wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0],
+                                                 extraImg=imgList[1])
+
+        return wfsImgMap
+
+    def getPostIsrImgMap(self, sensorNameList, obsId):
+        """Get the post ISR image map of corner wavefront sensors.
+
+        Parameters
+        ----------
+        sensorNameList : list
+            List of sensor name.
+        obsId : int
+            Observation Id.
+
+        Returns
+        -------
+        dict
+            Post-ISR image map. The dictionary key is the sensor name. The
+            dictionary item is the defocal image on the camera coordinate.
+            (type: DefocalImage).
+        """
+        pass
+
+    def _getSensorInfo(self, sensorName):
+        """Get the sensor information.
+
+        Parameters
+        ----------
+        sensorName : str
+            Sensor name (e.g. "R:2,2 S:1,1" or "R:0,0 S:2,2,A")
+
+        Returns
+        -------
+        str
+            Raft.
+        str
+            Sensor.
+        str
+            Channel.
+        """
+
+        raft = sensor = channel = None
+
+        # Use the regular expression to analyze the input name
+        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
+        if (m is not None):
+            raft, sensor, channel = m.groups()[0:3]
+
+        # This is for the phosim mapper use.
+        # For example, raft is "R22" and sensor is "S11". 
+        raftAbbName = "R" + raft[0] + raft[-1]
+        sensorAbbName = "S" + sensor[0] + sensor[-1]
+
+        return raftAbbName, sensorAbbName, channel
+
+    # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
+
+    #     # """
+
+    #     # Get the post-ISR defocal image map.
+        
+    #     # Keyword Arguments:
+    #     #     obsIdList {[list]} -- Observation Id list in [intraObsId, extraObsId]. (default: {None})
+    #     #     expInDmCoor {[bool]} -- Exposure image is in DM coordinate system. If True, this function will 
+    #     #                             rotate the exposure image to camera coordinate. This only works for 
+    #     #                             LSST FAM at this moment.
+        
+    #     # Returns:
+    #     #     [dict] -- Post-ISR image map.
+    #     # """
+
+    #     # Construct the dictionary 
+    #     wfsImgMap = dict()
+
+    #     # Get the waveront image map
+    #     sensorNameList = self.sourSelc.camera.getWfsCcdList()
+    #     for sensorName in sensorNameList:
+
+    #         # Get the sensor name information
+    #         raft, sensor, channel = self._getSensorInfo(sensorName)
+
+    #         # The intra/ extra defocal images are decided by obsId
+    #         if (obsIdList is not None):
+
+    #             imgList = []
+    #             for visit in obsIdList:
+
+    #                 # Get the exposure image in ndarray
+    #                 exp = self.butlerWrapper.getPostIsrCcd(visit, raft, sensor)
+    #                 img = self.butlerWrapper.getImageData(exp)
+
+    #                 # # Change the image to camera coordinate
+    #                 # if (expInDmCoor):
+    #                 #     img = np.rot90(img.copy(), k=3)
+
+    #                 imgList.append(img)
+
+    #             wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0],
+    #                                                  extraImg=imgList[1])
+
+    #         # # The intra/ extra defocal images are decided by physical configuration
+    #         # # C0: intra, C1: extra
+    #         # if (wfsDir is not None):
+                
+    #         #     # Get the abbreviated name
+    #         #     abbrevName = abbrevDectectorName(sensorName)
+
+    #         #     # Search for the file name
+    #         #     matchFileName = self.__searchFileName(wfsFileList, abbrevName, snap=snap)
+                
+    #         #     if (matchFileName is not None):
+                    
+    #         #         # Get the file name
+    #         #         fitsFilsPath = os.path.join(self.dataCollector.pathOfRawData, wfsDir, 
+    #         #                                     matchFileName)
+    #         #         wfsImg = fits.getdata(fitsFilsPath)
+
+    #         #         # Add image to map
+    #         #         wfsImgMap[sensorName] = DefocalImage()
+
+    #         #         # "C0" = "A" = "Intra-focal image"
+    #         #         if (channel=="A"):
+    #         #             wfsImgMap[sensorName].setImg(intraImg=wfsImg)
+    #         #         # "C1" = "B" = "extra-focal image"
+    #         #         elif (channel=="B"):
+    #         #             wfsImgMap[sensorName].setImg(extraImg=wfsImg)
+
+    #     return wfsImgMap
+
     def getWfsList(self):
         """
         
@@ -51,92 +244,6 @@ class WepController(object):
                    "R:4,0 S:0,2,A", "R:4,0 S:0,2,B", "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
 
         return wfsList
-
-    def getTargetStarByFile(self, dbAdress, skyInfoFilePath, pointing, cameraRotation, 
-                            orientation=None, tableName="TempTable"):
-        """
-        
-        Get the target stars by querying the file.
-        
-        Arguments:
-            dbAdress {[str]} -- Local database address.
-            skyInfoFilePath {[str]} -- File path of sky information.
-            pointing {[tuple]} -- Camera boresight (RA, Decl) in degree.
-            cameraRotation {[float]} -- Camera rotation angle in degree.
-        
-        Keyword Arguments:
-            orientation {[str]} -- Orientation of wavefront sensor(s) on camera. (default: {None})
-            tableName {[str]} -- Table name. (default: {None})
-        
-        Returns:
-            {[dict]} -- Information of neighboring stars and candidate stars with the name of 
-                        sensor as a dictionary.
-            {[dict]} -- Information of stars with the name of sensor as a dictionary.
-            {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
-        """
-
-        # Check the database name is local database
-        if (self.sourSelc.name != self.sourSelc.LocalDb):
-            raise TypeError("The database type is not LocalDatabaseDecorator.")
-
-        # Get the filter type
-        aFilter = self.sourSelc.getFilter()
-
-        # Connect the database
-        self.sourSelc.connect(dbAdress)
-
-        # Create the table
-        self.sourSelc.db.createTable(aFilter)
-
-        # Insert the sky data
-        self.sourSelc.db.insertDataByFile(skyInfoFilePath, aFilter, skiprows=1)
-        
-        # Do the query and analysis
-        neighborStarMap, starMap, wavefrontSensors = self.sourSelc.getTargetStar(pointing, cameraRotation, 
-                                                                orientation=orientation, tableName=tableName)
-
-        neighborStarMap, starMap, wavefrontSensors = self.__analyzeStarMap(neighborStarMap, starMap, 
-                                                                                    wavefrontSensors)
-
-        # Delete the table
-        self.sourSelc.db.deleteTable(aFilter)
-        
-        # Disconnect the database
-        self.sourSelc.disconnect()
-
-        return neighborStarMap, starMap, wavefrontSensors
-
-    def __analyzeStarMap(self, neighborStarMap, starMap, wavefrontSensors):
-        """
-        
-        Analyze the star map and remove the sensor without bright stars.
-        
-        Arguments:
-            neighborStarMap {[dict]} -- Information of neighboring stars and candidate stars with 
-                                        the name of sensor as a dictionary.
-            starMap {[dict]} -- Information of stars with the name of sensor as a dictionary.
-            wavefrontSensors {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
-        
-        Returns:
-            {[dict]} -- Information of neighboring stars and candidate stars with the name 
-                        of sensor as a dictionary.
-            {[dict]} -- Information of stars with the name of sensor as a dictionary.
-            {[dict]} -- Corners of sensor with the name of sensor as a dictionary.
-        """
-
-        # Collect the sensor list without the bright star
-        noStarSensorList = []
-        for aKey, aItem in starMap.items():
-            if len(aItem.RA) == 0:
-                noStarSensorList.append(aKey)
-
-        # Remove the keys in map
-        for aKey in noStarSensorList:
-            neighborStarMap.pop(aKey)
-            starMap.pop(aKey)
-            wavefrontSensors.pop(aKey)
-        
-        return neighborStarMap, starMap, wavefrontSensors
 
     def __searchFileName(self, fileList, matchName, snap=0):
         """
@@ -163,130 +270,6 @@ class WepController(object):
                 break
 
         return matchFileName
-
-    def getPostISRDefocalImgMap(self, sensorNameList, obsIdList=None, wfsDir=None, snap=0, expInDmCoor=False):
-        """
-        
-        Get the post-ISR defocal image map.
-        
-        Arguments:
-            sensorNameList {[list]} -- List of sensor name which is in the canonical form.
-        
-        Keyword Arguments:
-            obsIdList {[list]} -- Observation Id list in [intraObsId, extraObsId]. (default: {None})
-            wfsDir {[str]} -- Directory to wavefront sensor image data. (default: {None})
-            snap {[int]} -- Snap number (default: {0})
-            expInDmCoor {[bool]} -- Exposure image is in DM coordinate system. If True, this function will 
-                                    rotate the exposure image to camera coordinate. This only works for 
-                                    LSST FAM at this moment.
-        
-        Returns:
-            [dict] -- Post-ISR image map.
-        """
-
-        # Construct the dictionary 
-        wfsImgMap = {}
-
-        # Get the file list
-        if (wfsDir is not None):
-            # Get the file list
-            wfsFileList = self.__getRawFileList(wfsDir)
-
-        # Get the waveront image map
-        for sensorName in sensorNameList:
-
-            # Get the sensor name information
-            raft, sensor, channel = self.__getSensorInfo(sensorName)
-
-            # The intra/ extra defocal images are decided by obsId
-            if (obsIdList is not None):
-
-                imgList = []
-                for ii in range(2):
-                    dataId = dict(visit=obsIdList[ii], snap=snap, raft=raft, sensor=sensor)
-                    img = self.isrWrapper.butler.get(datasetType="postISRCCD", dataId=dataId, 
-                                                     immediate=True)
-
-                    # Get the exposure image in ndarray
-                    img = self.butlerWrapper.getImageData(img)
-
-                    # Change the image to camera coordinate
-                    if (expInDmCoor):
-                        img = np.rot90(img.copy(), k=3)
-
-                    imgList.append(img)
-
-                wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0], extraImg=imgList[1])
-
-            # The intra/ extra defocal images are decided by physical configuration
-            # C0: intra, C1: extra
-            if (wfsDir is not None):
-                
-                # Get the abbreviated name
-                abbrevName = abbrevDectectorName(sensorName)
-
-                # Search for the file name
-                matchFileName = self.__searchFileName(wfsFileList, abbrevName, snap=snap)
-                
-                if (matchFileName is not None):
-                    
-                    # Get the file name
-                    fitsFilsPath = os.path.join(self.dataCollector.pathOfRawData, wfsDir, 
-                                                matchFileName)
-                    wfsImg = fits.getdata(fitsFilsPath)
-
-                    # Add image to map
-                    wfsImgMap[sensorName] = DefocalImage()
-
-                    # "C0" = "A" = "Intra-focal image"
-                    if (channel=="A"):
-                        wfsImgMap[sensorName].setImg(intraImg=wfsImg)
-                    # "C1" = "B" = "extra-focal image"
-                    elif (channel=="B"):
-                        wfsImgMap[sensorName].setImg(extraImg=wfsImg)
-
-        return wfsImgMap
-
-    def __getRawFileList(self, dataDir):
-        """
-        
-        Get the raw file list in the directory.
-        
-        Arguments:
-            dataDir {[str]} -- Data directory.
-        
-        Returns:
-            [list] -- File list.
-        """
-
-        # Get all files in the directory
-        fullDataDir = os.path.join(self.dataCollector.pathOfRawData, dataDir)
-        fileList = [f for f in os.listdir(fullDataDir) if os.path.isfile(os.path.join(fullDataDir, f))]
-
-        return fileList
-
-    def __getSensorInfo(self, sensorName):
-        """
-        
-        Get the sensor information.
-        
-        Arguments:
-            sensorName {[str]} -- Sensor name (e.g. "R:2,2 S:1,1" or "R:0,0 S:2,2,A")
-        
-        Returns:
-            [str] -- Raft.
-            [str] -- Sensor.
-            [str] -- Channel.
-        """
-
-        raft = sensor = channel = None
-        
-        # Use the regular expression to analyze the input name
-        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
-        if (m is not None):
-            raft, sensor, channel = m.groups()[0:3]
-
-        return raft, sensor, channel
 
     def __searchDonutListId(self, donutList, starId):
         """

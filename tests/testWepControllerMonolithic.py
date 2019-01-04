@@ -27,7 +27,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         # Configurate the WEP components
         dataCollector = CamDataCollector(self.isrDir)
         isrWrapper = CamIsrWrapper(self.isrDir)
-        sourSelc = SourceSelector(CamType.ComCam, BscDbType.LocalDbForStarFile)
+        sourSelc = self._configSourceSelector()
         sourProc = self._configSourceProcessor()
         wfsEsti = self._configWfEstimator()
 
@@ -35,10 +35,35 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr = WepController(dataCollector, isrWrapper, sourSelc,
                                       sourProc, wfsEsti)
 
+        # Intemediate data used in the test
+        self.neighborStarMap = dict()
+        self.starMap = dict()
+        self.wavefrontSensors = dict()
+
+        self.wfsImgMap = dict()
+
     def _makeDir(self, directory):
 
         if (not os.path.exists(directory)):
             os.makedirs(directory)
+
+    def _configSourceSelector(self):
+
+        sourSelc = SourceSelector(CamType.ComCam, BscDbType.LocalDbForStarFile)
+
+        # Set the criteria of neighboring stars
+        starRadiusInPixel = 63
+        spacingCoefficient = 2.5
+        maxNeighboringStar = 1
+        sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient, 
+                                   maxNeighboringStar=maxNeighboringStar)
+
+        # Connest the database
+        dbAdress = os.path.join(self.modulePath, "tests", "testData",
+                                "bsc.db3")
+        sourSelc.connect(dbAdress)
+
+        return sourSelc
 
     def _configSourceProcessor(self):
 
@@ -82,12 +107,13 @@ class TestWepControllerMonolithic(unittest.TestCase):
             if name.startswith("step"):
                 yield name, getattr(self, name)
 
-    @unittest.skip
     def tearDown(self):
+
+        self.wepCntlr.sourSelc.disconnect()
 
         shutil.rmtree(self.dataDir)
 
-    @unittest.skip
+    # @unittest.skip
     def step1_genCalibsAndIngest(self):
 
         # Generate the fake flat images
@@ -118,7 +144,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         argstring = "--detector_list %s" % detector
         runProgram(command, argstring=argstring)
 
-    @unittest.skip
+    # @unittest.skip
     def step2_ingestExp(self):
 
         intraImgFiles = os.path.join(getModulePath(), "tests", "testData",
@@ -131,7 +157,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.dataCollector.ingestImages(intraImgFiles)
         self.wepCntlr.dataCollector.ingestImages(extraImgFiles)
 
-    @unittest.skip
+    # @unittest.skip
     def step3_doIsr(self):
 
         fileName = "isr_config.py"
@@ -140,13 +166,58 @@ class TestWepControllerMonolithic(unittest.TestCase):
         rerunName = "run1"
         self.wepCntlr.isrWrapper.doISR(self.isrDir, rerunName=rerunName)
 
-    def step4_setButlerInputPath(self):
-        pass
+    def step4_setButlerInputsPath(self):
 
-        # Set the butler wrapper
+        inputs = os.path.join(self.isrDir, "rerun", "run1")
+        self.wepCntlr.setPostIsrCcdInputs(inputs)
 
-    #     # Instantiate the WEP controller
-    #     self.wepCntlr = WEPController()
+    def step5_getTargetStar(self):
+
+        # Set the observation meta data
+        ra = 0.0
+        dec = 0.0
+        rotSkyPos = 0.0
+        self.wepCntlr.sourSelc.setObsMetaData(ra, dec, rotSkyPos)
+
+        # Set the filter
+        self.wepCntlr.sourSelc.setFilter(FilterType.G)
+
+        # Get the target star by file
+        skyFilePath = os.path.join(self.modulePath, "tests", "testData", 
+                                   "phosimOutput", "realComCam",
+                                   "skyComCamInfo.txt")
+        neighborStarMap, starMap, wavefrontSensors = \
+            self.wepCntlr.sourSelc.getTargetStarByFile(skyFilePath, offset=0)
+
+        # Assign the data for the following steps to use
+        self.neighborStarMap = neighborStarMap
+        self.starMap = starMap
+        self.wavefrontSensors = wavefrontSensors
+
+        # Do the assertion
+        self.assertEqual(len(neighborStarMap), 2)
+        self.assertEqual(len(starMap), 2)
+        self.assertEqual(len(wavefrontSensors), 2)
+
+    def step6_getPostIsrDefocalImgMap(self):
+
+        sensorNameList = list(self.wavefrontSensors)
+
+        intraObsId  = 9005001
+        extraObsId =  9005000
+        obsIdList = [intraObsId, extraObsId]
+
+        wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
+                                            sensorNameList, obsIdList)
+
+        # Assign the data for the following steps to use
+        self.wfsImgMap = wfsImgMap
+
+        # Do the assertion
+        self.assertEqual(len(wfsImgMap), 2)
+
+
+
 
     # def testCornerWfsFunction(self):
 

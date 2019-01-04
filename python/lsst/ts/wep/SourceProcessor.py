@@ -286,10 +286,6 @@ class SourceProcessor(object):
     def dmXY2CamXY(self, pixelDmX, pixelDmY):
         """Transform the pixel x, y from DM library to camera to use.
 
-        Camera coordinate is defined in LCA-13381. Define camera coordinate
-        (x, y) and DM coordinate (x', y'), then the relation is dx' = -dy,
-        dy' = dx.
-
         Parameters
         ----------
         pixelDmX : float
@@ -304,6 +300,11 @@ class SourceProcessor(object):
         float
             Pixel y defined in camera coordinate based on LCA-13381.
         """
+
+        # Camera coordinate is defined in LCA-13381. Define camera coordinate
+        # (x, y) and DM coordinate (x', y'), then the relation is: 
+        # Camera team +y = DM team +x'
+        # Camera team +x = DM team -y'
 
         #  O---->y
         #  |
@@ -329,8 +330,6 @@ class SourceProcessor(object):
     def camXY2DmXY(self, pixelCamX, pixelCamY):
         """Transform the pixel x, y from camera coordinate to DM coordinate.
 
-        Camera coordinate is defined in LCA-13381.
-
         Parameters
         ----------
         pixelCamX : float
@@ -345,6 +344,9 @@ class SourceProcessor(object):
         float
             Pixel y defined in DM coordinate.
         """
+
+        # Check the comment in dmXY2CamXY() for the details of coordinate
+        # systems of DM and camera teams.
 
         # Get the CCD dimension
         dimX, dimY = self.sensorDimList[self.sensorName]

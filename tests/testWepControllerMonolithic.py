@@ -131,6 +131,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.dataCollector.ingestImages(intraImgFiles)
         self.wepCntlr.dataCollector.ingestImages(extraImgFiles)
 
+    @unittest.skip
     def step3_doIsr(self):
 
         fileName = "isr_config.py"

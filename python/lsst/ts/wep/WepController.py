@@ -13,6 +13,10 @@ from lsst.ts.wep.Utility import getModulePath, abbrevDectectorName, \
 
 class WepController(object):
 
+    CORNER_WFS_LIST = ["R:0,0 S:2,2,A", "R:0,0 S:2,2,B", "R:0,4 S:2,0,A",
+                       "R:0,4 S:2,0,B", "R:4,0 S:0,2,A", "R:4,0 S:0,2,B",
+                       "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
+
     def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfsEsti):
         """Initialize the wavefront estimation pipeline (WEP) controller class.
 
@@ -179,33 +183,33 @@ class WepController(object):
         return raftAbbName, sensorAbbName, channel
 
     def getDonutMap(self, neighborStarMap, wfsImgMap, filterType,
-                    sglDonutOnly=True, doDeblending=False):
-        """
-        
-        Get the donut map on each wavefront sensor (WFS).
-        
-        Arguments:
-            neighborStarMap {[dict]} -- Information of neighboring stars and candidate stars with 
-                                        the name of sensor as a dictionary.
-            wfsImgMap {[dict]} --  Post-ISR image map.
-            filterType {[FilterType]} -- Active filter type ("u", "g", "r", "i", "z", "y").
-        
-        Keyword Arguments:
-            sglDonutOnly{[bool]} -- Only consider the single donut based on the bright star catalog. 
-                                    (default: {True})
-            doDeblending {[bool]} -- Do the deblending or not. (default: {False})
-        
-        Returns:
-            [dict] -- Donut image map.
+                    doDeblending=False):
+        """Get the donut map on each wavefront sensor (WFS).
+
+        Parameters
+        ----------
+        neighborStarMap : dict
+            Information of neighboring stars and candidate stars with the name
+            of sensor as a dictionary.
+        wfsImgMap : dict
+            Post-ISR image map. The dictionary key is the sensor name. The
+            dictionary item is the defocal image on the camera coordinate.
+            (type: DefocalImage).
+        filterType : FilterType
+            Filter type.
+        doDeblending : bool, optional
+            Do the deblending or not. If False, only consider the single donut
+            based on the bright star catalog.(the default is False.)
+
+        Returns
+        -------
+        dict
+            Donut image map. The dictionary key is the sensor name. The
+            dictionaryitem is the donut image (type: DonutImage).
         """
 
-        # Collect the donut images and put into the map/ dictionary
         donutMap = dict()
-        for sensorName in neighborStarMap.keys():
-
-            # Get the defocal images: [intra, extra]
-            defocalImgList = [wfsImgMap[sensorName].getIntraImg(),
-                              wfsImgMap[sensorName].getExtraImg()]
+        for sensorName, nbrStar in neighborStarMap.items():
 
             # Get the abbraviated sensor name
             abbrevName = abbrevDectectorName(sensorName)
@@ -213,15 +217,16 @@ class WepController(object):
             # Configure the source processor
             self.sourProc.config(sensorName=abbrevName)
 
-            # Get the neighboring star 
-            nbrStar = neighborStarMap[sensorName]
+            # Get the defocal images: [intra, extra]
+            defocalImgList = [wfsImgMap[sensorName].getIntraImg(),
+                              wfsImgMap[sensorName].getExtraImg()]
 
             # Get the bright star id list on specific sensor
-            simobjIdList = list(nbrStar.getId())
-            for ii in range(len(simobjIdList)):
+            brightStarIdList = list(nbrStar.getId())
+            for starIdIdx in range(len(brightStarIdList)):
                 
                 # Get the single star map
-                for jj in range(2):
+                for jj in range(len(defocalImgList)):
 
                     ccdImg = defocalImgList[jj]
 
@@ -230,14 +235,11 @@ class WepController(object):
                         singleSciNeiImg, allStarPosX, allStarPosY, magRatio, \
                         offsetX, offsetY = \
                             self.sourProc.getSingleTargetImage(
-                                            ccdImg, nbrStar, ii, filterType)
+                                        ccdImg, nbrStar, starIdIdx, filterType)
 
-                        # Check the single donut or not based on the bright
-                        # star catalog only
-                        # This method should be updated in the future
-                        if (sglDonutOnly):
-                            if (len(magRatio) != 1):
-                                continue
+                        # Only consider the single donut if no deblending
+                        if (not doDeblending) and (len(magRatio) != 1):
+                            continue
 
                         # Get the single donut/ deblended image
                         if (len(magRatio) == 1) or (not doDeblending):
@@ -266,15 +268,12 @@ class WepController(object):
                             sizeInPix = self.wfsEsti.getSizeInPix()
                             x0 = np.floor(realcx - sizeInPix / 2).astype("int")
                             y0 = np.floor(realcy - sizeInPix / 2).astype("int")
-                            imgDeblend = imgDeblend[y0:y0+sizeInPix, 
-                                                    x0:x0+sizeInPix]
+                            imgDeblend = imgDeblend[y0:y0 + sizeInPix, 
+                                                    x0:x0 + sizeInPix]
 
                         # Rotate the image if the sensor is the corner
                         # wavefront sensor
-
-                        # Get the corner wavefront sensor names
-                        wfsList = self._getWfsList()
-                        if sensorName in wfsList:
+                        if sensorName in self.CORNER_WFS_LIST:
 
                             # Get the Euler angle
                             eulerZangle = round(self.sourProc.getEulerZinDeg(
@@ -285,7 +284,7 @@ class WepController(object):
                                 eulerZangle += 360
 
                             # Do the rotation of matrix
-                            numOfRot90 = eulerZangle//90
+                            numOfRot90 = eulerZangle // 90
                             imgDeblend = np.flipud(
                                 np.rot90(np.flipud(imgDeblend), numOfRot90))
 
@@ -294,7 +293,7 @@ class WepController(object):
                             donutMap[sensorName] = []
 
                         # Check the donut exists in the list or not
-                        starId = simobjIdList[ii]
+                        starId = brightStarIdList[starIdIdx]
                         donutIndex = self._searchDonutListId(
                                             donutMap[sensorName], starId)                             
 
@@ -333,6 +332,31 @@ class WepController(object):
                             donutList[donutIndex].setImg(extraImg=imgDeblend)
 
         return donutMap
+
+    def _searchDonutListId(self, donutList, starId):
+        """Search the bright star ID in the donut list.
+
+        Parameters
+        ----------
+        donutList : list
+            List of DonutImage object.
+        starId : int
+            Star Id.
+
+        Returns
+        -------
+        int
+             Index of donut image object with the specific starId.
+        """
+
+        index = -1
+        for ii in range(len(donutList)):
+            if (donutList[ii].getStarId() == int(starId)):
+                index = ii
+                break
+
+        return index
+
 
     # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
 
@@ -408,66 +432,31 @@ class WepController(object):
 
     #     return wfsImgMap
 
-    def _getWfsList(self):
-        """
+    # def __searchFileName(self, fileList, matchName, snap=0):
+    #     """
         
-        Get the corner wavefront sensor (WFS) list in the canonical form.
+    #     Search the file name in list.
         
-        Returns:
-            [list] -- WFS name list.
-        """
+    #     Arguments:
+    #         fileList {[list]} -- File name list.
+    #         matchName {[str]} -- Match name.
 
-        wfsList = ["R:0,0 S:2,2,A", "R:0,0 S:2,2,B", "R:0,4 S:2,0,A", "R:0,4 S:2,0,B", 
-                   "R:4,0 S:0,2,A", "R:4,0 S:0,2,B", "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
-
-        return wfsList
-
-    def __searchFileName(self, fileList, matchName, snap=0):
-        """
+    #     Keyword Arguments:
+    #         snap {int} -- Snap number (default: {0})
         
-        Search the file name in list.
-        
-        Arguments:
-            fileList {[list]} -- File name list.
-            matchName {[str]} -- Match name.
+    #     Returns:
+    #         [str] -- Matched file name.
+    #     """
 
-        Keyword Arguments:
-            snap {int} -- Snap number (default: {0})
-        
-        Returns:
-            [str] -- Matched file name.
-        """
+    #     matchFileName = None
+    #     for fileName in fileList:
+    #         m = re.match(r"\S*%s_E00%d\S*" % (matchName, snap), fileName)
 
-        matchFileName = None
-        for fileName in fileList:
-            m = re.match(r"\S*%s_E00%d\S*" % (matchName, snap), fileName)
+    #         if (m is not None):
+    #             matchFileName = m.group()
+    #             break
 
-            if (m is not None):
-                matchFileName = m.group()
-                break
-
-        return matchFileName
-
-    def _searchDonutListId(self, donutList, starId):
-        """
-        
-        Search the bright star ID in the donut list.
-        
-        Arguments:
-            donutList {[list]} -- List of DonutImage object.
-            starId {[int]} -- Star ID.
-        
-        Returns:
-            [int] -- Index of donut image object with specific starId.
-        """
-
-        index = -1
-        for ii in range(len(donutList)):
-            if (donutList[ii].starId == int(starId)):
-                index = ii
-                break
-
-        return index
+    #     return matchFileName
 
     def genMasterImgSglCcd(self, sensorName, donutImgList, zcCol=np.zeros(22)):
         """

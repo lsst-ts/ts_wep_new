@@ -36,11 +36,12 @@ class TestWepControllerMonolithic(unittest.TestCase):
                                       sourProc, wfsEsti)
 
         # Intemediate data used in the test
+        self.filter = FilterType.G
         self.neighborStarMap = dict()
         self.starMap = dict()
         self.wavefrontSensors = dict()
-
         self.wfsImgMap = dict()
+        self.donutMap = dict()
 
     def _makeDir(self, directory):
 
@@ -80,8 +81,12 @@ class TestWepControllerMonolithic(unittest.TestCase):
         algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
                                       "algo")
         wfsEsti = WfEstimator(instruFolderPath, algoFolderPath)
-        wfsEsti.config(solver="exp", instName="lsst", opticalModel="offAxis",
-                       defocalDisInMm=None, sizeInPix=120, debugLevel=0)
+
+        # Use the comcam to calculate the LSST central raft image
+        # with 1.5 mm defocal distance
+        wfsEsti.config(solver="exp", instName="comcam",
+                       opticalModel="offAxis", defocalDisInMm=1.5,
+                       sizeInPix=160, debugLevel=0)
 
         return wfsEsti
 
@@ -182,7 +187,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.sourSelc.setObsMetaData(ra, dec, rotSkyPos)
 
         # Set the filter
-        self.wepCntlr.sourSelc.setFilter(FilterType.G)
+        self.wepCntlr.sourSelc.setFilter(self.filter)
 
         # Get the target star by file
         skyFilePath = os.path.join(self.modulePath, "tests", "testData", 
@@ -218,11 +223,17 @@ class TestWepControllerMonolithic(unittest.TestCase):
         # Do the assertion
         self.assertEqual(len(wfsImgMap), 2)
 
-    def step7_getDonutImage(self):
-        pass
+    def step7_getDonutMap(self):
+        
+        donutMap = self.wepCntlr.getDonutMap(
+            self.neighborStarMap, self.wfsImgMap, self.filter,
+            doDeblending=False)
 
+        self.donutMap = donutMap
 
-
+        # Do the assertion
+        for sensor, donutList in donutMap.items():
+            self.assertEqual(len(donutList), 1)
 
     # def testCornerWfsFunction(self):
 

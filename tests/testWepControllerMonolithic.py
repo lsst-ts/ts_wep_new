@@ -235,6 +235,19 @@ class TestWepControllerMonolithic(unittest.TestCase):
         for sensor, donutList in donutMap.items():
             self.assertEqual(len(donutList), 1)
 
+    def step8_calcWfErr(self):
+
+        self.donutMap = self.wepCntlr.calcWfErr(self.donutMap)
+
+        # Do the assertion
+        for sensor, donutList in self.donutMap.items():
+            self.assertEqual(donutList[0].getWfErr().argmax(), 2)
+
+        # Compare with OPD
+
+
+
+
     # def testCornerWfsFunction(self):
 
     #     # Test to get the list of corner wavefront sensors

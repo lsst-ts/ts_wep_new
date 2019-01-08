@@ -357,6 +357,106 @@ class WepController(object):
 
         return index
 
+    def calcWfErr(self, donutMap):
+        """Calculate the wavefront error in annular Zernike polynomials
+        (z4-z22).
+
+        Parameters
+        ----------
+        donutMap : dict
+            Donut image map. The dictionary key is the sensor name. The
+            dictionaryitem is the donut image (type: DonutImage).
+
+        Returns
+        -------
+        dict
+            Donut image map with calculated wavefront error.
+        """
+
+        for sensorName, donutList in donutMap.items():
+
+            for ii in range(len(donutList)):
+
+                # Get the intra- and extra-focal donut images
+
+                # Check the sensor is the corner WFS or not. Only consider "A"
+                # Intra: C0 -> A; Extra: C1 -> B
+
+                # Look for the intra-focal image
+                if sensorName.endswith("A"):
+                    intraDonut = donutList[ii]
+
+                    # Get the extra-focal sensor name
+                    extraFocalSensorName = sensorName.replace("A", "B")
+
+                    # Get the donut list of extra-focal sensor
+                    extraDonutList = donutMap[extraFocalSensorName]
+                    if (ii < len(extraDonutList)):
+                        extraDonut = extraDonutList[ii]
+                    else:
+                        continue
+                # Pass the extra-focal image
+                elif sensorName.endswith("B"):
+                    continue
+                # Scientific sensor
+                else:
+                    intraDonut = extraDonut = donutList[ii]
+
+                # Calculate the wavefront error
+
+                # Get the field X, Y position
+                intraFieldXY = intraDonut.getFieldPos()
+                extraFieldXY = extraDonut.getFieldPos()
+
+                # Get the defocal images
+                intraImg = intraDonut.getIntraImg()
+                extraImg = extraDonut.getExtraImg()
+
+                # Calculate the wavefront error
+                zer4UpNm = self._calcSglWfErr(intraImg, extraImg, intraFieldXY,
+                                              extraFieldXY)
+
+                # Put the value to the donut image
+                intraDonut.setWfErr(zer4UpNm)
+                extraDonut.setWfErr(zer4UpNm)
+
+        return donutMap
+
+    def _calcSglWfErr(self, intraImg, extraImg, intraFieldXY, extraFieldXY):
+        """Calculate the wavefront error in annular Zernike polynomials (z4-z22)
+        for single donut.
+
+        Parameters
+        ----------
+        intraImg : numpy.ndarray
+            Intra-focal donut image.
+        extraImg : numpy.ndarray
+            Extra-focal donut image.
+        intraFieldXY : tuple
+            Field x, y in degree of intra-focal donut image.
+        extraFieldXY : tuple
+            Field x, y in degree of extra-focal donut image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Coefficients of Zernike polynomials (z4 - z22) in nm.
+        """
+
+        # Set the images
+        self.wfsEsti.setImg(intraFieldXY, image=intraImg, 
+                            defocalType=self.wfsEsti.getIntraImg().INTRA)
+        self.wfsEsti.setImg(extraFieldXY, image=extraImg, 
+                            defocalType=self.wfsEsti.getExtraImg().EXTRA)
+
+        # Reset the wavefront estimator
+        self.wfsEsti.reset()
+
+        # Calculate the wavefront error
+        zer4UpNm = self.wfsEsti.calWfsErr()
+
+        return zer4UpNm
+
 
     # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
 
@@ -622,97 +722,6 @@ class WepController(object):
 
         # Return the projected image
         return img.image
-
-    def calcWfErr(self, donutMap):
-        """
-        
-        Calculate the wavefront error in annular Zernike polynomials (z4-z22).
-        
-        Arguments:
-            donutMap {[dict]} -- Donut image map.
-        
-        Returns:
-            [dict] -- Donut image map with calculated wavefront error.
-        """
-
-        for sensorName, donutList in donutMap.items():
-
-            for ii in range(len(donutList)):
-
-                # Get the intra- and extra-focal donut images
-
-                # Check the sensor is the corner WFS or not. Only consider "A"
-                # Intra: C0 -> A; Extra: C1 -> B
-
-                # Look for the intra-focal image
-                if sensorName.endswith("A"):
-                    intraDonut = donutList[ii]
-
-                    # Get the extra-focal sensor name
-                    extraFocalSensorName = sensorName.replace("A", "B")
-
-                    # Get the donut list of extra-focal sensor
-                    extraDonutList = donutMap[extraFocalSensorName]
-                    if (ii < len(extraDonutList)):
-                        extraDonut = extraDonutList[ii]
-                    else:
-                        continue
-
-                # Pass the extra-focal image
-                elif sensorName.endswith("B"):
-                    continue
-                # Scientific sensor
-                else:
-                    intraDonut = extraDonut = donutList[ii]
-
-                # Calculate the wavefront error
-
-                # Get the field X, Y position
-                intraFieldXY = (intraDonut.fieldX, intraDonut.fieldY)
-                extraFieldXY = (extraDonut.fieldX, extraDonut.fieldY)
-
-                # Get the defocal images
-                intraImg = intraDonut.intraImg
-                extraImg = extraDonut.extraImg
-
-                # Calculate the wavefront error
-                zer4UpNm = self.calcSglWfErr(intraImg, extraImg, intraFieldXY, extraFieldXY)
-
-                # Put the value to the donut image
-                intraDonut.setWfErr(zer4UpNm)
-                extraDonut.setWfErr(zer4UpNm)
-
-        return donutMap
-
-    def calcSglWfErr(self, intraImg, extraImg, intraFieldXY, extraFieldXY):
-        """
-        
-        Calculate the wavefront error in annular Zernike polynomials (z4-z22) for 
-        single donut.
-        
-        Arguments:
-            intraImg {[ndarray]} -- Intra-focal donut image.
-            extraImg {[ndarray]} -- Extra-focal donut image.
-            intraFieldXY {[tuple]} -- Field x, y in degree of intra-focal donut image.
-            extraFieldXY {[tuple]} -- Field x, y in degree of extra-focal donut image.
-        
-        Returns:
-            [ndarray] -- Coefficients of Zernike polynomials (z4 - z22) in nm.
-        """
-
-        # Set the images
-        self.wfsEsti.setImg(intraFieldXY, image=intraImg, 
-                            defocalType=self.wfsEsti.ImgIntra.INTRA)
-        self.wfsEsti.setImg(extraFieldXY, image=extraImg, 
-                            defocalType=self.wfsEsti.ImgExtra.EXTRA)
-
-        # Reset the wavefront estimator
-        self.wfsEsti.reset()
-
-        # Calculate the wavefront error
-        zer4UpNm = self.wfsEsti.calWfsErr()
-
-        return zer4UpNm
 
     def calcSglAvgWfErr(self, donutImgList):
         """

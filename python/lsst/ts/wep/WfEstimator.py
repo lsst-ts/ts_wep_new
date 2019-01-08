@@ -31,6 +31,14 @@ class WfEstimator(object):
 
         return self.sizeInPix
 
+    def getIntraImg(self):
+
+        return self.ImgIntra
+
+    def getExtraImg(self):
+
+        return self.ImgExtra
+
     def reset(self):
         """
         

@@ -27,6 +27,10 @@ class WfEstimator(object):
 
         self.sizeInPix = None
 
+    def getSizeInPix(self):
+
+        return self.sizeInPix
+
     def reset(self):
         """
         

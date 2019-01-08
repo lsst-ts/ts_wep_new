@@ -224,7 +224,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.assertEqual(len(wfsImgMap), 2)
 
     def step7_getDonutMap(self):
-        
+
         donutMap = self.wepCntlr.getDonutMap(
             self.neighborStarMap, self.wfsImgMap, self.filter,
             doDeblending=False)
@@ -233,7 +233,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Do the assertion
         for sensor, donutList in donutMap.items():
-            self.assertEqual(len(donutList), 1)
+            self.assertEqual(len(donutList), 2)
 
     def step8_calcWfErr(self):
 
@@ -241,123 +241,20 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Do the assertion
         for sensor, donutList in self.donutMap.items():
-            self.assertEqual(donutList[0].getWfErr().argmax(), 2)
+            for donut in donutList:
+                wfErr = donut.getWfErr()
+                self.assertEqual(wfErr.argmax(), 2)
+                self.assertGreater(wfErr.max(), 100)
 
         # Compare with OPD
+
+    def step9_calcAvgWfErr(self):
+        pass
 
 
 
 
     # def testCornerWfsFunction(self):
-
-    #     # Test to get the list of corner wavefront sensors
-    #     wfsList = self.wepCntlr.getWfsList()
-    #     self.assertEqual(len(wfsList), 8)
-
-    #     # Instintiate the components
-    #     sourSelc = SourceSelector()
-    #     dataCollector = WFDataCollector()
-    #     sourProc = SourceProcessor()
-
-    #     instruFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "instruData")
-    #     algoFolderPath = os.path.join(self.modulePath, "algoData", "cwfs", "algo")
-    #     wfsEsti = WFEstimator(instruFolderPath, algoFolderPath)
-
-    #     # Configurate the source selector
-    #     cameraType = "lsst"
-    #     dbType = "LocalDb"
-    #     aFilter = "g"
-    #     cameraMJD = 59580.0
-
-    #     sourSelc.configSelector(cameraType=cameraType, dbType=dbType, aFilter=aFilter, 
-    #                             cameraMJD=cameraMJD)
-
-    #     # Set the criteria of neighboring stars
-    #     starRadiusInPixel = 63
-    #     spacingCoefficient = 2.5
-    #     sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient)
-
-    #     # Configurate the WFS data collector
-    #     # Data butler does not support the corner WFS at this moment.
-    #     pathOfRawData = os.path.join(self.modulePath, "test", "phosimOutput")
-    #     destinationPath = butlerInputs = butlerOutputs = os.path.join(self.modulePath, "test")
-    #     dataCollector.config(pathOfRawData=pathOfRawData, destinationPath=destinationPath)
-
-    #     # Configurate the source processor
-    #     focalPlaneFolder = os.path.join(self.modulePath, "test")
-    #     sourProc.config(donutRadiusInPixel=starRadiusInPixel, folderPath2FocalPlane=focalPlaneFolder, 
-    #                     pixel2Arcsec=0.2)
-
-    #     # Configurate the wavefront estimator
-    #     defocalDisInMm = None
-        
-    #     # Size of donut in pixel for corner WFS
-    #     sizeInPix = 120
-    #     wfsEsti.config(solver="exp", instName=cameraType, opticalModel="offAxis", 
-    #                     defocalDisInMm=defocalDisInMm, sizeInPix=sizeInPix)
-
-    #     # Configurate the WEP controller
-    #     self.wepCntlr.config(sourSelc=sourSelc, dataCollector=dataCollector, 
-    #                         sourProc=sourProc, wfsEsti=wfsEsti)
-
-    #     # Test the configuration
-    #     self.assertTrue(isinstance(self.wepCntlr.wfsEsti, WFEstimator))
-
-    #     # Get the target stars by file
-
-    #     # Set the database address
-    #     dbAdress = os.path.join(self.modulePath, "test", "bsc.db3")
-
-    #     # Do the query
-    #     pointing = (0,0)
-    #     cameraRotation = 0.0
-    #     skyInfoFilePath = os.path.join(self.modulePath, "test", "phosimOutput", "realWfs", "output", 
-    #                                    "skyWfsInfo.txt")
-
-    #     camOrientation = "corner"
-    #     neighborStarMap, starMap, wavefrontSensors = self.wepCntlr.getTargetStarByFile(dbAdress, 
-    #                                                     skyInfoFilePath, pointing, cameraRotation, 
-    #                                             orientation=camOrientation, tableName="TempTable")
-    #     self.assertEqual(len(starMap), 8)
-
-    #     starData = starMap["R:0,0 S:2,2,A"]
-    #     self.assertEqual(len(starData.SimobjID), 2)
-
-    #     # Get the available sensor name list
-    #     sensorNameList = list(starMap.keys())
-
-    #     # Get the eimage
-    #     wfsDir = os.path.join("realWfs", "output")
-    #     wfsImgMap = self.wepCntlr.getPostISRDefocalImgMap(sensorNameList, wfsDir=wfsDir)
-
-    #     wfsImg = wfsImgMap["R:0,0 S:2,2,A"]
-    #     self.assertNotEqual(np.sum(wfsImg.intraImg), None)
-    #     self.assertEqual(wfsImg.extraImg, None)
-
-    #     # Get the donut map
-    #     donutMap = self.wepCntlr.getDonutMap(neighborStarMap, wfsImgMap, aFilter, 
-    #                                         doDeblending=False, sglDonutOnly=True)
-        
-    #     donutList = donutMap["R:0,0 S:2,2,A"]
-    #     self.assertEqual(len(donutList), 2)
-
-    #     donutImg = donutList[0]
-    #     self.assertNotEqual(np.sum(donutImg.intraImg), None)
-    #     self.assertEqual(donutImg.extraImg, None)
-    #     self.assertEqual(donutImg.starId, 6)
-    #     self.assertEqual(int(donutImg.pixelX), 506)
-    #     self.assertEqual(int(donutImg.pixelY), 1008)
-
-    #     # Calculate the wavefront error for the individual donut
-    #     partDonutMap = dict()
-    #     partDonutMap["R:0,0 S:2,2,A"] = donutMap["R:0,0 S:2,2,A"]
-    #     partDonutMap["R:0,0 S:2,2,B"] = donutMap["R:0,0 S:2,2,B"]
-        
-    #     partDonutMap = self.wepCntlr.calcWfErr(partDonutMap)
-        
-    #     donutList = partDonutMap["R:0,0 S:2,2,A"]
-    #     donutImg = donutList[0]
-    #     self.assertEqual(len(donutImg.zer4UpNm), 19)
 
     #     # Test the weighting ratio
     #     weightingRatio = self.wepCntlr.calcWeiRatio(donutList)

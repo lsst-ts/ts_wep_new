@@ -365,7 +365,7 @@ class WepController(object):
         ----------
         donutMap : dict
             Donut image map. The dictionary key is the sensor name. The
-            dictionaryitem is the donut image (type: DonutImage).
+            dictionary item is the donut image (type: DonutImage).
 
         Returns
         -------
@@ -420,6 +420,8 @@ class WepController(object):
                 intraDonut.setWfErr(zer4UpNm)
                 extraDonut.setWfErr(zer4UpNm)
 
+        # Intentionally to expose this return value to show the input, donutMap,
+        # has been modified.
         return donutMap
 
     def _calcSglWfErr(self, intraImg, extraImg, intraFieldXY, extraFieldXY):

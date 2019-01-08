@@ -80,6 +80,8 @@ class TestWepControllerMonolithic(unittest.TestCase):
         algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
                                       "algo")
         wfsEsti = WfEstimator(instruFolderPath, algoFolderPath)
+        wfsEsti.config(solver="exp", instName="lsst", opticalModel="offAxis",
+                       defocalDisInMm=None, sizeInPix=120, debugLevel=0)
 
         return wfsEsti
 
@@ -111,9 +113,9 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         self.wepCntlr.sourSelc.disconnect()
 
-        shutil.rmtree(self.dataDir)
+        # shutil.rmtree(self.dataDir)
 
-    # @unittest.skip
+    @unittest.skip
     def step1_genCalibsAndIngest(self):
 
         # Generate the fake flat images
@@ -144,7 +146,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         argstring = "--detector_list %s" % detector
         runProgram(command, argstring=argstring)
 
-    # @unittest.skip
+    @unittest.skip
     def step2_ingestExp(self):
 
         intraImgFiles = os.path.join(getModulePath(), "tests", "testData",
@@ -157,7 +159,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.dataCollector.ingestImages(intraImgFiles)
         self.wepCntlr.dataCollector.ingestImages(extraImgFiles)
 
-    # @unittest.skip
+    @unittest.skip
     def step3_doIsr(self):
 
         fileName = "isr_config.py"
@@ -215,6 +217,9 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Do the assertion
         self.assertEqual(len(wfsImgMap), 2)
+
+    def step7_getDonutImage(self):
+        pass
 
 
 

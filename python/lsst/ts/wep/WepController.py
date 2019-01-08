@@ -93,18 +93,39 @@ class WepController(object):
                 exp = self.butlerWrapper.getPostIsrCcd(int(visit), raft, sensor)
                 img = self.butlerWrapper.getImageData(exp)
 
-                # Transpose the images by PhoSim mapper. This is a bug.
-                # (x, y) to (y, x)
-                # This statement should be removed in the final.
-                imgTranspose = img.T
+                # Transform the image in DM coordinate to camera coordinate.
+                camImg = self._transImgDmCoorToCamCoor(img)
 
                 # Collect the image
-                imgList.append(imgTranspose)
+                imgList.append(camImg)
 
             wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0],
                                                  extraImg=imgList[1])
 
         return wfsImgMap
+
+    def _transImgDmCoorToCamCoor(self, dmImg):
+        """Transfrom the image in DM coordinate to camera coordinate.
+
+        Parameters
+        ----------
+        dmImg : numpy.ndarray
+            Image in DM coordinate.
+
+        Returns
+        -------
+        numpy.ndarray
+            Image is camera coordinate.
+        """
+
+        # The relationship between DM and camera coordinate should be 90 degree
+        # difference.
+        # For the PhoSim mapper, it is the transpose (x, y) to (y, x). This
+        # should be fixed.
+
+        camImg = dmImg.T
+
+        return camImg
 
     def getPostIsrImgMap(self, sensorNameList, obsId):
         """Get the post ISR image map of corner wavefront sensors.
@@ -156,6 +177,162 @@ class WepController(object):
         sensorAbbName = "S" + sensor[0] + sensor[-1]
 
         return raftAbbName, sensorAbbName, channel
+
+    def getDonutMap(self, neighborStarMap, wfsImgMap, filterType,
+                    sglDonutOnly=True, doDeblending=False):
+        """
+        
+        Get the donut map on each wavefront sensor (WFS).
+        
+        Arguments:
+            neighborStarMap {[dict]} -- Information of neighboring stars and candidate stars with 
+                                        the name of sensor as a dictionary.
+            wfsImgMap {[dict]} --  Post-ISR image map.
+            filterType {[FilterType]} -- Active filter type ("u", "g", "r", "i", "z", "y").
+        
+        Keyword Arguments:
+            sglDonutOnly{[bool]} -- Only consider the single donut based on the bright star catalog. 
+                                    (default: {True})
+            doDeblending {[bool]} -- Do the deblending or not. (default: {False})
+        
+        Returns:
+            [dict] -- Donut image map.
+        """
+
+        # Collect the donut images and put into the map/ dictionary
+        donutMap = dict()
+        for sensorName in neighborStarMap.keys():
+
+            # Get the defocal images: [intra, extra]
+            defocalImgList = [wfsImgMap[sensorName].getIntraImg(),
+                              wfsImgMap[sensorName].getExtraImg()]
+
+            # Get the abbraviated sensor name
+            abbrevName = abbrevDectectorName(sensorName)
+
+            # Configure the source processor
+            self.sourProc.config(sensorName=abbrevName)
+
+            # Get the neighboring star 
+            nbrStar = neighborStarMap[sensorName]
+
+            # Get the bright star id list on specific sensor
+            simobjIdList = list(nbrStar.getId())
+            for ii in range(len(simobjIdList)):
+                
+                # Get the single star map
+                for jj in range(2):
+
+                    ccdImg = defocalImgList[jj]
+
+                    # Get the segment of image
+                    if (ccdImg is not None):
+                        singleSciNeiImg, allStarPosX, allStarPosY, magRatio, \
+                        offsetX, offsetY = \
+                            self.sourProc.getSingleTargetImage(
+                                            ccdImg, nbrStar, ii, filterType)
+
+                        # Check the single donut or not based on the bright
+                        # star catalog only
+                        # This method should be updated in the future
+                        if (sglDonutOnly):
+                            if (len(magRatio) != 1):
+                                continue
+
+                        # Get the single donut/ deblended image
+                        if (len(magRatio) == 1) or (not doDeblending):
+                            imgDeblend = singleSciNeiImg
+
+                            if (len(magRatio) == 1):
+                                realcx, realcy = searchDonutPos(imgDeblend)
+                            else:                               
+                                realcx = allStarPosX[-1]
+                                realcy = allStarPosY[-1]
+
+                        # Do the deblending or not
+                        elif (len(magRatio) == 2 and doDeblending):
+                            imgDeblend, realcx, realcy = \
+                                self.sourProc.doDeblending(
+                                    singleSciNeiImg, allStarPosX, allStarPosY,
+                                    magRatio)
+                            # Update the magnitude ratio
+                            magRatio = [1]
+
+                        else:
+                            continue
+
+                        # Extract the image
+                        if (len(magRatio) == 1):
+                            sizeInPix = self.wfsEsti.getSizeInPix()
+                            x0 = np.floor(realcx - sizeInPix / 2).astype("int")
+                            y0 = np.floor(realcy - sizeInPix / 2).astype("int")
+                            imgDeblend = imgDeblend[y0:y0+sizeInPix, 
+                                                    x0:x0+sizeInPix]
+
+                        # Rotate the image if the sensor is the corner
+                        # wavefront sensor
+
+                        # Get the corner wavefront sensor names
+                        wfsList = self._getWfsList()
+                        if sensorName in wfsList:
+
+                            # Get the Euler angle
+                            eulerZangle = round(self.sourProc.getEulerZinDeg(
+                                                                    abbrevName))
+
+                            # Change the sign if the angle < 0
+                            while (eulerZangle < 0):
+                                eulerZangle += 360
+
+                            # Do the rotation of matrix
+                            numOfRot90 = eulerZangle//90
+                            imgDeblend = np.flipud(
+                                np.rot90(np.flipud(imgDeblend), numOfRot90))
+
+                        # Put the deblended image into the donut map
+                        if sensorName not in donutMap.keys():
+                            donutMap[sensorName] = []
+
+                        # Check the donut exists in the list or not
+                        starId = simobjIdList[ii]
+                        donutIndex = self._searchDonutListId(
+                                            donutMap[sensorName], starId)                             
+
+                        # Create the donut object and put into the list if it
+                        # is needed
+                        if (donutIndex < 0):
+
+                            # Calculate the field X, Y
+                            pixelX = realcx + offsetX
+                            pixelY = realcy + offsetY
+                            fieldX, fieldY = self.sourProc.camXYtoFieldXY(
+                                                                pixelX, pixelY)
+
+                            # Instantiate the DonutImage class
+                            donutImg = DonutImage(starId, pixelX, pixelY,
+                                                  fieldX, fieldY)
+                            donutMap[sensorName].append(donutImg)
+
+                            # Search for the donut index again
+                            donutIndex = self._searchDonutListId(
+                                                donutMap[sensorName], starId)
+
+                        # Get the donut image list
+                        donutList = donutMap[sensorName]
+
+                        # Take the absolute value for images, which might
+                        # contain the negative value after the ISR correction.
+                        # This happens for the amplifier images.
+                        imgDeblend = np.abs(imgDeblend)
+
+                        # Set the intra focal image
+                        if (jj == 0):
+                            donutList[donutIndex].setImg(intraImg=imgDeblend)
+                        # Set the extra focal image
+                        elif (jj == 1):
+                            donutList[donutIndex].setImg(extraImg=imgDeblend)
+
+        return donutMap
 
     # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
 
@@ -231,7 +408,7 @@ class WepController(object):
 
     #     return wfsImgMap
 
-    def getWfsList(self):
+    def _getWfsList(self):
         """
         
         Get the corner wavefront sensor (WFS) list in the canonical form.
@@ -271,7 +448,7 @@ class WepController(object):
 
         return matchFileName
 
-    def __searchDonutListId(self, donutList, starId):
+    def _searchDonutListId(self, donutList, starId):
         """
         
         Search the bright star ID in the donut list.
@@ -291,144 +468,6 @@ class WepController(object):
                 break
 
         return index
-
-    def getDonutMap(self, neighborStarMap, wfsImgMap, aFilter, doDeblending=False, sglDonutOnly=False):
-        """
-        
-        Get the donut map on each wavefront sensor (WFS).
-        
-        Arguments:
-            neighborStarMap {[dict]} -- Information of neighboring stars and candidate stars with 
-                                        the name of sensor as a dictionary.
-            wfsImgMap {[dict]} --  Post-ISR image map.
-            aFilter {[str]} -- Active filter type ("u", "g", "r", "i", "z", "y").
-        
-        Keyword Arguments:
-            doDeblending {[bool]} -- Do the deblending or not. (default: {False})
-            sglDonutOnly{[bool]} -- Only consider the single donut based on the bright star catalog. 
-                                    (default: {False})
-        
-        Returns:
-            [dict] -- Donut image map.
-        """
-
-        # Get the corner wavefront sensor names
-        wfsList = self.getWfsList()
-        
-        # Collect the donut images and put into the map/ dictionary
-        donutMap = {}
-        for sensorName in wfsImgMap.keys():
-
-            # Get the abbraviated sensor name
-            abbrevName = abbrevDectectorName(sensorName)
-
-            # Configure the source processor
-            self.sourProc.config(sensorName=abbrevName)
-
-            # Get the bright star id list on specific sensor
-            simobjIdList = list(neighborStarMap[sensorName].SimobjID.keys())
-
-            # Get the defocal images: [intra, extra]
-            defocalImgList = [wfsImgMap[sensorName].intraImg, wfsImgMap[sensorName].extraImg]
-
-            for ii in range(len(simobjIdList)):
-                
-                # Get the single star map
-                for jj in range(2):
-
-                    ccdImg = defocalImgList[jj]
-
-                    # Get the segment of image
-                    if (ccdImg is not None):
-                        singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-                                                        self.sourProc.getSingleTargetImage(ccdImg, 
-                                                            neighborStarMap[sensorName], ii, aFilter)
-
-                        # Check the single donut or not based on the bright star catalog only
-                        # This method should be updated in the future
-                        if (sglDonutOnly):
-                            if (len(magRatio) != 1):
-                                continue
-
-                        # Get the single donut/ deblended image
-                        if (len(magRatio) == 1) or (not doDeblending):
-                            imgDeblend = singleSciNeiImg
-
-                            if (len(magRatio) == 1):
-                                realcx, realcy = searchDonutPos(imgDeblend)
-                            else:                               
-                                realcx = allStarPosX[-1]
-                                realcy = allStarPosY[-1]
-                        # Do the deblending or not
-                        elif (len(magRatio) == 2 and doDeblending):
-                            imgDeblend, realcx, realcy = self.sourProc.doDeblending(singleSciNeiImg, 
-                                                                  allStarPosX, allStarPosY, magRatio)
-                            # Update the magnitude ratio
-                            magRatio = [1]
-
-                        else:
-                            continue
-
-                        # Extract the image
-                        if (len(magRatio) == 1):
-                            x0 = np.floor(realcx-self.wfsEsti.sizeInPix/2).astype("int")
-                            y0 = np.floor(realcy-self.wfsEsti.sizeInPix/2).astype("int")
-                            imgDeblend = imgDeblend[y0:y0+self.wfsEsti.sizeInPix, 
-                                                    x0:x0+self.wfsEsti.sizeInPix]
-
-                        # Rotate the image if the sensor is the corner wavefront sensor
-                        if sensorName in wfsList:
-
-                            # Get the Euler angle
-                            eulerZangle = round(self.sourProc.getEulerZinDeg(abbrevName))
-                            
-                            # Change the sign if the angle < 0
-                            while (eulerZangle < 0):
-                                eulerZangle += 360
-
-                            # Do the rotation of matrix
-                            numOfRot90 = eulerZangle//90
-                            imgDeblend = np.flipud(np.rot90(np.flipud(imgDeblend), numOfRot90))
-
-                        # Put the deblended image into the donut map
-                        if sensorName not in donutMap.keys():
-                            donutMap[sensorName] = []
-
-                        # Check the donut exists in the list or not
-                        starId = simobjIdList[ii]
-                        donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)                             
-
-                        # Create the donut object and put into the list if it is needed
-                        if (donutIndex < 0):
-
-                            # Calculate the field X, Y
-                            pixelX = realcx+offsetX
-                            pixelY = realcy+offsetY
-                            fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
-
-                            # Instantiate the DonutImage class
-                            donutImg = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
-                            donutMap[sensorName].append(donutImg)
-
-                            # Search for the donut index again
-                            donutIndex = self.__searchDonutListId(donutMap[sensorName], starId)
-
-                        # Get the donut image list
-                        donutList = donutMap[sensorName]
-
-                        # Take the absolute value for images, which might contain the 
-                        # negative value after the ISR correction. This happens for the 
-                        # amplifier images.
-                        imgDeblend = np.abs(imgDeblend)
-                    
-                        # Set the intra focal image
-                        if (jj == 0):
-                            donutList[donutIndex].setImg(intraImg=imgDeblend)
-                        # Set the extra focal image
-                        elif (jj == 1):
-                            donutList[donutIndex].setImg(extraImg=imgDeblend)
-
-        return donutMap
 
     def genMasterImgSglCcd(self, sensorName, donutImgList, zcCol=np.zeros(22)):
         """

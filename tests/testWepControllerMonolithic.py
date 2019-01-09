@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import shutil
 import unittest
 
@@ -121,9 +122,8 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         self.wepCntlr.sourSelc.disconnect()
 
-        # shutil.rmtree(self.dataDir)
+        shutil.rmtree(self.dataDir)
 
-    @unittest.skip
     def step1_genCalibsAndIngest(self):
 
         # Generate the fake flat images
@@ -154,7 +154,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
         argstring = "--detector_list %s" % detector
         runProgram(command, argstring=argstring)
 
-    @unittest.skip
     def step2_ingestExp(self):
 
         intraImgFiles = os.path.join(getModulePath(), "tests", "testData",
@@ -167,7 +166,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.dataCollector.ingestImages(intraImgFiles)
         self.wepCntlr.dataCollector.ingestImages(extraImgFiles)
 
-    @unittest.skip
     def step3_doIsr(self):
 
         fileName = "isr_config.py"
@@ -228,18 +226,15 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
     def step7_getDonutMap(self):
 
-        donutMap = self.wepCntlr.getDonutMap(
+        self.donutMap = self.wepCntlr.getDonutMap(
             self.neighborStarMap, self.wfsImgMap, self.filter,
             doDeblending=False)
 
-        self.donutMap = donutMap
-
         # Do the assertion
-        for sensor, donutList in donutMap.items():
+        for sensor, donutList in self.donutMap.items():
             self.assertEqual(len(donutList), 2)
 
-    @unittest.skip
-    def step8_calcWfErr(self):
+    def step8a_calcWfErr(self):
 
         self.donutMap = self.wepCntlr.calcWfErr(self.donutMap)
 
@@ -252,13 +247,10 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Compare with OPD
 
-    @unittest.skip
-    def step9_calcAvgWfErrOnSglCcd(self):
+    def step8b_calcAvgWfErrOnSglCcd(self):
         
         for sensor, donutList in self.donutMap.items():
             avgErr = self.wepCntlr.calcAvgWfErrOnSglCcd(donutList)
-
-            print(avgErr)
 
             # Do the assertion
             self.assertEqual(avgErr.argmax(), 2)
@@ -266,32 +258,26 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
             # Compare with the central OPD
 
-    def step10_genMasterDonut(self):
+    def step9a_genMasterDonut(self):
 
-        global masterDonutMap
+        self.masterDonutMap = self.wepCntlr.genMasterDonut(
+                                        self.donutMap, zcCol=np.zeros(22))
 
-        masterDonutMap = self.wepCntlr.genMasterDonut(self.donutMap)
-        self.masterDonutMap = masterDonutMap
+        # Do the assertion
+        self.assertEqual(len(self.masterDonutMap), 2)
+        for sensor, masterDonutList in self.masterDonutMap.items():
+            self.assertEqual(len(masterDonutList), 1)
 
-        # Do the assertioin
+    def step9b_calcWfErrOfMasterDonut(self):
 
-    def step11_calcWfErrOfMasterDonut(self):
-        pass
+        self.masterDonutMap = self.wepCntlr.calcWfErr(self.masterDonutMap)
 
+        masterDonutList = self.masterDonutMap["R:2,2 S:1,1"]
+        wfErr = masterDonutList[0].getWfErr()
 
-
-
-    # def testCornerWfsFunction(self):
-
-    #     # Test the weighting ratio
-    #     weightingRatio = self.wepCntlr.calcWeiRatio(donutList)
-    #     self.assertEqual(np.sum(weightingRatio), 1)
-    #     self.assertEqual(weightingRatio[0], 0.5)
-
-    #     # Test to calculate the average wavefront error
-    #     avgErr = self.wepCntlr.calcSglAvgWfErr(donutList)
-    #     ans = donutList[0].zer4UpNm*weightingRatio[0] + donutList[1].zer4UpNm*weightingRatio[1]
-    #     self.assertEqual(np.sum(avgErr), np.sum(ans))
+        # Do the assertion
+        self.assertEqual(wfErr.argmax(), 2)
+        self.assertGreater(wfErr.max(), 100)
 
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ class WepController(object):
 
         return camImg
 
-    def getPostIsrImgMap(self, sensorNameList, obsId):
+    def getPostIsrImgMapOnCornerWfs(self, sensorNameList, obsId):
         """Get the post ISR image map of corner wavefront sensors.
 
         Parameters
@@ -459,6 +459,74 @@ class WepController(object):
 
         return zer4UpNm
 
+    def calcAvgWfErrOnSglCcd(self, donutList):
+        """Calculate the average of wavefront error on single CCD.
+
+        CCD: Charge-coupled device.
+
+        Parameters
+        ----------
+        donutList : list
+            List of donut object (type: DonutImage).
+
+        Returns
+        -------
+        numpy.ndarray
+            Average of wavefront error in nm.
+        """
+
+        # Calculate the weighting of donut image
+        wgtRatio = self._calcWeiRatio(donutList)
+
+        # Calculate the mean wavefront error
+        avgErr = 0
+        for ii in range(len(donutList)):
+
+            donut = donutList[ii]
+            zer4UpNmArr = donut.getWfErr()
+
+            # Assign the zer4UpNm
+            if (len(zer4UpNmArr) == 0):
+                zer4UpNm = 0
+            else:
+                zer4UpNm = zer4UpNmArr
+
+            avgErr = avgErr + wgtRatio[ii] * zer4UpNm
+
+        return avgErr
+
+    def _calcWeiRatio(self, donutList):
+        """Calculate the weighting ratio of donut in the list.
+
+        Parameters
+        ----------
+        donutList : list
+            List of donut object (type: DonutImage).
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of weighting ratio of donuts to do the average of wavefront
+            error.
+        """
+
+        # Weighting of donut image. Use the simple average at this moment.
+        # Need to consider the S/N and other factors in the future.
+
+        # Check the available zk and give the ratio
+        wgtRatio = []
+        for donut in donutList:
+            if (len(donut.getWfErr()) == 0):
+                wgtRatio.append(0)
+            else:
+                wgtRatio.append(1)
+
+        # Do the normalization
+        wgtRatioArr = np.array(wgtRatio)
+        normalizedwgtRatioArr = wgtRatioArr / np.sum(wgtRatioArr)
+
+        return normalizedwgtRatioArr
+
 
     # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
 
@@ -724,66 +792,6 @@ class WepController(object):
 
         # Return the projected image
         return img.image
-
-    def calcSglAvgWfErr(self, donutImgList):
-        """
-        
-        Calculate the average of wavefront error on single CCD.
-        
-        Arguments:
-            donutImgList {[list]} -- List of donut images.
-        
-        Returns:
-            [ndarray] -- Average of wavefront error in nm.
-        """
-
-        # Calculate the weighting of donut image
-        weightingRatio = self.calcWeiRatio(donutImgList)
-
-        # Calculate the mean wavefront error (z4 - z22)
-        numOfZk = self.wfsEsti.algo.parameter["numTerms"] - 3
-        avgErr = np.zeros(numOfZk)
-        for ii in range(len(donutImgList)):
-            donutImg = donutImgList[ii]
-
-            # Get the zer4UpNm
-            if (donutImg.zer4UpNm is not None):
-                zer4UpNm = donutImg.zer4UpNm
-            else:
-                zer4UpNm = 0
-
-            avgErr = avgErr + weightingRatio[ii]*zer4UpNm
-
-        return avgErr
-
-    def calcWeiRatio(self, donutImgList):
-        """
-        
-        Calculate the weighting ratio of donut image in the list.
-        
-        Arguments:
-            donutImgList {[list]} -- List of donut images.
-        
-        Returns:
-            [ndarray] -- Array of Weighting ratio of image donuts.
-        """
-
-        # Weighting of donut image. Use the simple average at this moment.
-        # Need to consider the S/N and other factors in the future
-
-        # Check the available zk and give the ratio
-        weightingRatio = []
-        for donutImg in donutImgList:
-            if (donutImg.zer4UpNm is not None):
-                weightingRatio.append(1)
-            else:
-                weightingRatio.append(0)
-
-        # Do the normalization
-        weightingRatio = np.array(weightingRatio)
-        weightingRatio = weightingRatio/np.sum(weightingRatio)
-
-        return weightingRatio
 
 
 if __name__ == "__main__":

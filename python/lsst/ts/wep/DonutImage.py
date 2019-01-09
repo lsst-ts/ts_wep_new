@@ -1,3 +1,5 @@
+import numpy as np
+
 from lsst.ts.wep.DefocalImage import DefocalImage
 
 
@@ -33,7 +35,7 @@ class DonutImage(DefocalImage):
         self.fieldY = fieldY
 
         # Wavefront eror in annular Zk in nm (z4-z22)
-        self.zer4UpNm = None
+        self.zer4UpNm = np.array([])
 
     def getStarId(self):
         """Get the star Id.

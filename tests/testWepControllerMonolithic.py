@@ -248,8 +248,18 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Compare with OPD
 
-    def step9_calcAvgWfErr(self):
-        pass
+    def step9_calcAvgWfErrOnSglCcd(self):
+        
+        for sensor, donutList in self.donutMap.items():
+            avgErr = self.wepCntlr.calcAvgWfErrOnSglCcd(donutList)
+
+            print(avgErr)
+
+            # Do the assertion
+            self.assertEqual(avgErr.argmax(), 2)
+            self.assertGreater(avgErr.max(), 100)
+
+            # Compare with the central OPD
 
 
 

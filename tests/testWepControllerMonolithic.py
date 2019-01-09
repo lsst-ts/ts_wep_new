@@ -37,11 +37,14 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Intemediate data used in the test
         self.filter = FilterType.G
+
         self.neighborStarMap = dict()
         self.starMap = dict()
         self.wavefrontSensors = dict()
+
         self.wfsImgMap = dict()
         self.donutMap = dict()
+        self.masterDonutMap = dict()
 
     def _makeDir(self, directory):
 
@@ -235,6 +238,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         for sensor, donutList in donutMap.items():
             self.assertEqual(len(donutList), 2)
 
+    @unittest.skip
     def step8_calcWfErr(self):
 
         self.donutMap = self.wepCntlr.calcWfErr(self.donutMap)
@@ -248,6 +252,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Compare with OPD
 
+    @unittest.skip
     def step9_calcAvgWfErrOnSglCcd(self):
         
         for sensor, donutList in self.donutMap.items():
@@ -260,6 +265,18 @@ class TestWepControllerMonolithic(unittest.TestCase):
             self.assertGreater(avgErr.max(), 100)
 
             # Compare with the central OPD
+
+    def step10_genMasterDonut(self):
+
+        global masterDonutMap
+
+        masterDonutMap = self.wepCntlr.genMasterDonut(self.donutMap)
+        self.masterDonutMap = masterDonutMap
+
+        # Do the assertioin
+
+    def step11_calcWfErrOfMasterDonut(self):
+        pass
 
 
 

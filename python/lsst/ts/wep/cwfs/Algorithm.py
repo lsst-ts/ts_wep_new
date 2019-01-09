@@ -49,6 +49,17 @@ class Algorithm(object):
         self.cMaskPad = None
         self.algoName = None
 
+    def getParam(self):
+        """Get the parameters used in the algorithm.
+
+        Returns
+        -------
+        dict
+            Parameters used in the algorithm.
+        """
+
+        return self.parameter
+
     def reset(self):
         """
         

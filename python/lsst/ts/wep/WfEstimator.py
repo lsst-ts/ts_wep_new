@@ -23,13 +23,17 @@ class WfEstimator(object):
         self.inst = Instrument(instruFolderPath)
         self.ImgIntra = CompensationImageDecorator()
         self.ImgExtra = CompensationImageDecorator()
-        self.opticalModel = None
+        self.opticalModel = ""
 
-        self.sizeInPix = None
+        self.sizeInPix = 0
 
-    def getSizeInPix(self):
+    def getAlgo(self):
 
-        return self.sizeInPix
+        return self.algo
+
+    def getInst(self):
+
+        return self.inst
 
     def getIntraImg(self):
 
@@ -38,6 +42,14 @@ class WfEstimator(object):
     def getExtraImg(self):
 
         return self.ImgExtra
+
+    def getOptModel(self):
+
+        return self.opticalModel
+
+    def getSizeInPix(self):
+
+        return self.sizeInPix
 
     def reset(self):
         """

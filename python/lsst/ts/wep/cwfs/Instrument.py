@@ -28,6 +28,17 @@ class Instrument(object):
         self.yoSensor = None
         self.instName = None
 
+    def getInstFileName(self):
+        """Get the instrument file name.
+
+        Returns
+        -------
+        str
+            Instrument file name.
+        """
+
+        return self.filename
+
     def config(self, instruName, sensorSamples):
         """
         

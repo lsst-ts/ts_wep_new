@@ -527,6 +527,186 @@ class WepController(object):
 
         return normalizedwgtRatioArr
 
+    def genMasterDonut(self, donutMap, zcCol=np.zeros(22)):
+        """Generate the master donut map.
+
+        Parameters
+        ----------
+        donutMap : dict
+            Donut image map. The dictionary key is the sensor name. The
+            dictionary item is the donut image (type: DonutImage).
+        zcCol : numpy.ndarray, optional
+            Coefficients of wavefront (z1-z22) in nm. (the default is
+            np.zeros(22).)
+
+        Returns
+        -------
+        dict
+            Master donut image map. The dictionary key is the sensor name. The
+            dictionary item is the master donut image (type: DonutImage).
+        """
+
+        masterDonutMap = dict()
+        for sensorName, donutList in donutMap.items():
+
+            # Get the master donut on single CCD
+            masterDonut = self._genMasterImgOnSglCcd(donutList, zcCol=zcCol)
+
+            # Put the master donut to donut map
+            masterDonutMap[sensorName] = [masterDonut]
+
+        return masterDonutMap
+
+    def _genMasterImgOnSglCcd(self, donutList, zcCol):
+        """Generate the master donut image on single CCD.
+
+        CCD: Charge-coupled device.
+
+        Parameters
+        ----------
+        sensorName : str
+            Canonical sensor name (e.g. "R:2,2 S:1,1").
+        donutList : list
+            List of donut object (type: DonutImage).
+        zcCol : numpy.ndarray
+            Coefficients of wavefront (z1-z22) in nm.
+
+        Returns
+        -------
+        DonutImage
+            Master donut.
+        """
+
+        intraProjImgList = []
+        extraProjImgList = []
+        for donut in donutList:
+
+            # Get the field x, y
+            fieldXY = donut.getFieldPos()
+
+            # Set the image
+            intraImg = donut.getIntraImg()
+            if (intraImg is not None):
+
+                # Get the projected image
+                projImg = self._getProjImg(fieldXY, intraImg, 
+                                           self.wfsEsti.getIntraImg().INTRA,
+                                           zcCol)
+
+                # Collect the projected donut
+                intraProjImgList.append(projImg)
+
+            extraImg = donut.getExtraImg()
+            if (extraImg is not None):
+                
+                # Get the projected image
+                projImg = self._getProjImg(fieldXY, extraImg,
+                                           self.wfsEsti.getExtraImg().EXTRA, 
+                                           zcCol)
+
+                # Collect the projected donut
+                extraProjImgList.append(projImg)
+
+        # Generate the master donut
+        stackIntraImg = self._stackImg(intraProjImgList)
+        stackExtraImg = self._stackImg(extraProjImgList)
+
+        # Put the master donut to donut map
+        masterDonut = DonutImage(0, None, None, 0, 0, intraImg=stackIntraImg, 
+                                 extraImg=stackExtraImg)
+
+        return masterDonut
+
+    def _getProjImg(self, fieldXY, defocalImg, aType, zcCol):
+        """Get the projected image on the pupil.
+
+        Parameters
+        ----------
+        fieldXY : tuple
+            Position of donut on the focal plane in the degree for intra- and
+            extra-focal images (field X, field Y).
+        defocalImg : numpy.ndarray
+            Donut defocal image.
+        aType : str
+            Defocal type.
+        zcCol : numpy.ndarray
+            Coefficients of wavefront (z1-z22).
+
+        Returns
+        -------
+        numpy.ndarray
+            Projected image.
+        """
+        
+        # Set the image
+        self.wfsEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
+
+        # Get the image in the type of CompensationImageDecorator
+        if (aType == self.wfsEsti.getIntraImg().INTRA):
+            img = self.wfsEsti.getIntraImg()
+        elif (aType == self.wfsEsti.getExtraImg().EXTRA):
+            img = self.wfsEsti.getExtraImg()
+
+        # Get the distortion correction (offaxis)
+        algo = self.wfsEsti.getAlgo()
+        parameter = algo.getParam() 
+        offAxisCorrOrder = parameter["offAxisPolyOrder"]
+
+        inst = self.wfsEsti.getInst()
+        instDir = os.path.dirname(inst.getInstFileName())
+
+        img.getOffAxisCorr(instDir, offAxisCorrOrder)
+
+        # Do the image cocenter
+        img.imageCoCenter(inst)
+
+        # Do the compensation/ projection
+        img.compensate(inst, algo, zcCol, self.wfsEsti.getOptModel())
+
+        # Return the projected image
+        return img.getImg()
+
+    def _stackImg(self, imgList):
+        """Stack the images.
+
+        Parameters
+        ----------
+        imgList : list
+            List of image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Stacked image.
+        """
+
+        if (len(imgList) == 0):
+            stackImg = None
+        else:
+            # Get the minimun image dimension
+            dimXlist = []
+            dimYlist = []
+            for img in imgList:
+                dy, dx = img.shape
+                dimXlist.append(dx)
+                dimYlist.append(dy)
+
+            dimX = np.min(dimXlist)
+            dimY = np.min(dimYlist)
+
+            deltaX = dimX//2
+            deltaY = dimY//2
+
+            # Stack the image by summation directly
+            stackImg = np.zeros([dimY, dimX])
+            for img in imgList:
+                dy, dx = img.shape
+                cy = int(dy / 2)
+                cx = int(dx / 2)
+                stackImg += img[cy - deltaY:cy + deltaY,
+                                cx - deltaX:cx + deltaX]
+
+        return stackImg
 
     # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
 
@@ -627,171 +807,6 @@ class WepController(object):
     #             break
 
     #     return matchFileName
-
-    def genMasterImgSglCcd(self, sensorName, donutImgList, zcCol=np.zeros(22)):
-        """
-        
-        Generate the master donut image on signle CCD.
-        
-        Arguments:
-            sensorName {[str]} -- Sensor name.
-            donutImgList {[list]} -- List of donut images.
-        
-        Keyword Arguments:
-            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22). (default: {np.zeros(22)})
-        
-        Returns:
-            [DefocalImage] -- Master donut image.
-        """
-
-        # Configure the source processor
-        abbrevName = abbrevDectectorName(sensorName)
-        self.sourProc.config(sensorName=abbrevName)
-
-        intraProjImgList = []
-        extraProjImgList = []
-
-        for donutImg in donutImgList:
-
-            # Get the field x, y
-            pixelX = donutImg.pixelX
-            pixelY = donutImg.pixelY
-
-            fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
-            fieldXY = (fieldX, fieldY)
-
-            # Set the image
-            if (donutImg.intraImg is not None):
-
-                # Get the projected image
-                projImg = self.__getProjImg(fieldXY, donutImg.intraImg, 
-                                            self.wfsEsti.ImgIntra.INTRA, zcCol)
-
-                # Collect the projected donut
-                intraProjImgList.append(projImg)
-
-            if (donutImg.extraImg is not None):
-                
-                # Get the projected image
-                projImg = self.__getProjImg(fieldXY, donutImg.extraImg, 
-                                            self.wfsEsti.ImgExtra.EXTRA, zcCol)
-
-                # Collect the projected donut
-                extraProjImgList.append(projImg)
-
-        # Generate the master donut
-        stackIntraImg = self.__stackImg(intraProjImgList)
-        stackExtraImg = self.__stackImg(extraProjImgList)
-
-        # Put the master donut to donut map
-        masterDonut = DonutImage(0, None, None, 0, 0, intraImg=stackIntraImg, 
-                                    extraImg=stackExtraImg)
-
-        return masterDonut
-
-    def generateMasterImg(self, donutMap, zcCol=np.zeros(22)):
-        """
-        
-        Generate the master donut image map.
-        
-        Arguments:
-            donutMap {[dict]} -- Donut image map.
-        
-        Keyword Arguments:
-            defocalDisInMm {float} -- Defocal distance in mm. (default: {1})
-            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22) in m. 
-                                 (default: {np.zeros(22)})
-        
-        Returns:
-            [dict] -- Master donut image map.
-        """
-
-        masterDonutMap = {}
-        for sensorName, donutImgList in donutMap.items():
-
-            # Get the master donut on single CCD
-            masterDonut = self.genMasterImgSglCcd(sensorName, donutImgList, zcCol=zcCol)
-
-            # Put the master donut to donut map
-            masterDonutMap[sensorName] = [masterDonut]
-
-        return masterDonutMap
-
-    def __stackImg(self, imgList):
-        """
-        
-        Stack the images to generate the master image.
-        
-        Arguments:
-            imgList {[list]} -- Image list.
-        
-        Returns:
-            [ndarray] -- Stacked image.
-        """
-
-        if (len(imgList) == 0):
-            stackImg = None
-        else:
-            # Get the minimun image dimension
-            dimXlist = []
-            dimYlist = []
-            for img in imgList:
-                dy, dx = img.shape
-                dimXlist.append(dx)
-                dimYlist.append(dy)
-
-            dimX = np.min(dimXlist)
-            dimY = np.min(dimYlist)
-
-            deltaX = dimX//2
-            deltaY = dimY//2
-
-            # Stack the image by summation directly
-            stackImg = np.zeros([dimY, dimX])
-            for img in imgList:
-                dy, dx = img.shape
-                cy = int(dy/2)
-                cx = int(dx/2)
-                stackImg += img[cy-deltaY:cy+deltaY, cx-deltaX:cx+deltaX]
-
-        return stackImg
-
-    def __getProjImg(self, fieldXY, defocalImg, aType, zcCol):
-        """
-        
-        Get the projected image on the pupil.
-        
-        Arguments:
-            fieldXY {[tuple]} -- Position of donut on the focal plane in degree for intra- and 
-                                 extra-focal images.
-            defocalImg {[ndarray]} -- Defocal image.
-            aType {[str]} -- Defocal type.
-            zcCol {[ndarray]} -- Coefficients of wavefront (z1-z22).
-        
-        Returns:
-            [ndarray] -- Projected image.
-        """
-        
-        # Set the image
-        self.wfsEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
-
-        # Get the distortion correction (offaxis)
-        offAxisCorrOrder = self.wfsEsti.algo.parameter["offAxisPolyOrder"]
-        instDir = os.path.dirname(self.wfsEsti.inst.filename)
-        if (aType == self.wfsEsti.ImgIntra.INTRA):
-            img = self.wfsEsti.ImgIntra
-        elif (aType == self.wfsEsti.ImgExtra.EXTRA):
-            img = self.wfsEsti.ImgExtra
-        img.getOffAxisCorr(instDir, offAxisCorrOrder)
-
-        # Do the image cocenter
-        img.imageCoCenter(self.wfsEsti.inst)
-
-        # Do the compensation/ projection
-        img.compensate(self.wfsEsti.inst, self.wfsEsti.algo, zcCol, self.wfsEsti.opticalModel)
-
-        # Return the projected image
-        return img.image
 
 
 if __name__ == "__main__":

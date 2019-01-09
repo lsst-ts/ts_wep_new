@@ -37,7 +37,7 @@ class TestDonutImage(unittest.TestCase):
 
     def testGetWfErr(self):
 
-        self.assertEqual(self.donutImg.getWfErr(), None)
+        self.assertEqual(len(self.donutImg.getWfErr()), 0)
 
     def testSetWfErr(self):
 

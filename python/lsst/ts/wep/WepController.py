@@ -612,8 +612,9 @@ class WepController(object):
         stackExtraImg = self._stackImg(extraProjImgList)
 
         # Put the master donut to donut map
-        masterDonut = DonutImage(0, None, None, 0, 0, intraImg=stackIntraImg, 
-                                 extraImg=stackExtraImg)
+        pixelX, pixelY = searchDonutPos(stackIntraImg)
+        masterDonut = DonutImage(0, pixelX, pixelY, 0, 0,
+                                 intraImg=stackIntraImg, extraImg=stackExtraImg)
 
         return masterDonut
 

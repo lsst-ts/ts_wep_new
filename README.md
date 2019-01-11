@@ -11,40 +11,45 @@
 <br/>
 *Version 1.0.1*
 <br/>
-*Integrate the DM cmd task and implement the high-level WEPController class.*
+*Integrate the DM cmd task and implement the high-level WepController class.*
+<br/>
+<br/>
+*Version 1.1.0*
+<br/>
+*Update the WEP to use the obs_lsst.*
+<br/>
 
 *Author: Te-Wei Tsai*
-*Date: 4-3-2018*
+<br/>
+*Date: 1-11-2019*
 
 ## 2. Platform
 
-- *python: 3.6.2*
-- *scientific pipeline: v14*
+- *python: 3.6.6*
+- *scientific pipeline (newinstall.sh from master branch)*
 
 ## 3. Needed Package
 
-- *lsst_sims*
-- *lsst_distrib*
-- *obs_lsstSim - syseng3 branch*
-- *numpy*
-- *scipy*
-- *astropy*
-- *matplotlib*
-- *cython*
+- *lsst_sims (-t sims_w_2018_47)*
+- *lsst_distrib (-t w_2018_47)*
+- *obs_lsst - master branch*
+- *phosim_utils - master branch*
 - *scikit-image*
-- *pymssql*
 
 ## 4. Compile cwfs
-* To compile the code, at the path of cwfs in terminal, execute "python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib". 
+* To compile the code, at the directory of WEP, execute `python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib`.
 
-## 5. Setup Tag and Use the obs_lsstSim
+## 5. Install the LSST Packages, obs_lsst, and phosim_utils
 
-- *0. Install the lsst_sims by "eups distrib install lsst_sims -t sims".*
-- *1. Install the lsst_distrib by "eups distrib install lsst_distrib -t sims".*
-- *2. Clone the repository (e.g. obs_lsstSim) in some other directory. To import PhoSim simulated images, the branch of syseng3 is needed.*
-- *3. Declare that clone to eups by cd'ing into the directory and running "eups declare -r . package_name my_version -t my_tag". EUPS is restrictive about what names are valid for versions and tags. Your username is always legal, so "eups declare -r . obs_lsstSim ttsai -t ttsai" should work.*
-- *4. Setup the package. You will need to use something like "setup sims_catUtils -t ttsai -t sims".  That way, any package that does not have a "ttsai" tag available will be setup with the "sims" tag.*
-- *5. Use "scons" under the repository to build it.*
+- *1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`.* LSST_DIR is the directory of scientific pipeline.
+- *2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2018_47`.*
+- *3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2018_47`.*
+- *4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion for this.*
+- *5. Clone the repository [obs_lsst](https://github.com/lsst/obs_lsst) to some other directory.*
+
+- *4. Declare that clone to eups by cd'ing into the directory and running "eups declare -r . package_name my_version -t my_tag". EUPS is restrictive about what names are valid for versions and tags. Your username is always legal, so "eups declare -r . obs_lsstSim ttsai -t ttsai" should work.*
+- *5. Setup the package. You will need to use something like "setup sims_catUtils -t ttsai -t sims".  That way, any package that does not have a "ttsai" tag available will be setup with the "sims" tag.*
+- *6. Use "scons" under the repository to build it.*
 
 ## 6. DM Command Line Task (obs_lsstSim)
 

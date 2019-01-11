@@ -16,7 +16,7 @@
 <br/>
 *Version 1.1.0*
 <br/>
-*Update the WEP to use the obs_lsst.*
+*Update the WEP to use the obs_lsst and scientific pipeline of sims_w_2018_47.*
 <br/>
 
 *Author: Te-Wei Tsai*
@@ -37,118 +37,112 @@
 - *scikit-image*
 
 ## 4. Compile cwfs
-* To compile the code, at the directory of WEP, execute `python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib`.
+*To compile the code, at the directory of WEP, execute:*
+```
+python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
+```
 
 ## 5. Install the LSST Packages, obs_lsst, and phosim_utils
 
-- *1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`.* LSST_DIR is the directory of scientific pipeline.
-- *2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2018_47`.*
-- *3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2018_47`.*
-- *4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion for this.*
-- *5. Clone the repository [obs_lsst](https://github.com/lsst/obs_lsst) to some other directory.*
+*1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`. LSST_DIR is the directory of scientific pipeline.*
+<br/>
+*2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2018_47`.*
+<br/>
+*3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2018_47`.*
+<br/>
+*4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion for this.*
+<br/>
+*5. Clone the repository of [obs_lsst](https://github.com/lsst/obs_lsst) to some other directory. Under the obs_lsst directory, use `setup -k -r .` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.*
+<br/>
+*6. Do the step 5 for the repository of [phosim_utils](https://github.com/lsst-dm/phosim_utils.git).*
 
-- *4. Declare that clone to eups by cd'ing into the directory and running "eups declare -r . package_name my_version -t my_tag". EUPS is restrictive about what names are valid for versions and tags. Your username is always legal, so "eups declare -r . obs_lsstSim ttsai -t ttsai" should work.*
-- *5. Setup the package. You will need to use something like "setup sims_catUtils -t ttsai -t sims".  That way, any package that does not have a "ttsai" tag available will be setup with the "sims" tag.*
-- *6. Use "scons" under the repository to build it.*
+## 6. Pull the Built Image from Docker Hub
 
-## 6. DM Command Line Task (obs_lsstSim)
+*Pull the built docker image by `docker pull lsstts/aos:w_2018_47`. The scientific pipeline and lsst packages are installed already. For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).*
 
-*0. Download the obs_lsstSim. It is noted that the user does not need to follow the readme on this repo. Instead, we use the API in syseng3 branch to do this.*
-<br>
-The repository can be downloaded at: https://github.com/lsst/obs_lsstSim/tree/master/python/lsst/obs/lsstSim
-<br/>
+## 7. DM Command Line Task (obs_lsst and phosim_utils)
 
-*1. Make the input repository*
-<br/>
-mkdir input
-<br/>
-echo 'lsst.obs.lsstSim.LsstSimMapper' > input/_mapper
-<br/>
-*2. Ingest the images*
-<br/>
-ingestSimImages.py input ../Raw/lsst_*.fits
-<br/>
-*3. Make and ingest the calibration products. The next two steps are time consuming and really only need to be done once*.
-<br/>
+*1. Make the faked flat images. Flats only need to be made once. They can then be shared between repos.*
+```
+cd $work_dir
+mkdir fake_flats
+cd fake_flats/
 makeGainImages.py
-<br/>
-ingestCalibs.py input R*.fits --validity 99999 --output input
-<br/>
-*4. Process the images*
-<br/>
-processSimCcd.py input --id --output output
+cd ..
+```
+*2. Repackage the PhoSim output amplifers. The data needs to be put in single 16 extension MEFs (Multi-Extension FITS) for processing.*
+```
+phosim_repackager.py $phosim_amp_dir --out_dir=repackaged_files
+```
+*3. Make the repository, ingest the images, and ingest the calibs.*
+```
+mkdir input
+echo lsst.obs.lsst.phosim.PhosimMapper > input/_mapper
+ingestImages.py input repackaged_files/*.fits
+ingestCalibs.py input fake_flats/* --validity 99999 --output input`
+```
+*4. Make the config override file to turn only flat field on.*
+```
+echo "config.isr.doBias=False
+config.isr.doDark=False
+config.isr.doFlat=True
+config.isr.doFringe=False
+config.isr.doDefect=False" >isr_config.py
+```
+*5. Run ISR.*
+```
+runIsr.py input --id --rerun=run1 --configfile isr_config.py
+```
 
-## 7. Use of Module
+## 8. Use of Module
 
 *1. Setup the DM environment:*
-<br/>
+```
 source $path_of_lsst_scientific_pipeline/loadLSST.bash
-<br/>
-setup sims_catUtils -t $user_defined_tag -t sims
-(e.g. setup sims_catUtils -t ttsai -t sims)
-
+setup sims_catUtils -t sims_w_2018_47
+```
 *2. Setup the WEP environment:*
-<br/>
-export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep_python
-<br/>
-(e.g. export PYTHONPATH=$PYTHONPATH:/home/ttsai/Document/stash/ts_tcs_wep/python)
+```
+export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
+```
 
-*3. Connect to fatboy server:*
-<br/>
-ssh -i $Position_of_SSH_key -L 51433:fatboy.phys.washington.edu:1433 simsuser@gateway.astro.washington.edu
-<br/>
-e.g. 
-<br/>
-ssh -i /home/ttsai/.ssh/fatboy -L 51433:fatboy.phys.washington.edu:1433 simsuser@gateway.astro.washington.edu
-<br/>
-<br/>
-Keep this terminal open for the connection.
-
-## 8. Integrate with SAL
+## 9. Integrate with SAL
 
 *Some environment paths defined in ts_sal/setup.env need to be modified to use lsst stack with SAL.*
 
 *Need to setup the following path variables: LSST_SDK_INSTALL, OSPL_HOME, PYTHON_BUILD_VERSION, and PYTHON_BUILD_LOCATION.*
 
-*1. PYTHON_BUILD_LOCATION=$lsst_stack_python_directory. e.g. PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21*
+*1. `PYTHON_BUILD_LOCATION=$lsst_stack_python_directory`. e.g. `PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21`.*
 
-*2. In ts_sal/setup.env, use 'LD_LIBRARY_PATH=
-${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'.*
+*2. In ts_sal/setup.env, use `LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SAL_HOME}/lib` instead of `LD_LIBRARY_PATH=${SAL_HOME}/lib`.*
 
-## 9. SAL XML Model
+## 10. SAL XML Model
 
 *The SAL xml model are in the 'sal_interfaces' of ts_xml repository. The branch used is the develop branch. The CSC keywords are 'tcsOfc' and 'tcsWEP' for active optics to use. The xml files can be found in the related directory. The way to generate the SAL py libraries can follow the ts_sal manual.*
 
-## 10. Content
+## 11. Content
 
 *This module contains the following classes:*
 
-- **SciWFDataCollector**: Ingest the PhoSim amplifier images, and generate and ingest the fake flat calibration products based on the DM cmd task.
-- **WFDataCollector**: Accommodate the PhoSim simulated image contains the sky and calibration products (bias, dark current, and flat dome light) into the data butler format. The registry repository will be updated if it is necessary.
-- **SciIsrWrapper**: Do the ISR and assemble the CCD images based on the DM cmd task.
-- **IsrWrapper**: Do the ISR by using DM ISR library directly. The calibration products of bias, dark current, and flat dome light are used.
-- **EimgIsrWrapper**: Simulate the post-ISR image by using the electronic image generated by PhoSim. This interface keeps the same as IsrWrapper.
-- **LocalDatabaseDecorator**: Insert and delete the data from the local data base that is used by the SourceSelector.
+- **ButlerWrapper**: Wrapper of DM butler calss to get the raw and post-ISR CCD image.
+- **CamDataCollector**: Ingest the repackaged PhoSim amplifier images and fake flat calibration products based on the DM cmd task.
+- **CamIsrWrapper**: Do the ISR and assemble the CCD images based on the DM cmd task.
 - **SourceSelector**: Query the bright star catalog (BSC) in University of Washington (UW) to select the available target to do the WEP. If the star data is in the local database already, the query is also available.
 - **SourceProcessor**: Process the post-ISR images to get the clean star images with measured optical coordinate (field x, y). The deblending algorithm is used to get the single target star image if the neighboring stars exist.
-- **WFEstimator**: Calculate the wavefront error in annular Zernike polynomials up to 22 terms based on the defocal star donut images.
-- **Middleware**: Communicate with subsystems by software abstraction layer (SAL).
+- **WfEstimator**: Calculate the wavefront error in annular Zernike polynomials up to 22 terms based on the defocal star donut images.
 - **DefocalImage**: Container for the defocal images.
 - **DonutImage**: Container for the donut images.
-- **WEPController**: High level class to use the WEP package.
+- **WepController**: High level class to use the WEP package.
 - **Utility**: Utility functions used in WEP.
+- **PlotUtil**: Plot utility functions used in WEP.
 
-## 11. Example Script
+## 12. Example Script
 
-- **doCmdCalib.py**: Generate the calibration products and do the ingestion. This step is time-consuming and only needs to do once.
 - **wfsCommu.py**: Use the WEPController to issue the event and publish the telemetry.
-- **calcWfsErrAmp.py**: Ingest the amplifier images (LSST central raft), do the ISR by DM cmd task, do the source selection, and calculate the wavefront error.
-- **calcWfsErrEimgComcam.py**: Ingest the ComCam eimages, do the fake ISR, do the source selection, and calculate the wavefront error.
-- **calcWfsErrEimgWfs.py**: Get the corner WFS eimages (data butler does not support this at this moment), do the source selection, and calculate the wavefront error.
+- **mapSensorAndFieldIdx.py**: Map the sensor name to the field point index based on the sensor's position on the ideal focal plane.
 
-## 12. Target for Future Release
+## 13. Target for Future Release
 
-- *Integration of WEP and PhoSim is not done yet. There might be some inconsistency of coordinate among PhoSim, camera control system (CCS), and DM.*
 - *TIE is used as the main algorithm, which is based on the single source. However, for the LSST normal case, this is not true. The initial idea here is to normalize the intensities of multiple sources.*
 - *No boundary consideration of TIE studied.*
 - *The use of instrument signature removal (ISR) in WEP traces to data management (DM) ISR library, which needs to customize the details/ strategies in the future release.*
@@ -160,12 +154,10 @@ ${LD_LIBRARY_PATH}:${SAL_HOME}/lib' instead of 'LD_LIBRARY_PATH=${SAL_HOME}/lib'
 - *No master donut images by migration included.*
 - *No vignette correction included.*
 - *World coordinate system (WCS) is based on the focal plane with the parallax model. However, the defocal images are used in TIE. The difference and compensation between real and calculated pixel positions are not considered yet.*
-- *The reliability of BSC in University of Washington (UW) is not verified.*
 - *The local BSC database is not constructed. Need to use the Scheduler to give a reasonable survey route to minimize the calculation time. Another choice is to use SkyCoord() in Astropy. The ref is at: "http://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html".*
 - *The mechanism to update the BSC is not included.*
 - *No statistics/ strategy of selecting wavefront sensors on full-focal plane of LSST camera included.*
 - *The calculation time is much longer than the spec (14 sec).*
 - *The pipeline framework (e.g. luigi) and parallel calculation are not included.*
-- *The data collection from data acquisition (DAQ) is not included.*
 - *The commissioning camera (ComCam) mapper is mocked based on the central raft of LSST mapper.*
 - *Update the annular Zernike polynomials to Z37.*

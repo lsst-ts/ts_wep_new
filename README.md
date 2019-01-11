@@ -112,7 +112,7 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
 
 *Need to setup the following path variables: LSST_SDK_INSTALL, OSPL_HOME, PYTHON_BUILD_VERSION, and PYTHON_BUILD_LOCATION.*
 
-*1. `PYTHON_BUILD_LOCATION=$lsst_stack_python_directory`. e.g. `PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst14/python/miniconda3-4.3.21`.*
+*1. `PYTHON_BUILD_LOCATION=$lsst_stack_python_directory`. e.g. `PYTHON_BUILD_LOCATION=/home/ttsai/Document/lsst16/python/miniconda3-4.5.4`.*
 
 *2. In ts_sal/setup.env, use `LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SAL_HOME}/lib` instead of `LD_LIBRARY_PATH=${SAL_HOME}/lib`.*
 
@@ -122,7 +122,7 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
 
 ## 11. Content
 
-*This module contains the following classes:*
+*This module contains the following classes ([class diagram](./doc/wepClassDiag.png)):*
 
 - **ButlerWrapper**: Wrapper of DM butler calss to get the raw and post-ISR CCD image.
 - **CamDataCollector**: Ingest the repackaged PhoSim amplifier images and fake flat calibration products based on the DM cmd task.

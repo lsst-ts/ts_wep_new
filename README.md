@@ -136,6 +136,12 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
 - **Utility**: Utility functions used in WEP.
 - **PlotUtil**: Plot utility functions used in WEP.
 
+*There are three modules in WEP:*
+
+- **bsc**: This module queries the bright star database and gets the target. The class diagram is [here](./doc/bscClassDiag.png).
+- **deblend**: This module does the deblending. The class diagram is [here](./doc/deblendClassDiag.png).
+- **cwfs**: This module calculates the wavefront error by solving the transport of intensity equation (TIE). The class diagram is [here](./doc/cwfsClassDiag.png).
+
 ## 12. Example Script
 
 - **wfsCommu.py**: Use the WEPController to issue the event and publish the telemetry.

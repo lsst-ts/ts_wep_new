@@ -139,8 +139,27 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
 *There are three modules in WEP:*
 
 - **bsc**: This module queries the bright star database and gets the target. The class diagram is [here](./doc/bscClassDiag.png).
+    - **CamFactory**: Camera factory to create the specific camera object.
+    - **CameraData**: Camera data as the parent class of specific camera child class.
+    - **ComCam**: Commissioning camera class. The parent class is the CameraData class.
+    - **LsstCam**: LSST camera class to use the corner wavefront sensor. The parent class is the CameraData class.
+    - **LsstFamCam**: Lsst camera class to use the full-array mode. The wavefront sensor is the scientific camera. The parent class is the CameraData class.
+    - **DatabaseFactory**: Database factory to create the database object.
+    - **DefaultDatabase**: Default database class.
+    - **LocalDatabase**: Local database class. The parent class is the DefaultDatabase class.
+    - **LocalDatabaseForStarFile**: Local database class to read the star file. The parent class is the LocalDatabase class.
+    - **StarData**: Star data class for the scientific target star.
+    - **NbrStar**: Neighboring star class to have the bright star and the related neighboring stars.
+    - **Filter**: Filter class to provide the star magnitude boundary.
+    - **WcsSol**: Wavefront coordinate system (WCS) solution class to map the sky position to camera pixel position.
 - **deblend**: This module does the deblending. The class diagram is [here](./doc/deblendClassDiag.png).
+    - **AdapThresImage**: Adapted threshold image class to get the donut centor according to the binary image by the adapted method.
+    - **BlendedImageDecorator**: Blended image decorator class to do the donut deblending.
 - **cwfs**: This module calculates the wavefront error by solving the transport of intensity equation (TIE). The class diagram is [here](./doc/cwfsClassDiag.png).
+    - **Algorithm**: Algorithm class to solve the TIE to get the wavefront error.
+    - **CompensationImageDecorator**: Compensation image decorator class to project the donut image from the image plane to the pupil plane.
+    - **Image**: Image class to have the function to get the donut center.
+    - **Instrument**: Instrument class to have the instrument information used in the Algorithm class to solve the TIE.
 
 ## 12. Example Script
 

@@ -1,8 +1,10 @@
 import os
 import numpy as np
+from astropy.io import fits
 import shutil
 import unittest
 
+from lsst.ts.wep.cwfs.Tool import ZernikeAnnularFit
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -22,6 +24,8 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.modulePath = getModulePath()
         self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
         self.isrDir = os.path.join(self.dataDir, "input")
+        self.opdDir = os.path.join(self.modulePath, "tests", "testData",
+                                   "opdOutput", "9005000")
 
         self._makeDir(self.isrDir)
 
@@ -246,17 +250,59 @@ class TestWepControllerMonolithic(unittest.TestCase):
                 self.assertGreater(wfErr.max(), 100)
 
         # Compare with OPD
+        donutList = []
+        donutList.extend(self.donutMap["R:2,2 S:1,1"])
+        donutList.extend(self.donutMap["R:2,2 S:1,0"])
+
+        for aId in range(4):
+            wfErr = donutList[aId].getWfErr()
+            zkOfOpd = self._getZkInNmFromOpd(aId)[3:]
+            delta = np.abs(wfErr[7]-zkOfOpd[7])
+            self.assertLess(delta, 5)
+
+    def _getZkInNmFromOpd(self, opdId):
+
+        # Get the OPD data
+        opdFileName = "opd_9005000_%d.fits.gz" % opdId
+        opdFitsFile = os.path.join(self.opdDir, opdFileName)
+        opd = fits.getdata(opdFitsFile)
+
+        # Get x-, y-coordinate in the OPD image
+        opdSize = opd.shape[0]
+        opdGrid1d = np.linspace(-1, 1, opdSize)
+        opdx, opdy = np.meshgrid(opdGrid1d, opdGrid1d)
+
+        # Fit the OPD map with Zk
+        idx = (opd != 0)
+        znTerms = 22
+        obscuration = 0.61
+        zk = ZernikeAnnularFit(opd[idx], opdx[idx], opdy[idx], znTerms,
+                               obscuration)
+
+        # Return the unit in nm (the unit in OPD is um)
+        return zk * 1e3
 
     def step8b_calcAvgWfErrOnSglCcd(self):
-        
+
+        avgErrMap = dict()
         for sensor, donutList in self.donutMap.items():
             avgErr = self.wepCntlr.calcAvgWfErrOnSglCcd(donutList)
+            avgErrMap[sensor] = avgErr
 
             # Do the assertion
             self.assertEqual(avgErr.argmax(), 2)
             self.assertGreater(avgErr.max(), 100)
 
-            # Compare with the central OPD
+        # Compare with the central OPD
+        wfErrOnR22S11 = avgErrMap["R:2,2 S:1,1"]
+        zkOfOpdOnR22S11 = self._getZkInNmFromOpd(4)[3:]
+        deltaOnR22S11 = np.abs(wfErrOnR22S11[7] - zkOfOpdOnR22S11[7])
+        self.assertLess(deltaOnR22S11, 5)
+
+        wfErrOnR22S10 = avgErrMap["R:2,2 S:1,0"]
+        zkOfOpdOnR22S10 = self._getZkInNmFromOpd(5)[3:]
+        deltaOnR22S10 = np.abs(wfErrOnR22S10[7] - zkOfOpdOnR22S10[7])
+        self.assertLess(deltaOnR22S10, 5)
 
     def step9a_genMasterDonut(self):
 
@@ -278,6 +324,11 @@ class TestWepControllerMonolithic(unittest.TestCase):
         # Do the assertion
         self.assertEqual(wfErr.argmax(), 2)
         self.assertGreater(wfErr.max(), 100)
+
+        # Compare with the central OPD
+        zkOfOpdOnR22S11 = self._getZkInNmFromOpd(4)[3:]
+        deltaOnR22S11 = np.abs(wfErr[7] - zkOfOpdOnR22S11[7])
+        self.assertLess(deltaOnR22S11, 30)
 
 
 if __name__ == "__main__":

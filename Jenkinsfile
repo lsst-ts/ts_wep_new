@@ -39,6 +39,16 @@ pipeline {
                         source /opt/lsst/loadLSST.bash
                         conda install scikit-image
                         python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
+                        git clone --branch master https://github.com/lsst/obs_lsst.git
+                        cd obs_lsst/
+                        git checkout 9c3b73a
+                        setup -k -r .
+                        scons
+                        cd ..
+                        git clone --branch master https://github.com/lsst-dm/phosim_utils.git
+                        cd phosim_utils/
+                        setup -k -r .
+                        scons
                     """
                 }
             }
@@ -56,6 +66,12 @@ pipeline {
                         source /opt/rh/devtoolset-6/enable
                         source /opt/lsst/loadLSST.bash
                         setup sims_catUtils -t sims_w_2018_47
+                        cd obs_lsst/
+                        setup -k -r .
+                        cd ..
+                        cd phosim_utils/
+                        setup -k -r .
+                        cd ..
                         pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.WORKSPACE}/${env.XML_REPORT} ${env.WORKSPACE}/tests/cwfs/*.py ${env.WORKSPACE}/tests/bsc/*.py ${env.WORKSPACE}/tests/deblend/*.py ${env.WORKSPACE}/tests/*.py
                     """
                 }

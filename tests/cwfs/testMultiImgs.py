@@ -9,9 +9,10 @@ from lsst.ts.wep.cwfs.Tool import plotImage
 from lsst.ts.wep.Utility import getModulePath
 
 
-def runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm, imageFolderPath, 
-           intra_image_name, extra_image_name, fieldXY, opticalModel, showFig=False, 
-           showConf=False, filename=None):
+def runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm,
+           imageFolderPath, intra_image_name, extra_image_name,
+           fieldXY, opticalModel, showFig=False, showConf=False,
+           filename=None):
     """
     
     Calculate the coefficients of normal/ annular Zernike polynomials based on the provided
@@ -36,7 +37,7 @@ def runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm, imageFolderPa
     Returns:
         [float] -- Coefficients of Zernike polynomials (z4 - z22).
     """
-    
+
     # Image files Path  
     intra_image_file = os.path.join(imageFolderPath, intra_image_name)
     extra_image_file = os.path.join(imageFolderPath, extra_image_name)
@@ -46,8 +47,8 @@ def runWEP(instruFolder, algoFolderPath, instruName, useAlgorithm, imageFolderPa
     I1 = CompensationImageDecorator.CompensationImageDecorator()
     I2 = CompensationImageDecorator.CompensationImageDecorator()
 
-    I1.setImg(fieldXY[0], imageFile=intra_image_file, atype="intra")
-    I2.setImg(fieldXY[1], imageFile=extra_image_file, atype="extra")
+    I1.setImg(fieldXY, imageFile=intra_image_file, atype="intra")
+    I2.setImg(fieldXY, imageFile=extra_image_file, atype="extra")
 
     # Set the instrument
     inst = Instrument.Instrument(instruFolder)
@@ -157,47 +158,58 @@ def _readConfigFile(fout, config, configName):
     fconfig.close()
 
 
-class FileToTest(object): 
-    
-    def __init__(self, ImageFolderName, ImageName, FieldXY, UseAlgorithm,
-                 Orientation, ValidationPath):
+class WepFile(object): 
+
+    def __init__(self, imageFolderName, imageName, fieldXY, useAlgorithm,
+                 orientation, validationPath):
         
-        self.imageFolderName = ImageFolderName
-        self.imageName = ImageName
-        self.fieldXY = [FieldXY, FieldXY]
-        self.useAlgorithm = UseAlgorithm
-        self.orientation = Orientation
+        self.imageFolderName = imageFolderName
+        self.imageName = imageName
+        self.fieldXY = fieldXY
+        self.useAlgorithm = useAlgorithm
+        self.orientation = orientation
         
         # Get the refFilePath
-        refFileName = ImageFolderName + "_" + ImageName + UseAlgorithm + ".txt"
-        self.refFilePath = os.path.join(ValidationPath,refFileName)
+        refFileName = imageFolderName + "_" + imageName + useAlgorithm + \
+                      ".txt"
+        self.refFilePath = os.path.join(validationPath, refFileName)
 
 
-class DataWEP(object):
+class DataWep(object):
+
+    def __init__(self, instFolder, algoFolderPath, instName, imageFolder,
+                 wepFile):
     
-    def __init__(self, InstruFolder, AlgoFolderPath, InstruName, ImageFolder,
-                 FileToTest):
-    
-        self.instruFolder = InstruFolder
-        self.algoFolderPath = AlgoFolderPath
-        self.instruName = InstruName
-        self.useAlgorithm = FileToTest.useAlgorithm
-        self.imageFolderPath = os.path.join(ImageFolder,
-                                            FileToTest.imageFolderName)
-        self.intra_image_name = FileToTest.imageName + "intra.txt"
-        self.extra_image_name = FileToTest.imageName + "extra.txt"
-        self.fieldXY = FileToTest.fieldXY
-        self.orientation = FileToTest.orientation
-        self.refFilePath = FileToTest.refFilePath
+        self.instruFolder = instFolder
+        self.algoFolderPath = algoFolderPath
+        self.instruName = instName
+        self.useAlgorithm = wepFile.useAlgorithm
+        self.imageFolderPath = os.path.join(imageFolder,
+                                            wepFile.imageFolderName)
+        self.intra_image_name = wepFile.imageName + "intra.txt"
+        self.extra_image_name = wepFile.imageName + "extra.txt"
+        self.fieldXY = wepFile.fieldXY
+        self.orientation = wepFile.orientation
+        self.refFilePath = wepFile.refFilePath
 
 
-class TestWEP(unittest.TestCase):
+class TestWepWithMultiImgs(unittest.TestCase):
     
     def setUp(self):
 
-        # Get the path of module
+        # Set the path of module and the setting directories
         modulePath = getModulePath()
-        
+        self.instFolder = os.path.join(modulePath, "configData", "cwfs",
+                                       "instruData")
+        self.algoFolderPath = os.path.join(modulePath, "configData", "cwfs",
+                                           "algo")
+        self.imageFolderPath = os.path.join(modulePath, "tests", "testData",
+                                            "testImages")
+        self.instName = "lsst"
+
+        # Set the tolerance
+        self.tor = 3
+
         # Restart time
         self.startTime = time.time()
         self.difference = 0
@@ -208,32 +220,34 @@ class TestWEP(unittest.TestCase):
         
         # Calculate the time of test case
         t = time.time() - self.startTime
-        print("%s: %.3f s. Differece is %.3f." % (self.id(), t, self.difference))
+        print("%s: %.3f s. Differece is %.3f." % (self.id(), t,
+              self.difference))
 
-    def generateTestCase(self, ImageFolderName, ImageName ,FieldXY, UseAlgorithm, 
-                         Orientation, ValidationPath):
+    def _generateTestCase(self, imageFolderName, imageName, fieldXY,
+                          useAlgorithm, orientation, validationPath):
 
-        case_test = FileToTest(ImageFolderName, ImageName, FieldXY, UseAlgorithm, Orientation, 
-                               ValidationPath)  
-    
-        case = DataWEP(InstruFolder, AlgoFolderPath, InstruName, ImageFolderPath, 
-                       case_test)
-    
+        caseTest = WepFile(imageFolderName, imageName, fieldXY, useAlgorithm,
+                           orientation, validationPath)
+        case = DataWep(self.instFolder, self.algoFolderPath, self.instName,
+                       self.imageFolderPath, caseTest)
+
         return case
 
-    def compareCalculation(self, DataWEP, tor):
-                
+    def _compareCalculation(self, dataWEP, tor):
+
         # Run WEP to get Zk
-        zer4UpNm = runWEP(DataWEP.instruFolder, DataWEP.algoFolderPath, DataWEP.instruName, 
-                          DataWEP.useAlgorithm, DataWEP.imageFolderPath, DataWEP.intra_image_name, 
-                          DataWEP.extra_image_name, DataWEP.fieldXY, DataWEP.orientation)
-        
+        zer4UpNm = runWEP(dataWEP.instruFolder, dataWEP.algoFolderPath,
+                          dataWEP.instruName, dataWEP.useAlgorithm,
+                          dataWEP.imageFolderPath, dataWEP.intra_image_name, 
+                          dataWEP.extra_image_name, dataWEP.fieldXY,
+                          dataWEP.orientation)
+
         # Load the reference data
-        refZer4UpNm = np.loadtxt(DataWEP.refFilePath)
+        refZer4UpNm = np.loadtxt(dataWEP.refFilePath)
 
         # Compare the result
         difference = np.sum((zer4UpNm-refZer4UpNm)**2)
-        
+
         if difference <= tor:
             result = "true"
         else:
@@ -245,55 +259,43 @@ class TestWEP(unittest.TestCase):
 
     def testCase1(self):
         
-        case = self.generateTestCase("LSST_NE_SN25", "z11_0.25_", [1.185, 1.185], "exp", "offAxis", 
-                                     self.validationDir)        
-        result = self.compareCalculation(case, tor)           
+        case = self._generateTestCase("LSST_NE_SN25", "z11_0.25_",
+                                      [1.185, 1.185], "exp", "offAxis", 
+                                      self.validationDir)       
+        result = self._compareCalculation(case, self.tor)
         self.assertEqual(result, "true")
 
     def testCase2(self):
 
-        case = self.generateTestCase("LSST_NE_SN25", "z11_0.25_", [1.185, 1.185], "fft", "offAxis", 
-                                     self.validationDir)        
-        result = self.compareCalculation(case, tor)
+        case = self._generateTestCase("LSST_NE_SN25", "z11_0.25_",
+                                      [1.185, 1.185], "fft", "offAxis", 
+                                      self.validationDir)        
+        result = self._compareCalculation(case, self.tor)
         self.assertEqual(result, "true")
 
     def testCase3(self):
 
-        case = self.generateTestCase("F1.23_1mm_v61", "z7_0.25_", [0, 0], "fft", "paraxial", 
-                                     self.validationDir)        
-        result = self.compareCalculation(case, tor)
+        case = self._generateTestCase("F1.23_1mm_v61", "z7_0.25_", [0, 0],
+                                      "fft", "paraxial", self.validationDir)        
+        result = self._compareCalculation(case, self.tor)
         self.assertEqual(result, "true")
 
     def testCase4(self):
 
-        case = self.generateTestCase("LSST_C_SN26", "z7_0.25_", [0, 0], "fft", "onAxis", 
-                                     self.validationDir)        
-        result = self.compareCalculation(case, tor)
+        case = self._generateTestCase("LSST_C_SN26", "z7_0.25_", [0, 0],
+                                      "fft", "onAxis", self.validationDir)        
+        result = self._compareCalculation(case, self.tor)
         self.assertEqual(result, "true")
 
     def testCase5(self):
 
-        case = self.generateTestCase("LSST_C_SN26", "z7_0.25_", [0, 0], "exp", "onAxis", 
-                                     self.validationDir)        
-        result = self.compareCalculation(case, tor)
+        case = self._generateTestCase("LSST_C_SN26", "z7_0.25_", [0, 0],
+                                      "exp", "onAxis", self.validationDir)        
+        result = self._compareCalculation(case, self.tor)
         self.assertEqual(result, "true")
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
 
-    # Get the path of module
-    modulePath = getModulePath()
-    
-    # Information of test
-    InstruFolder = os.path.join(modulePath, "configData", "cwfs", "instruData")
-    AlgoFolderPath = os.path.join(modulePath, "configData", "cwfs", "algo")
-    InstruName = "lsst"
-    ImageFolderPath = os.path.join(modulePath, "tests", "testData",
-                                   "testImages")
-
-    # Set the tolerance
-    tor = 3
-
-    # Run the test
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestWEP)
-    unittest.TextTestRunner(verbosity=0).run(suite)
+    # Do the unit test
+    unittest.main()

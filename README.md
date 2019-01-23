@@ -18,10 +18,15 @@
 <br/>
 *Updated the WEP to use the obs_lsst and scientific pipeline of sims_w_2018_47. The phosim_utils is used to repackage the PhoSim output amplifer images to the format of multi-extention FITS.*
 <br/>
+<br/>
+*Version 1.1.1*
+<br/>
+*Updated to use the scientific pipeline of sims_w_2019_02.*
+<br/>
 
 *Author: Te-Wei Tsai*
 <br/>
-*Date: 1-15-2019*
+*Date: 1-23-2019*
 
 ## 2. Platform
 
@@ -31,10 +36,10 @@
 
 ## 3. Needed Package
 
-- *lsst_sims (tag: sims_w_2018_47)*
-- *lsst_distrib (tag: w_2018_47)*
-- *obs_lsst - master branch*
-- *phosim_utils - master branch*
+- *lsst_sims (tag: sims_w_2019_02)*
+- *lsst_distrib (tag: w_2019_02)*
+- *obs_lsst - master branch (commit: 69b4a98)*
+- *phosim_utils - master branch (commit: b8d87d9)*
 - *scikit-image*
 
 ## 4. Compile cwfs
@@ -47,9 +52,9 @@ python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
 
 *1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`. LSST_DIR is the directory of scientific pipeline.*
 <br/>
-*2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2018_47`.*
+*2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2019_02`.*
 <br/>
-*3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2018_47`.*
+*3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2019_02`.*
 <br/>
 *4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion of this.*
 <br/>
@@ -59,7 +64,7 @@ python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
 
 ## 6. Pull the Built Image from Docker Hub
 
-*Pull the built docker image by `docker pull lsstts/aos:w_2018_47`. The scientific pipeline and lsst packages are installed already. For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).*
+*Pull the built docker image by `docker pull lsstts/aos:w_2019_02`. The scientific pipeline and lsst packages are installed already. For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).*
 
 ## 7. DM Command Line Task (obs_lsst and phosim_utils)
 
@@ -100,7 +105,7 @@ runIsr.py input --id --rerun=run1 --configfile isr_config.py
 *1. Setup the DM environment.*
 ```
 source $path_of_lsst_scientific_pipeline/loadLSST.bash
-setup sims_catUtils -t sims_w_2018_47
+setup sims_catUtils -t sims_w_2019_02
 ```
 *2. Setup the WEP environment.*
 ```

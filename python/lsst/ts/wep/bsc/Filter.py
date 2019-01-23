@@ -1,4 +1,4 @@
-from lsst.ts.wep.Utility import FilterType
+from lsst.ts.wep.Utility import FilterType, mapFilterRefToG
 
 
 class Filter(object):
@@ -68,27 +68,28 @@ class Filter(object):
         lowMagnitude = 0
         highMagnitude = 0
 
-        if (self.filter == FilterType.U):
+        mappedFilterType = mapFilterRefToG(self.filter)
+        if (mappedFilterType == FilterType.U):
             lowMagnitude = self.U_LOW_MAG
             highMagnitude = self.U_HIGH_MAG
 
-        elif (self.filter == FilterType.G):
+        elif (mappedFilterType == FilterType.G):
             lowMagnitude = self.G_LOW_MAG
             highMagnitude = self.G_HIGH_MAG
 
-        elif (self.filter == FilterType.R):
+        elif (mappedFilterType == FilterType.R):
             lowMagnitude = self.R_LOW_MAG
             highMagnitude = self.R_HIGH_MAG
 
-        elif (self.filter == FilterType.I):
+        elif (mappedFilterType == FilterType.I):
             lowMagnitude = self.I_LOW_MAG
             highMagnitude = self.I_HIGH_MAG
 
-        elif (self.filter == FilterType.Z):
+        elif (mappedFilterType == FilterType.Z):
             lowMagnitude = self.Z_LOW_MAG
             highMagnitude = self.Z_HIGH_MAG
 
-        elif (self.filter == FilterType.Y):
+        elif (mappedFilterType == FilterType.Y):
             lowMagnitude = self.Y_LOW_MAG
             highMagnitude = self.Y_HIGH_MAG
 

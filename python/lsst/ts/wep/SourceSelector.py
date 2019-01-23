@@ -2,6 +2,7 @@ from lsst.ts.wep.bsc.Filter import Filter
 from lsst.ts.wep.bsc.CamFactory import CamFactory
 from lsst.ts.wep.bsc.DatabaseFactory import DatabaseFactory
 from lsst.ts.wep.bsc.LocalDatabaseForStarFile import LocalDatabaseForStarFile
+from lsst.ts.wep.Utility import FilterType, mapFilterRefToG
 
 
 class SourceSelector(object):
@@ -126,9 +127,12 @@ class SourceSelector(object):
             of sensor as a list. The dictionary key is the sensor name.
         """
 
-        filterType = self.getFilter()
         wavefrontSensors = self.camera.getWavefrontSensor()
         lowMagnitude, highMagnitude = self.filter.getMagBoundary()
+
+        # Map the reference filter to the G filter
+        filterType = self.getFilter()
+        mappedFilterType = mapFilterRefToG(filterType)
 
         # Query the star database
         starMap = dict()
@@ -136,7 +140,7 @@ class SourceSelector(object):
         for detector, wavefrontSensor in wavefrontSensors.items():
 
             # Get stars in this wavefront sensor for this observation field
-            stars = self.db.query(filterType, wavefrontSensor[0],
+            stars = self.db.query(mappedFilterType, wavefrontSensor[0],
                                   wavefrontSensor[1], wavefrontSensor[2],
                                   wavefrontSensor[3])
 
@@ -152,13 +156,13 @@ class SourceSelector(object):
 
             # Check the candidate of bright stars based on the magnitude
             indexCandidate = starsOnDet.checkCandidateStars(
-                                filterType, lowMagnitude, highMagnitude)
+                                mappedFilterType, lowMagnitude, highMagnitude)
 
             # Determine the neighboring stars based on the distance and
             # allowed number of neighboring stars
             neighborStar = starsOnDet.getNeighboringStar(
-                                indexCandidate, self.maxDistance, filterType,
-                                self.maxNeighboringStar)
+                                indexCandidate, self.maxDistance,
+                                mappedFilterType, self.maxNeighboringStar)
             neighborStarMap[detector] = neighborStar
 
         # Remove the data that has no bright star
@@ -231,15 +235,18 @@ class SourceSelector(object):
         if (not isinstance(self.db, LocalDatabaseForStarFile)):
             raise TypeError("The database type is incorrect.")
 
-        # Write the sky data into the temporary table
+        # Map the reference filter to the G filter
         filterType = self.getFilter()
-        self.db.createTable(filterType)
-        self.db.insertDataByFile(skyFilePath, filterType, skiprows=1)
+        mappedFilterType = mapFilterRefToG(filterType)
+
+        # Write the sky data into the temporary table
+        self.db.createTable(mappedFilterType)
+        self.db.insertDataByFile(skyFilePath, mappedFilterType, skiprows=1)
         neighborStarMap, starMap, wavefrontSensors = \
                             self.getTargetStar(offset=offset)
 
         # Delete the table
-        self.db.deleteTable(filterType)
+        self.db.deleteTable(mappedFilterType)
 
         return neighborStarMap, starMap, wavefrontSensors
 

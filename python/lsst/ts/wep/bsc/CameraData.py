@@ -227,9 +227,13 @@ class CameraData(object):
         starsOnDet.setDeclInPixel(self._getKeepItem(starsDeclInPixel, keep))
 
         for filterType in FilterType:
-            magArray = starsOnDet.getMag(filterType)
-            if (len(magArray) != 0):
-                starsOnDet.setMag(filterType, self._getKeepItem(magArray, keep))
+
+            if (filterType != FilterType.REF):
+                magArray = starsOnDet.getMag(filterType)
+
+                if (len(magArray) != 0):
+                    starsOnDet.setMag(filterType, self._getKeepItem(magArray,
+                                                                    keep))
 
         return starsOnDet
 

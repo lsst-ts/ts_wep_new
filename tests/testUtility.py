@@ -1,6 +1,7 @@
 import unittest
 
-from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName
+from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
+                                mapFilterRefToG, FilterType
 
 
 class TestUtility(unittest.TestCase):
@@ -25,6 +26,16 @@ class TestUtility(unittest.TestCase):
         self.assertEqual(expandDetectorName(wfsSensorName), "R:4,0 S:0,2,B")
 
         self.assertRaises(ValueError, expandDetectorName, "R40_S02_C2")
+
+    def testmapFilterRefToG(self):
+
+        mappedFilterType = mapFilterRefToG(FilterType.REF)
+        self.assertEqual(mappedFilterType, FilterType.G)
+
+    def testmapFilterRefToGForFilterU(self):
+
+        mappedFilterType = mapFilterRefToG(FilterType.U)
+        self.assertEqual(mappedFilterType, FilterType.U)
 
 
 if __name__ == "__main__":

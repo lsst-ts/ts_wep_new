@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
-from lsst.ts.wep.Utility import readPhoSimSettingData
+from lsst.ts.wep.Utility import readPhoSimSettingData, mapFilterRefToG
 
 
 class SourceProcessor(object):
@@ -458,7 +458,8 @@ class SourceProcessor(object):
                 "The numbers of intra- and extra-focal images are different.")
 
         # Get the magnitude of stars
-        starMag = nbrStar.getMag(filterType)
+        mappedFilterType = mapFilterRefToG(filterType)
+        starMag = nbrStar.getMag(mappedFilterType)
 
         # Based on the nbrStar to reconstruct the image
         for brightStar, neighboringStar in nbrStar.getId().items():
@@ -670,7 +671,8 @@ class SourceProcessor(object):
         allStarPosY = np.array(allStarPosY) - offsetY
 
         # Get the star magnitude
-        magList = nbrStar.getMag(filterType)
+        mappedFilterType = mapFilterRefToG(filterType)
+        magList = nbrStar.getMag(mappedFilterType)
 
         # Get the list of magnitude
         magRatio = np.array([])

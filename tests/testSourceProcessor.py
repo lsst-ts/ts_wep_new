@@ -129,7 +129,7 @@ class TestSourceProcessor(unittest.TestCase):
         defocalDis = 0.25
         nbrStar = self._generateNbrStar()
         ccdImgIntra, ccdImgExtra = self.sourProc.simulateImg(
-                        imageFolderPath, defocalDis, nbrStar, FilterType.U,
+                        imageFolderPath, defocalDis, nbrStar, FilterType.REF,
                         noiseRatio=0)
 
         return ccdImgIntra, ccdImgExtra
@@ -139,7 +139,7 @@ class TestSourceProcessor(unittest.TestCase):
         nbrStar = NbrStar()
         nbrStar.starId = {523572575: [], 
                           523572679: [523572671]}
-        nbrStar.lsstMagU = {523572575: 14.66652, 
+        nbrStar.lsstMagG = {523572575: 14.66652, 
                             523572671: 16.00000, 
                             523572679: 13.25217}
         nbrStar.raDeclInPixel = {523572679: (3966.44, 1022.91), 
@@ -169,7 +169,7 @@ class TestSourceProcessor(unittest.TestCase):
         starIndex = list(nbrStar.getId()).index(523572679)
         sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
             self.sourProc.getSingleTargetImage(ccdImgIntra, nbrStar,
-                                               starIndex, FilterType.U)
+                                               starIndex, FilterType.REF)
 
         return sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, \
                offsetY

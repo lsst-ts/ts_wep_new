@@ -21,7 +21,7 @@
 <br/>
 *Version 1.1.1*
 <br/>
-*Updated to use the scientific pipeline of sims_w_2019_02.*
+*Updated to use the scientific pipeline of sims_w_2019_02. Add the referece filter type.*
 <br/>
 
 *Author: Te-Wei Tsai*

@@ -81,12 +81,34 @@ class TestSourceSelector(unittest.TestCase):
         self.assertRaises(TypeError, self.sourSelc.getTargetStarByFile,
                           "skyFile")
 
-    def testGetTargetStarByFile(self):
+    def testGetTargetStarByFileForFilterG(self):
+
+        neighborStarMap, starMap, wavefrontSensors = \
+                    self._getTargetStarByFile(FilterType.G)
+
+        self.assertEqual(len(wavefrontSensors), 8)
+
+        for detector in wavefrontSensors:
+            self.assertEqual(len(starMap[detector].getId()), 2)
+            self.assertEqual(len(neighborStarMap[detector].getId()), 2)
+
+    def testGetTargetStarByFileForFilterRef(self):
+
+        neighborStarMap, starMap, wavefrontSensors = \
+                    self._getTargetStarByFile(FilterType.REF)
+
+        self.assertEqual(len(wavefrontSensors), 8)
+
+        for detector in wavefrontSensors:
+            self.assertEqual(len(starMap[detector].getId()), 2)
+            self.assertEqual(len(neighborStarMap[detector].getId()), 2)
+
+    def _getTargetStarByFile(self, filterType):
 
         self.sourSelc = SourceSelector(CamType.LsstCam,
                                        BscDbType.LocalDbForStarFile)
         self.sourSelc.setObsMetaData(0, 0, 0)
-        self.sourSelc.setFilter(FilterType.G)
+        self.sourSelc.setFilter(filterType)
         self.sourSelc.connect(self.dbAdress)
 
         skyFilePath = os.path.join(self.modulePath, "tests", "testData",
@@ -96,11 +118,7 @@ class TestSourceSelector(unittest.TestCase):
         neighborStarMap, starMap, wavefrontSensors = \
                     self.sourSelc.getTargetStarByFile(skyFilePath, offset=0)
 
-        self.assertEqual(len(wavefrontSensors), 8)
-
-        for detector in wavefrontSensors:
-            self.assertEqual(len(starMap[detector].getId()), 2)
-            self.assertEqual(len(neighborStarMap[detector].getId()), 2)
+        return neighborStarMap, starMap, wavefrontSensors
 
 
 if __name__ == "__main__":

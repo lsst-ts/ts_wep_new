@@ -14,6 +14,7 @@ class FilterType(Enum):
     I = 4
     Z = 5
     Y = 6
+    REF = 7
 
 
 class CamType(Enum):
@@ -283,6 +284,26 @@ def readPhoSimSettingData(folderPath, fileName, atype):
     fid.close()
 
     return ccdData
+
+
+def mapFilterRefToG(filterType):
+    """Map the reference filter to the G filter.
+
+    Parameters
+    ----------
+    filterType : FilterType
+        Filter type.
+
+    Returns
+    -------
+    FilterType
+        Mapped filter type.
+    """
+
+    if (filterType == FilterType.REF):
+        return FilterType.G
+    else:
+        return filterType
 
 
 if __name__ == "__main__":

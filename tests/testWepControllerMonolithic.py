@@ -41,7 +41,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
                                       sourProc, wfsEsti)
 
         # Intemediate data used in the test
-        self.filter = FilterType.G
+        self.filter = FilterType.REF
 
         self.neighborStarMap = dict()
         self.starMap = dict()

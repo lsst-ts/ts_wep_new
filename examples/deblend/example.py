@@ -1,27 +1,29 @@
 import os
-
 import numpy as np
 
 from lsst.ts.wep.deblend import AdapThresImage, BlendedImageDecorator
 from lsst.ts.wep.cwfs.Tool import plotImage
 from lsst.ts.wep.Utility import getModulePath
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     # Get the path of module
     modulePath = getModulePath()
 
-	# Define the image folder and image names
+    # Define the image folder and image names
     # Image data -- Don't know the final image format. 
     # It is noted that image.readFile inuts is based on the txt file  
-    imageFolderPath = os.path.join(modulePath, "test", "testImages", "LSST_NE_SN25")
+    imageFolderPath = os.path.join(modulePath, "tests", "testData",
+                                   "testImages", "LSST_NE_SN25")
     imageName = 'z11_0.25_intra.txt'
     imageFile = os.path.join(imageFolderPath, imageName)
 
     imageIntra = AdapThresImage.AdapThresImage()
     imageIntra.setImg(imageFile = imageFile)
 
-    # Coefficient of distance between donuts (Space coefficient should be >= 1.2)
+    # Coefficient of distance between donuts
+    # (Space coefficient should be >= 1.2)
     spaceCoef = np.random.rand()*1.5 + 1.2
     print("Random space coeffcient is %f." % spaceCoef)
 
@@ -30,14 +32,16 @@ if __name__ == '__main__':
     # (Magnitude difference shoulbe be >= 1.)
     magDiff = np.random.rand()*3 + 1.0
     magRatio = 1/100**(magDiff/5.0)
-    print("Random magnitude difference is %f and the ratio is %f." % (magDiff, magRatio))
+    print("Random magnitude difference is %f and the ratio is %f." % (
+                                                            magDiff, magRatio))
 
     # Theta angle of generated neighboring star
     theta = np.random.rand()*2*np.pi
     print("Random theta in radian is %f." % theta)
 
     # Generate the blended image    
-    image, imageMain, imageNeighbor, neighborX, neighborY = imageIntra.generateMultiDonut(spaceCoef, magRatio, theta)
+    image, imageMain, imageNeighbor, neighborX, neighborY = \
+        imageIntra.generateMultiDonut(spaceCoef, magRatio, theta)
 
     # Add a constant system error
     sysError = np.random.rand()
@@ -49,20 +53,23 @@ if __name__ == '__main__':
     blendImage = BlendedImageDecorator.BlendedImageDecorator()
     blendImage.setImg(image=image)
 
-    # Generate a random error to simulate the uncertainty of position of neighboring star
+    # Generate a random error to simulate the uncertainty of position of
+    # neighboring star
     tempX = np.random.randint(-5, high = 6)
     tempY = np.random.randint(-5, high = 6)
-    print("Random shift (X, Y) of neighboring star is (%f, %f)." % (tempX, tempY))
+    print("Random shift (X, Y) of neighboring star is (%f, %f)." % (
+                                                                tempX, tempY))
 
     # Add the random error to position of neighboring star
     neighborX += tempX
     neighborY += tempY
 
-    # Generate a random error to simulate the uncertainty of magnitude ratio of neighboring star
+    # Generate a random error to simulate the uncertainty of magnitude ratio of
+    # neighboring star
     if (np.random.rand() > 0.5):
-    	tmpMag = np.random.rand()*0.3
+        tmpMag = np.random.rand()*0.3
     else:
-    	tmpMag = -np.random.rand()*0.3
+        tmpMag = -np.random.rand()*0.3
 
     print("Random shift of magnitude ratio of neighboring star is %f." % tmpMag)
 
@@ -70,7 +77,8 @@ if __name__ == '__main__':
     magRatio += tmpMag
 
     # Do the deblending
-    imgDeblend, realcx, realcy = blendImage.deblendDonut([neighborX, neighborY], magRatio)
+    imgDeblend, realcx, realcy = blendImage.deblendDonut(
+                                            [neighborX, neighborY], magRatio)
 
     # Do the comaprison
     delta = np.sum(np.abs(imageMain-imgDeblend))

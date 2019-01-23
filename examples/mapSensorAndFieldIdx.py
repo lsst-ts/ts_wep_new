@@ -2,15 +2,16 @@ import os
 import numpy as np
 
 from lsst.ts.wep.SourceProcessor import SourceProcessor
+from lsst.ts.wep.Utility import getModulePath
+
 
 if __name__ == "__main__":
     
     # Folder path of focal plane txt file
-    folderPath2FocalPlane = "/home/ttsai/Document/bitbucket/phosim_syseng2/data/lsst"
+    folderPath2FocalPlane = os.path.join(getModulePath(), "tests", "testData")
 
     # Configurate the source processor
-    sourPro = SourceProcessor()
-    sourPro.config(folderPath2FocalPlane=folderPath2FocalPlane)
+    sourPro = SourceProcessor(folderPath2FocalPlane=folderPath2FocalPlane)
 
     # Get the list of sensor name and coordinate
     sensorFocaPlaneInDeg = sourPro.sensorFocaPlaneInDeg
@@ -31,8 +32,10 @@ if __name__ == "__main__":
     fieldWFSx = [1.176, -1.176, -1.176, 1.176]
     fieldWFSy = [1.176, 1.176, -1.176, -1.176]
     pointAngle = np.arange(nArm) * (2*np.pi)/nArm
-    fieldX = np.concatenate([np.zeros(1), np.kron(armLen, np.cos(pointAngle)), fieldWFSx])
-    fieldY = np.concatenate([np.zeros(1), np.kron(armLen, np.sin(pointAngle)), fieldWFSy])
+    fieldX = np.concatenate([np.zeros(1), np.kron(armLen, np.cos(pointAngle)),
+                            fieldWFSx])
+    fieldY = np.concatenate([np.zeros(1), np.kron(armLen, np.sin(pointAngle)),
+                            fieldWFSy])
 
     xyField = np.array([fieldX, fieldY]).T
 

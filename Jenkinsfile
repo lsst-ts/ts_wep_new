@@ -8,7 +8,7 @@ pipeline {
         // The nodes in T&S teams is 'jenkins-el7-1'.
         // It is recommended by SQUARE team do not add the label.
         docker {
-            image 'lsstts/aos:w_2018_47'
+            image 'lsstts/aos:w_2019_02'
             args '-u root'
         }
     }
@@ -41,12 +41,13 @@ pipeline {
                         python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
                         git clone --branch master https://github.com/lsst/obs_lsst.git
                         cd obs_lsst/
-                        git checkout 9c3b73a
+                        git checkout 69b4a98
                         setup -k -r .
                         scons
                         cd ..
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
+                        git checkout b8d87d9
                         setup -k -r .
                         scons
                     """

@@ -108,8 +108,8 @@ class CompensationImageDecoratorTest(unittest.TestCase):
         # Test the function of image co-center
         wfsImg.imageCoCenter(self.inst)
         xc, yc = wfsImg.getCenterAndR_ef()[0:2]
-        self.assertAlmostEqual(xc, 63.223939929328623)
-        self.assertAlmostEqual(yc, 63.226810954063602)
+        self.assertEqual(int(xc), 63)
+        self.assertEqual(int(yc), 63)
 
     def testFuncCompensation(self):
 
@@ -140,14 +140,15 @@ class CompensationImageDecoratorTest(unittest.TestCase):
         # Get the common region
         binaryImgIntra = wfsImgIntra.getCenterAndR_ef()[3]
         binaryImgExtra = wfsImgExtra.getCenterAndR_ef()[3]
-        binaryImg = binaryImgIntra+binaryImgExtra
-        binaryImg[binaryImg<2] = 0
-        binaryImg = binaryImg/2
+        binaryImg = binaryImgIntra + binaryImgExtra
+        binaryImg[binaryImg < 2] = 0
+        binaryImg = binaryImg / 2
 
         # Calculate the difference
-        res = np.sum(np.abs(wfsImgExtra.image-wfsImgIntra.image)*binaryImg)
-
-        self.assertLess(res, 250)
+        intraImg = wfsImgIntra.getImg()
+        extraImg = wfsImgExtra.getImg()
+        res = np.sum(np.abs(intraImg - extraImg) * binaryImg)
+        self.assertLess(res, 500)
 
 
 if __name__ == "__main__":

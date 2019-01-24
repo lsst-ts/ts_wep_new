@@ -66,7 +66,7 @@ pipeline {
                     sh """
                         source /opt/rh/devtoolset-6/enable
                         source /opt/lsst/loadLSST.bash
-                        setup sims_catUtils -t sims_w_2018_47
+                        setup sims_catUtils -t sims_w_2019_02
                         cd obs_lsst/
                         setup -k -r .
                         cd ..

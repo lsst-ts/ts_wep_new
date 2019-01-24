@@ -16,6 +16,62 @@ class FilterType(Enum):
     Y = 6
     REF = 7
 
+    @staticmethod
+    def fromString(arg):
+        """Instantiate the FilterType based on a string that maps 
+        one-to-one with the filters.
+
+        Parameters
+        ----------
+        arg : str
+            The string corresponding to the filter.
+
+        Returns
+        -------
+        FilterType 
+            The FilterType corresponding to the string. 
+        """
+        char = arg.strip().lower()
+        string2Filter = {
+            "u": FilterType.U,
+            "g": FilterType.G,
+            "r": FilterType.R,
+            "i": FilterType.I,
+            "z": FilterType.Z,
+            "y": FilterType.Y,
+            "ref": FilterType.REF
+        }
+        return string2Filter[char]
+
+    def toString(self):
+        """Represent the FilterType as a string.
+
+        Returns
+        -------
+        str
+            representation of self.
+        """
+        return str(self)
+
+    def __str__(self):
+        """Represent the FilterType as a string.
+
+        Returns
+        -------
+        str
+            representation of self.
+        """
+        filter2String = {
+            FilterType.U: "u",
+            FilterType.G: "g",
+            FilterType.R: "r",
+            FilterType.I: "i",
+            FilterType.Z: "z",
+            FilterType.Y: "y",
+            FilterType.REF: "ref",
+        }
+        return filter2String[self]
+
 
 class CamType(Enum):
     LsstCam = 1

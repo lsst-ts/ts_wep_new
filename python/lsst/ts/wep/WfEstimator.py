@@ -28,34 +28,78 @@ class WfEstimator(object):
         self.sizeInPix = 0
 
     def getAlgo(self):
+        """Get the algorithm object.
+
+        Returns
+        -------
+        Algorithm
+            Algorithm object.
+        """
 
         return self.algo
 
     def getInst(self):
+        """Get the instrument object.
+
+        Returns
+        -------
+        Instrument
+            Instrument object.
+        """
 
         return self.inst
 
     def getIntraImg(self):
+        """Get the intra-focal donut image.
+
+        Returns
+        -------
+        CompensationImageDecorator
+            Intra-focal donut image.
+        """
 
         return self.ImgIntra
 
     def getExtraImg(self):
+        """Get the extra-focal donut image.
+
+        Returns
+        -------
+        CompensationImageDecorator
+            Extra-focal donut image.
+        """
 
         return self.ImgExtra
 
     def getOptModel(self):
+        """Get the optical model.
+
+        Returns
+        -------
+        str
+            Optical model.
+        """
 
         return self.opticalModel
 
     def getSizeInPix(self):
+        """Get the donut image size in pixel defined by the config() function.
+
+        Returns
+        -------
+        int
+            Donut image size in pixel
+        """
 
         return self.sizeInPix
 
     def reset(self):
         """
-        
-        Reset the calculation for the new input images with the same algorithm settings.
+
+        Reset the calculation for the new input images with the same algorithm
+        settings.
         """
+
         self.algo.reset()
 
     def config(self, solver="exp", instName="lsst", opticalModel="offAxis", defocalDisInMm=None, 

@@ -2,6 +2,7 @@ import numpy as np
 
 
 class AstWcsSol(object):
+    """AST world coordinate system (WCS) solution provided by DM team."""
 
     def __init__(self):
         """Construct a Ast WCS Solution class."""

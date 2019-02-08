@@ -23,10 +23,15 @@
 <br/>
 *Updated to use the scientific pipeline of sims_w_2019_02. Add the referece filter type.*
 <br/>
+<br/>
+*Version 1.2.1*
+<br/>
+*Add the interface to MTAOS in ctrlIntf module.*
+<br/>
 
 *Author: Te-Wei Tsai*
 <br/>
-*Date: 1-23-2019*
+*Date: 2-8-2019*
 
 ## 2. Platform
 
@@ -142,7 +147,7 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
 - **Utility**: Utility functions used in WEP.
 - **PlotUtil**: Plot utility functions used in WEP.
 
-*There are three modules in WEP:*
+*There are the following modules in WEP:*
 
 - **Bright Star Catalog (bsc)**: This module queries the bright star catalog and gets the scientific target. The class diagram is [here](./doc/bscClassDiag.png).
     - **CamFactory**: Camera factory to create the concrete camera object.
@@ -171,6 +176,17 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
     - **Image**: Image class to have the function to get the donut center.
     - **Instrument**: Instrument class to have the instrument information used in the Algorithm class to solve the TIE.
     - **Tool**: Annular Zernike polynomials related functions.
+
+- **Control Interface (ctrlIntf)**: This module provides the interface classes to the main telescope active optics system (MTAOS). The factory pattern is applied to support the multiple instruments. The class diagram is [here](./doc/ctrlIntfClassDiag.png).
+    - **WEPCalculationFactory**: Factory for creating the correct WEP calculation based off the camera type currently being used.
+    - **WEPCalculation**: Base class for converting the wavefront images into wavefront errors.
+    - **WEPCalculationOfPiston**: The child class of WEPCalculation that gets the defocal images by the camera piston.
+    - **WEPCalculationOfLsstCam**: The concrete child class of WEPCalculation of the LSST camera (corner wavefront sensor).
+    - **WEPCalculationOfComCam**: The concrete child class of WEPCalculationOfPiston of the commionning camera (ComCam).
+    - **WEPCalculationOfLsstFamCam**: The concrete child class of WEPCalculationOfPiston of the LSST full-array mode (FAM) camera.
+    - **SensorWavefrontData**: Sensor wavefront data class that has the information of sensor Id, list of donut, master donut, and wavefront error.
+    - **WcsData**: Contains the world coordinate system (WCS) data of a camera.
+    - **AstWcsSol**: AST world coordinate system (WCS) solution provided by DM team.
 
 ## 12. Example Script
 

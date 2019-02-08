@@ -73,7 +73,7 @@ pipeline {
                         cd phosim_utils/
                         setup -k -r .
                         cd ..
-                        pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.WORKSPACE}/${env.XML_REPORT} ${env.WORKSPACE}/tests/cwfs/*.py ${env.WORKSPACE}/tests/bsc/*.py ${env.WORKSPACE}/tests/deblend/*.py ${env.WORKSPACE}/tests/*.py
+                        pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.WORKSPACE}/${env.XML_REPORT} ${env.WORKSPACE}/tests/cwfs/*.py ${env.WORKSPACE}/tests/bsc/*.py ${env.WORKSPACE}/tests/deblend/*.py ${env.WORKSPACE}/tests/ctrlIntf/*.py ${env.WORKSPACE}/tests/*.py
                     """
                 }
             }

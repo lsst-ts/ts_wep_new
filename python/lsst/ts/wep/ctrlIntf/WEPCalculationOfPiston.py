@@ -5,6 +5,8 @@ class WEPCalculationOfPiston(WEPCalculation):
     """The child class of WEPCalculation that gets the defocal images by the
     camera piston."""
 
+    DEFOCAL_DIS_IN_MM = 1.5
+
     def __init__(self, astWcsSol):
         """Construct an WEP calculation of piston object."""
         super(WEPCalculationOfPiston, self).__init__(astWcsSol)
@@ -18,7 +20,7 @@ class WEPCalculationOfPiston(WEPCalculation):
         self.intraRawExpDir = []
         self.extraRawExpDir = []
 
-        self.defocalDisInMm = 1.5
+        self.defocalDisInMm = self.DEFOCAL_DIS_IN_MM
 
     def ingestIntraRawExp(self, visit, snap, rawExpDir):
         """Ingest the intra-focal raw exposure data. The raw exposures should

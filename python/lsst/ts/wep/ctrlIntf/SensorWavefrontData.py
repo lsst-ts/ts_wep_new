@@ -14,10 +14,10 @@ class SensorWavefrontData(object):
         """Construct a sensor wavefront data object."""
         super().__init__()
 
-        self.sensorId = -1
+        self.sensorId = 999
         self.listOfDonut = []
         self.masterDonut = DonutImage(0, 0, 0, 0, 0)
-        self.effWfErr = np.array([])
+        self.effWfErr = np.zeros(self.NUM_OF_ZER)
 
     def setSensorId(self, sensorId):
         """Set the sensor Id.

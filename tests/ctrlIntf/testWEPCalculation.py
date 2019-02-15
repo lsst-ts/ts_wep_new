@@ -4,6 +4,8 @@ from lsst.ts.wep.Utility import FilterType
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
+from lsst.ts.wep.ctrlIntf.RawExpData import RawExpData
+from lsst.ts.wep.ctrlIntf.SensorWavefrontData import SensorWavefrontData
 
 
 class TestWEPCalculation(unittest.TestCase):
@@ -76,10 +78,11 @@ class TestWEPCalculation(unittest.TestCase):
 
         self.assertEqual(self.wepCalculation.calibsDir, calibsDir)
 
-    def testResetRawExpInfo(self):
+    def testCalculateWavefrontErrors(self):
 
-        self.assertRaises(NotImplementedError,
-                          self.wepCalculation._resetRawExpInfo)
+        listOfWfErr = self.wepCalculation.calculateWavefrontErrors(RawExpData())
+        self.assertTrue(isinstance(listOfWfErr, list))
+        self.assertTrue(isinstance(listOfWfErr[0], SensorWavefrontData))
 
 
 if __name__ == "__main__":

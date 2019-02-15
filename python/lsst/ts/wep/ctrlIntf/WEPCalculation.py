@@ -131,8 +131,18 @@ class WEPCalculation(object):
 
         self.numOfProc = numOfProc
 
-    def calculateWavefrontErrors(self):
+    def calculateWavefrontErrors(self, rawExpData, extraRawExpData=None):
         """Calculate the wavefront errors.
+
+        Parameters
+        ----------
+        rawExpData : RawExpData
+            Raw exposure data for the corner wavefront sensor. If the input of
+            extraRawExpData is not None, this input will be the intra-focal raw
+            exposure data.
+        extraRawExpData : RawExpData, optional
+            This is the extra-focal raw exposure data if not None. (the default
+            is None.)
 
         Returns
         -------
@@ -141,9 +151,6 @@ class WEPCalculation(object):
         """
 
         listOfWfErr = [SensorWavefrontData()]
-
-        # Reset the raw exposure information
-        self._resetRawExpInfo()
 
         return listOfWfErr
 
@@ -157,17 +164,6 @@ class WEPCalculation(object):
         """
 
         self.calibsDir = calibsDir
-
-    def _resetRawExpInfo(self):
-        """Reset the raw exposure information.
-
-        Raises
-        ------
-        NotImplementedError
-            The child classes should implement this.
-        """
-
-        raise NotImplementedError("The child classes should implement this.")
 
 
 if __name__ == "__main__":

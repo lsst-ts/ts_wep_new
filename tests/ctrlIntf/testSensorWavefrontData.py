@@ -14,7 +14,7 @@ class TestSensorWavefrontData(unittest.TestCase):
 
     def testGetSensorId(self):
 
-        self.assertEqual(self.sensorWavefrontData.getSensorId(), -1)
+        self.assertEqual(self.sensorWavefrontData.getSensorId(), 999)
 
     def testSetSensorId(self):
 
@@ -66,7 +66,7 @@ class TestSensorWavefrontData(unittest.TestCase):
     def testGetAnnularZernikePoly(self):
 
         wfsErr = self.sensorWavefrontData.getAnnularZernikePoly()
-        self.assertEqual(len(wfsErr), 0)
+        self.assertEqual(len(wfsErr), SensorWavefrontData.NUM_OF_ZER)
 
     def testSetAnnularZernikePoly(self):
 

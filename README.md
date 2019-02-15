@@ -4,34 +4,11 @@
 
 ## 1. Version History
 
-*Version 1.0*
-<br/>
-*Finished the WEP in totally ideal condition with the scientific pipeline v.14.*
-<br/>
-<br/>
-*Version 1.0.1*
-<br/>
-*Integrated the data management (DM) command line task and implemented the high-level WepController class.*
-<br/>
-<br/>
-*Version 1.1.0*
-<br/>
-*Updated the WEP to use the obs_lsst and scientific pipeline of sims_w_2018_47. The phosim_utils is used to repackage the PhoSim output amplifer images to the format of multi-extention FITS.*
-<br/>
-<br/>
-*Version 1.1.1*
-<br/>
-*Updated to use the scientific pipeline of sims_w_2019_02. Add the referece filter type.*
-<br/>
-<br/>
-*Version 1.2.1*
-<br/>
-*Add the interface to MTAOS in ctrlIntf module.*
-<br/>
+The version history is [here](./doc/VersionHistory.md).
 
 *Author: Te-Wei Tsai*
 <br/>
-*Date: 2-11-2019*
+*Date: 2-15-2019*
 
 ## 2. Platform
 
@@ -187,6 +164,7 @@ export PYTHONPATH=$PYTHONPATH:$path_to_ts_tcs_wep/python
     - **SensorWavefrontData**: Sensor wavefront data class that has the information of sensor Id, list of donut, master donut, and wavefront error.
     - **WcsData**: Contains the world coordinate system (WCS) data of a camera.
     - **AstWcsSol**: AST world coordinate system (WCS) solution provided by DM team.
+    - **RawExpData**: Raw exposure data class to populate the information of visit, snap, and data directory.
 
 ## 12. Example Script
 

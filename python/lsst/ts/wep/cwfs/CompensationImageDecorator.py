@@ -869,7 +869,7 @@ class CompensationImageDecorator(object):
         # fldr is too big and out of range
         if (fldr > ruler.max()):  
             # Take the coefficients in the highest boundary
-            p2 = c.shape[0]-1
+            p2 = parameters.shape[0] - 1
             p1 = 0            
             w1 = 0
             w2 = 1

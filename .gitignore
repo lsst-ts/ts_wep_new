@@ -1,17 +1,24 @@
-# Python built file
-*.pyc
-*.so
-*.c
+.sconsign.dblite
+config.log
+.sconf_temp
 *.o
+*.os
+*.so
+*.cfgc
+*.pyc
+*_wrap.cc
+*Lib.py
 
-# Coverage test files
-.coverage
-htmlcov/
+# Built by sconsUtils
+version.py
+bin/
 
-# Pytest cache
+# Pytest
+tests/.tests
 pytest_session.txt
 .cache/
-.pytest_cache/
+.pytest_cache
+.coverage
 
-# Bash history
-.bash_history
+# Cython related file
+*.c

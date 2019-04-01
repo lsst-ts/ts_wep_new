@@ -1,4 +1,3 @@
-import os
 import numpy as np
 
 from lsst.ts.wep.bsc.LocalDatabase import LocalDatabase

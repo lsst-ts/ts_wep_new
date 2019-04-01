@@ -6,7 +6,7 @@ from lsst.ts.wep.Utility import getModulePath
 
 
 if __name__ == "__main__":
-    
+
     # Folder path of focal plane txt file
     folderPath2FocalPlane = os.path.join(getModulePath(), "tests", "testData")
 
@@ -42,14 +42,14 @@ if __name__ == "__main__":
     # Calculate the distance matrix (sensor by field)
     disM = np.zeros((len(xList), len(fieldX)))
     for ii in range(len(fieldX)):
-        vector = xySensor-xyField[ii,:]
+        vector = xySensor-xyField[ii, :]
         dis = np.linalg.norm(vector, axis=1)
         disM[:, ii] = dis
 
     # Find the minimun distance for each sensor and assign the field index
     idxList = np.zeros(len(nameList), dtype="int")
     for ii in range(len(idxList)):
-        idxList[ii] = np.argmin(disM[ii,:])
+        idxList[ii] = np.argmin(disM[ii, :])
 
     # Print the information
     for ii in range(len(idxList)):

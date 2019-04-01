@@ -6,7 +6,7 @@ from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.Utility import getModulePath, runProgram
 
 
-class  TestCamDataCollector(unittest.TestCase):
+class TestCamDataCollector(unittest.TestCase):
     """Test the CamIsrWrapper class."""
 
     def setUp(self):
@@ -46,7 +46,7 @@ class  TestCamDataCollector(unittest.TestCase):
             return sum(1 for line in file.readlines())
 
     def testIngestCalibs(self):
-        
+
         # Make fake gain images
         fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
         self._makeDir(fakeFlatDir)
@@ -70,7 +70,7 @@ class  TestCamDataCollector(unittest.TestCase):
         self.assertTrue(os.path.exists(flatDir))
 
     def _genFakeFlat(self, fakeFlatDir, detector):
-        
+
         currWorkDir = self._getCurrWorkDir()
 
         self._changeWorkDir(fakeFlatDir)

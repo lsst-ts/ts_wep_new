@@ -14,17 +14,14 @@ class TestImage(unittest.TestCase):
         # Get the path of module
         modulePath = getModulePath()
 
-        # Define the algorithm folder 
-        algoFolderPath = os.path.join(modulePath, "configData", "cwfs", "algo")
-                
         # Define the image folder and image names
-        # Image data -- Don't know the final image format. 
-        # It is noted that image.readFile inuts is based on the txt file  
+        # Image data -- Don't know the final image format.
+        # It is noted that image.readFile inuts is based on the txt file
         imageFolderPath = os.path.join(modulePath, "tests", "testData",
-                          "testImages", "LSST_NE_SN25")
+                                       "testImages", "LSST_NE_SN25")
         imgName = "z11_0.25_intra.txt"
-                
-        # Image files Path  
+
+        # Image files Path
         imgFile = os.path.join(imageFolderPath, imgName)
 
         # There is the difference between intra and extra images
@@ -42,21 +39,21 @@ class TestImage(unittest.TestCase):
         zeroImg.updateImage(np.ones([4, 4]))
         self.assertEqual(np.sum(zeroImg.image), 16)
 
-        realcx, realcy, realR, imgBinary = zeroImg.getCenterAndR_ef(
-                                    randNumFilePath=None, checkEntropy=True)
+        realcx, realcy, realR, imgBinary = \
+            zeroImg.getCenterAndR_ef(randNumFilePath=None, checkEntropy=True)
 
         self.assertEqual(realcx, [])
 
         # update to the random image
-        zeroImg.updateImage(np.random.rand(100,100))
-        realcx, realcy, realR, imgBinary = zeroImg.getCenterAndR_ef(
-                                    randNumFilePath=None, checkEntropy=True)
+        zeroImg.updateImage(np.random.rand(100, 100))
+        realcx, realcy, realR, imgBinary = \
+            zeroImg.getCenterAndR_ef(randNumFilePath=None, checkEntropy=True)
         self.assertEqual(realcx, [])
 
     def testImg(self):
 
-        realcx, realcy, realR, imgBinary = self.img.getCenterAndR_ef(
-                                    randNumFilePath=None, checkEntropy=True)
+        realcx, realcy, realR, imgBinary = \
+            self.img.getCenterAndR_ef(randNumFilePath=None, checkEntropy=True)
         self.assertEqual(int(realcx), 61)
         self.assertEqual(int(realcy), 61)
         self.assertGreater(int(realR), 35)

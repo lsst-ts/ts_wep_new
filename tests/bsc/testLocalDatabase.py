@@ -14,7 +14,7 @@ class TestLocalDatabase(unittest.TestCase):
         # Set the database address
         modulePath = getModulePath()
         dbAdress = os.path.join(modulePath, "tests", "testData", "bsc.db3")
-        
+
         # Set up local database
         self.localDatabase = LocalDatabase()
         self.localDatabase.connect(dbAdress)
@@ -29,7 +29,7 @@ class TestLocalDatabase(unittest.TestCase):
         stars.setRaInPixel(stars.getRA() * 10)
         stars.setDeclInPixel(stars.getDecl() * 10)
         self.neighboringStar = stars.getNeighboringStar(
-                                            [0], 3, self.filterType, 99)
+            [0], 3, self.filterType, 99)
 
     def tearDown(self):
 
@@ -55,13 +55,13 @@ class TestLocalDatabase(unittest.TestCase):
         self.assertEqual(len(stars.getId()), 0)
 
     def testQueryWithStarAndCrossRa0(self):
-        
+
         self._insertData()
         listID = self._getListId()
-        self.localDatabase.updateData(self.filterType, listID, 
+        self.localDatabase.updateData(self.filterType, listID,
                                       ["ra", "ra", "ra"],
                                       [0.005, 359.98, 359.999])
-        self.localDatabase.updateData(self.filterType, listID, 
+        self.localDatabase.updateData(self.filterType, listID,
                                       ["decl", "decl", "decl"],
                                       [-1.5, -1.5, -1.5])
 
@@ -86,7 +86,7 @@ class TestLocalDatabase(unittest.TestCase):
         self.assertEqual(len(starData), 1)
         self.assertEqual(starData[0][0], 2)
         self.assertEqual(starData[0][1], 359.732296)
-        self.assertEqual(starData[0][2], 63.053469)        
+        self.assertEqual(starData[0][2], 63.053469)
 
     def testSearchRaDecl(self):
 
@@ -113,10 +113,10 @@ class TestLocalDatabase(unittest.TestCase):
         self.localDatabase.insertData(self.filterType, self.neighboringStar)
 
     def testUpdateData(self):
-        
+
         self._insertData()
         listID = self._getListId()
-        self.localDatabase.updateData(self.filterType, listID, 
+        self.localDatabase.updateData(self.filterType, listID,
                                       ["ra", "ra", "ra"], [1.0, 2.0, 3.0])
 
         oldDataId = self.localDatabase.searchRaDecl(self.filterType,

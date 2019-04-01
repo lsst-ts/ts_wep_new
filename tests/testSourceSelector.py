@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import unittest
 
 from lsst.ts.wep.SourceSelector import SourceSelector
@@ -37,7 +36,7 @@ class TestSourceSelector(unittest.TestCase):
     def testInit(self):
 
         self.assertEqual(self.sourSelc.maxDistance,
-                         self.sourSelc.STAR_RADIUS_IN_PIXEL * \
+                         self.sourSelc.STAR_RADIUS_IN_PIXEL *
                          self.sourSelc.SPACING_COEFF)
         self.assertEqual(self.sourSelc.maxNeighboringStar, 0)
 
@@ -54,7 +53,7 @@ class TestSourceSelector(unittest.TestCase):
         self.assertEqual(self.sourSelc.maxNeighboringStar, maxNeighboringStar)
 
     def testSetAndGetFilter(self):
-        
+
         filterType = FilterType.Z
         self.sourSelc.setFilter(filterType)
 
@@ -64,7 +63,7 @@ class TestSourceSelector(unittest.TestCase):
 
         self.sourSelc.configNbrCriteria(63.0, 2.5, maxNeighboringStar=99)
         neighborStarMap, starMap, wavefrontSensors = \
-                                    self.sourSelc.getTargetStar(offset=0)
+            self.sourSelc.getTargetStar(offset=0)
 
         self.assertEqual(len(wavefrontSensors), 8)
 
@@ -72,7 +71,7 @@ class TestSourceSelector(unittest.TestCase):
 
         self.sourSelc.configNbrCriteria(63.0, 2.5, maxNeighboringStar=99)
         neighborStarMap, starMap, wavefrontSensors = \
-                                    self.sourSelc.getTargetStar(offset=-1000)
+            self.sourSelc.getTargetStar(offset=-1000)
 
         self.assertEqual(len(wavefrontSensors), 3)
 
@@ -84,7 +83,7 @@ class TestSourceSelector(unittest.TestCase):
     def testGetTargetStarByFileForFilterG(self):
 
         neighborStarMap, starMap, wavefrontSensors = \
-                    self._getTargetStarByFile(FilterType.G)
+            self._getTargetStarByFile(FilterType.G)
 
         self.assertEqual(len(wavefrontSensors), 8)
 
@@ -95,7 +94,7 @@ class TestSourceSelector(unittest.TestCase):
     def testGetTargetStarByFileForFilterRef(self):
 
         neighborStarMap, starMap, wavefrontSensors = \
-                    self._getTargetStarByFile(FilterType.REF)
+            self._getTargetStarByFile(FilterType.REF)
 
         self.assertEqual(len(wavefrontSensors), 8)
 
@@ -116,7 +115,7 @@ class TestSourceSelector(unittest.TestCase):
                                    "skyWfsInfo.txt")
 
         neighborStarMap, starMap, wavefrontSensors = \
-                    self.sourSelc.getTargetStarByFile(skyFilePath, offset=0)
+            self.sourSelc.getTargetStarByFile(skyFilePath, offset=0)
 
         return neighborStarMap, starMap, wavefrontSensors
 

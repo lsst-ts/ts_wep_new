@@ -10,7 +10,7 @@ class TestStarData(unittest.TestCase):
 
     def setUp(self):
         self.stars = StarData([123, 456, 789], [0.1, 0.2, 0.3],
-                              [2.1, 2.2, 2.3], [2.0, 3.0, 4.0], 
+                              [2.1, 2.2, 2.3], [2.0, 3.0, 4.0],
                               [2.1, 2.1, 4.1], [2.2, 3.2, 4.2],
                               [2.3, 3.3, 4.3], [2.4, 3.4, 4.4],
                               [2.5, 3.5, 4.5])
@@ -89,17 +89,17 @@ class TestStarData(unittest.TestCase):
     def testCheckCandidateStars(self):
 
         indexCandidateU = self.stars.checkCandidateStars(
-                                            FilterType.U, 1.9, 2.1)
+            FilterType.U, 1.9, 2.1)
         indexCandidateG = self.stars.checkCandidateStars(
-                                            FilterType.G, 0, 5)
+            FilterType.G, 0, 5)
         indexCandidateR = self.stars.checkCandidateStars(
-                                            FilterType.R, 0, 1)
+            FilterType.R, 0, 1)
         indexCandidateI = self.stars.checkCandidateStars(
-                                            FilterType.I, 2.1, 4.0)
+            FilterType.I, 2.1, 4.0)
         indexCandidateZ = self.stars.checkCandidateStars(
-                                            FilterType.Z, 3.0, 5.0)
+            FilterType.Z, 3.0, 5.0)
         indexCandidateY = self.stars.checkCandidateStars(
-                                            FilterType.Y, 1.0, 2.0)
+            FilterType.Y, 1.0, 2.0)
 
         self.assertEqual(indexCandidateU, [0])
         self.assertEqual(indexCandidateG, [0, 1, 2])
@@ -113,17 +113,17 @@ class TestStarData(unittest.TestCase):
         self._populateRaDeclInPixel()
 
         neighboringStarU = self.stars.getNeighboringStar(
-                                [0], 3, FilterType.U, maxNumOfNbrStar=99)
+            [0], 3, FilterType.U, maxNumOfNbrStar=99)
         neighboringStarG = self.stars.getNeighboringStar(
-                                [0, 1], 3, FilterType.G, maxNumOfNbrStar=99)
+            [0, 1], 3, FilterType.G, maxNumOfNbrStar=99)
         neighboringStarR = self.stars.getNeighboringStar(
-                                [0], 1, FilterType.R, maxNumOfNbrStar=99)
+            [0], 1, FilterType.R, maxNumOfNbrStar=99)
         neighboringStarI = self.stars.getNeighboringStar(
-                                [], 3, FilterType.I, maxNumOfNbrStar=99)
+            [], 3, FilterType.I, maxNumOfNbrStar=99)
         neighboringStarZ = self.stars.getNeighboringStar(
-                                [0, 1], 2, FilterType.Z, maxNumOfNbrStar=1)
+            [0, 1], 2, FilterType.Z, maxNumOfNbrStar=1)
         neighboringStarY = self.stars.getNeighboringStar(
-                                [1], 2, FilterType.Y, maxNumOfNbrStar=1)
+            [1], 2, FilterType.Y, maxNumOfNbrStar=1)
 
         self.assertEqual(len(neighboringStarU.getId()[123]), 2)
         self.assertEqual(len(neighboringStarU.getRaDecl()), 3)
@@ -147,7 +147,7 @@ class TestStarData(unittest.TestCase):
 
         self._populateRaDeclInPixel()
         neighboringStarU = self.stars.getNeighboringStar(
-                                [], 3.0, FilterType.U, maxNumOfNbrStar=99)
+            [], 3.0, FilterType.U, maxNumOfNbrStar=99)
 
         self.assertEqual(len(neighboringStarU.getId()), 0)
 

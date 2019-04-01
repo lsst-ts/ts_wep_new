@@ -13,7 +13,7 @@ from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.WepController import WepController
 
 from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType,\
-                                runProgram
+    runProgram
 
 
 class TestWepControllerMonolithic(unittest.TestCase):
@@ -64,7 +64,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         starRadiusInPixel = 63
         spacingCoefficient = 2.5
         maxNeighboringStar = 1
-        sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient, 
+        sourSelc.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
                                    maxNeighboringStar=maxNeighboringStar)
 
         # Connest the database
@@ -145,7 +145,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.dataCollector.ingestCalibs(calibFiles)
 
     def _genFakeFlat(self, fakeFlatDir, detector):
-        
+
         currWorkDir = os.getcwd()
 
         os.chdir(fakeFlatDir)
@@ -195,7 +195,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.sourSelc.setFilter(self.filter)
 
         # Get the target star by file
-        skyFilePath = os.path.join(self.modulePath, "tests", "testData", 
+        skyFilePath = os.path.join(self.modulePath, "tests", "testData",
                                    "phosimOutput", "realComCam",
                                    "skyComCamInfo.txt")
         neighborStarMap, starMap, wavefrontSensors = \
@@ -215,12 +215,12 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         sensorNameList = list(self.wavefrontSensors)
 
-        intraObsId  = 9005001
-        extraObsId =  9005000
+        intraObsId = 9005001
+        extraObsId = 9005000
         obsIdList = [intraObsId, extraObsId]
 
         wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
-                                            sensorNameList, obsIdList)
+            sensorNameList, obsIdList)
 
         # Assign the data for the following steps to use
         self.wfsImgMap = wfsImgMap
@@ -307,7 +307,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def step9a_genMasterDonut(self):
 
         self.masterDonutMap = self.wepCntlr.genMasterDonut(
-                                        self.donutMap, zcCol=np.zeros(22))
+            self.donutMap, zcCol=np.zeros(22))
 
         # Do the assertion
         self.assertEqual(len(self.masterDonutMap), 2)

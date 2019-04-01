@@ -78,7 +78,7 @@ class CamIsrWrapper(object):
         try:
             writeFile(filePath, content)
             self.isrConfigFilePath = filePath
-        except Exception as e:
+        except Exception:
             raise
 
     def doISR(self, inputDir, rerunName="run1"):

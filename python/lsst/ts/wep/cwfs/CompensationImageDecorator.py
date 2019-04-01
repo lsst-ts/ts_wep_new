@@ -1,11 +1,13 @@
-import os, re, sys
+import os
+import re
 import numpy as np
 
 from scipy.ndimage import generate_binary_structure, iterate_structure
 from scipy.ndimage.morphology import binary_dilation, binary_erosion
 from scipy.interpolate import RectBivariateSpline
 
-from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularGrad, ZernikeAnnularJacobian
+from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularGrad, \
+    ZernikeAnnularJacobian
 from lsst.ts.wep.cwfs.lib.cyMath import poly10_2D, poly10Grad
 from lsst.ts.wep.cwfs.Image import Image
 
@@ -17,10 +19,7 @@ class CompensationImageDecorator(object):
     EXTRA = "extra"
 
     def __init__(self):
-        """
-        
-        Instantiate the class of CompensationImageDecorator.
-        """
+        """Instantiate the class of CompensationImageDecorator."""
 
         self.__image = None
 
@@ -39,33 +38,44 @@ class CompensationImageDecorator(object):
         self.cMask = None
 
     def __getattr__(self, attributeName):
+        """Use the functions and attributes hold by the object.
+
+        Parameters
+        ----------
+        attributeName : str
+            Name of attribute or function.
+
+        Returns
+        -------
+        object
+            Returned values.
         """
-        
-        Use the functions and attributes hold by the object.
-        
-        Arguments:
-            attributeName {[str]} -- Name of attribute or function.
-        
-        Returns:
-            [str] -- Returned values.
-        """
+
         return getattr(self.__image, attributeName)
 
     def setImg(self, fieldXY, image=None, imageFile=None, atype=None):
-        """
-        
-        Set the wavefront image.
-        
-        Arguments:
-            fieldXY {[float]} -- Position of donut on the focal plane in degree.
-        
-        Keyword Arguments:
-            image {[float]} -- Array of image. (default: {None})
-            imageFile {[string]} -- Path of image file. (default: {None})
-            atype {[string]} -- Type of image. It should be "intra" or "extra". (default: {None})
-        
-        Raises:
-            TypeError -- Error if the atype is not "intra" or "extra". 
+        """Set the wavefront image.
+
+        Parameters
+        ----------
+        fieldXY : tuple or list
+            Position of donut on the focal plane in degree.
+        image : numpy.ndarray, optional
+            Array of image. (the default is None.)
+        imageFile : str, optional
+            Path of image file. (the default is None.)
+        atype : str, optional
+            Type of image. It should be "intra" or "extra". (the default is
+            None.)
+
+        Raises
+        ------
+        RuntimeError
+            Only square image stamps are accepted.
+        RuntimeError
+            Number of pixels cannot be odd numbers.
+        TypeError
+            Image defocal type must be 'intra' or 'extra'.
         """
 
         # Instantiate the image object
@@ -86,11 +96,12 @@ class CompensationImageDecorator(object):
         # Donut position in degree
         self.fieldX, self.fieldY = fieldXY
 
-        # Save the initial image if we want the compensator always start from this
+        # Save the initial image if we want the compensator always start from
+        # this
         self.image0 = None
 
         # We will need self.fldr to be on denominator
-        self.fldr = np.max((np.hypot(self.fieldX, self.fieldY), 1e-8))        
+        self.fldr = np.max((np.hypot(self.fieldX, self.fieldY), 1e-8))
 
         # Check the type of image
         if atype.lower() not in (self.INTRA, self.EXTRA):
@@ -100,7 +111,8 @@ class CompensationImageDecorator(object):
         # Coefficient to do the off-axis correction
         self.offAxis_coeff = None
 
-        # Defocal distance (Baseline is 1.5mm. The configuration file now is 1mm.)
+        # Defocal distance (Baseline is 1.5mm. The configuration file now is
+        # 1mm.)
         self.offAxisOffset = 0
 
         # Check the image has the problem or not
@@ -111,28 +123,29 @@ class CompensationImageDecorator(object):
         self.cMask = None
 
     def updateImage0(self):
-        """
-        
-        Update the backup of initial image. This will be used in the outer loop iteration, which
-        always uses the initial image (image0) before each iteration starts.
+        """Update the backup of initial image.
+
+        This will be used in the outer loop iteration, which always uses the
+        initial image (image0) before each iteration starts.
         """
 
         # Update the initial image for future use
         self.image0 = self.__image.image.copy()
 
     def imageCoCenter(self, inst, fov=3.5, debugLevel=0):
-        """
-        
-        Shift the weighting center of donut to the center of reference image with the correction of 
-        projection of fieldX and fieldY.
+        """Shift the weighting center of donut to the center of reference
+        image with the correction of projection of fieldX and fieldY.
 
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-        
-        Keyword Arguments:
-            fov {[float]} -- Field of view (FOV) of telescope. (default: {3.5})
-            debugLevel {[int]} -- Show the information under the running. If the value is higher, 
-                                the information shows more. It can be 0, 1, 2, or 3. (default: {0})
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        fov : float, optional
+            Field of view (FOV) of telescope. (the default is 3.5.)
+        debugLevel : int, optional
+            Show the information under the running. If the value is higher, the
+            information shows more. It can be 0, 1, 2, or 3. (the default is
+            0.)
         """
 
         # Calculate the weighting center (x, y) and radius
@@ -172,40 +185,47 @@ class CompensationImageDecorator(object):
         stampCentery1 = stampCentery1 + radialShift*I1s
 
         # Shift the image to the projected position
-        self.__image.updateImage(np.roll(self.__image.image, int(np.round(stampCentery1 - y1)), axis=0))
-        self.__image.updateImage(np.roll(self.__image.image, int(np.round(stampCenterx1 - x1)), axis=1))
+        self.__image.updateImage(
+            np.roll(self.__image.image, int(np.round(stampCentery1 - y1)), axis=0))
+        self.__image.updateImage(
+            np.roll(self.__image.image, int(np.round(stampCenterx1 - x1)), axis=1))
 
     def compensate(self, inst, algo, zcCol, model):
-        """
-        
-        Calculate the image compensated from the affection of wavefront.
-        
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            algo {[Algorithm]} -- Algorithm to solve the Poisson's equation. It can by done 
-                                  by the fast Fourier transform or serial expansion.
-            zcCol {[float]} -- Coefficients of wavefront.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-        
-        Raises:
-            Exception -- Number of terms of normal/ annular Zernike polynomilas does 
-                         not match the needed number for compensation to use.
+        """Calculate the image compensated from the affection of wavefront.
+
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        algo : Algorithm
+            Algorithm to solve the Poisson's equation. It can by done by the
+            fast Fourier transform or serial expansion.
+        zcCol : numpy.ndarray
+            Coefficients of wavefront.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+
+        Raises
+        ------
+        RuntimeError
+            input:size zcCol in compensate needs to be a numTerms row column
+            vector.
         """
 
         # Check the condition of inputs
         numTerms = algo.parameter["numTerms"]
         if ((zcCol.ndim == 1) and (len(zcCol) != numTerms)):
-            raise RuntimeError("input:size", 
-                "zcCol in compensate needs to be a %d row column vector. \n" % numTerms)
+            raise RuntimeError("input:size",
+                               "zcCol in compensate needs to be a %d row column vector. \n" % numTerms)
 
         # Dimension of image
         sm, sn = self.__image.image.shape
 
-        # Dimenstion of projected image on focal plane 
+        # Dimenstion of projected image on focal plane
         projSamples = sm
 
-        # Let us create a look-up table for x -> xp first. 
-        luty, lutx = np.mgrid[-(projSamples/2 - 0.5):(projSamples/2 + 0.5), 
+        # Let us create a look-up table for x -> xp first.
+        luty, lutx = np.mgrid[-(projSamples/2 - 0.5):(projSamples/2 + 0.5),
                               -(projSamples/2 - 0.5):(projSamples/2 + 0.5)]
 
         sensorFactor = inst.parameter["sensorFactor"]
@@ -213,11 +233,11 @@ class CompensationImageDecorator(object):
         luty = luty/(projSamples/2/sensorFactor)
 
         # Set up the mapping
-        lutxp, lutyp, J = self.__aperture2image(inst, algo, zcCol, lutx, luty, 
-                                                projSamples, model)
+        lutxp, lutyp, J = self._aperture2image(inst, algo, zcCol, lutx, luty,
+                                               projSamples, model)
 
-        show_lutxyp = self.__showProjection(lutxp, lutyp, sensorFactor, 
-                                            projSamples, raytrace=False)
+        show_lutxyp = self._showProjection(lutxp, lutyp, sensorFactor,
+                                           projSamples, raytrace=False)
         if (np.all(show_lutxyp <= 0)):
             self.caustic = True
             return
@@ -246,7 +266,7 @@ class CompensationImageDecorator(object):
         shiftx = projcx - realcx
         # +(-) means we need to move image upward (downward)
         shifty = projcy - realcy
-        
+
         self.__image.image = np.roll(self.__image.image, int(np.round(shifty)), axis=0)
         self.__image.image = np.roll(self.__image.image, int(np.round(shiftx)), axis=1)
 
@@ -270,8 +290,9 @@ class CompensationImageDecorator(object):
             lutIp[ii] = ip(yy, xx)
         lutIp = lutIp.reshape(lutxp.shape)
 
-        # Calaculate the image on focal plane with compensation based on flux conservation
-        # I(x, y)/I'(x', y') = J = (dx'/dx)*(dy'/dy) - (dx'/dy)*(dy'/dx) 
+        # Calaculate the image on focal plane with compensation based on flux
+        # conservation
+        # I(x, y)/I'(x', y') = J = (dx'/dx)*(dy'/dy) - (dx'/dy)*(dy'/dx)
         self.__image.image = lutIp*J
 
         if (self.atype == "extra"):
@@ -289,32 +310,46 @@ class CompensationImageDecorator(object):
         # Put the overcompensated part to be 0.
         self.__image.image[self.__image.image < 0] = 0
 
-    def __aperture2image(self, inst, algo, zcCol, lutx, luty, projSamples, model):
-        """
-        
-        Calculate the x, y-coordinate on the focal plane and the related Jacobian matrix.
-        
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            algo {[Algorithm]} -- Algorithm to solve the Poisson's equation. It can by done 
-                                  by the fast Fourier transform or serial expansion.
-            zcCol {[float]} -- Coefficients of optical basis. It is Zernike polynomials in the 
-                               baseline.
-            lutx {[float]} -- x-coordinate on pupil plane.
-            luty {[float]} -- y-coordinate on pupil plane.
-            projSamples {[int]} -- Dimension of projected image. This value considers the
-                                   magnification ratio of donut image.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-        
-        Returns:
-            [float] -- x, y-coordinate on the focal plane.
-            [float] -- Jacobian matrix between the pupil and focal plane.
+    def _aperture2image(self, inst, algo, zcCol, lutx, luty, projSamples,
+                        model):
+        """Calculate the x, y-coordinate on the focal plane and the related
+        Jacobian matrix.
+
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        algo : Algorithm
+            Algorithm to solve the Poisson's equation. It can by done by the
+            fast Fourier transform or serial expansion.
+        zcCol : numpy.ndarray
+            Coefficients of optical basis. It is Zernike polynomials in the
+            baseline.
+        lutx : numpy.ndarray
+            X-coordinate on pupil plane.
+        luty : numpy.ndarray
+            Y-coordinate on pupil plane.
+        projSamples : int
+            Dimension of projected image. This value considers the
+            magnification ratio of donut image.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+
+        Returns
+        -------
+        numpy.ndarray
+            X coordinate on the focal plane.
+        numpy.ndarray
+            Y coordinate on the focal plane.
+        numpy.ndarray
+            Jacobian matrix between the pupil and focal plane.
         """
 
-        # Get the radius: R = D/2    
+        # Get the radius: R = D/2
         R = inst.parameter["apertureDiameter"]/2.0
 
-        # Calculate C = -f(f-l)/l/R^2. This is for the calculation of reduced coordinate.
+        # Calculate C = -f(f-l)/l/R^2. This is for the calculation of reduced
+        # coordinate.
         if (self.atype == self.INTRA):
             l = inst.parameter["offset"]
         elif (self.atype == self.EXTRA):
@@ -325,14 +360,14 @@ class CompensationImageDecorator(object):
         # Get the functions to do the off-axis correction by numerical fitting
         # Order to do the off-axis correction. The order is 10 now.
         offAxisPolyOrder = algo.parameter["offAxisPolyOrder"]
-        polyFunc = self.__getFunction("poly%d_2D" % offAxisPolyOrder)
-        polyGradFunc = self.__getFunction("poly%dGrad" % offAxisPolyOrder)
-    
+        polyFunc = self._getFunction("poly%d_2D" % offAxisPolyOrder)
+        polyGradFunc = self._getFunction("poly%dGrad" % offAxisPolyOrder)
+
         # Calculate the distance to center
         lutr = np.sqrt(lutx**2 + luty**2)
 
-        # Calculated the extended ring radius (delta r), which is to extended the available 
-        # pupil area.
+        # Calculated the extended ring radius (delta r), which is to extended
+        # the available pupil area.
         # 1 pixel larger than projected pupil. No need to be EF-like, anything
         # outside of this will be masked off by the computational mask
         sensorFactor = inst.parameter["sensorFactor"]
@@ -340,26 +375,28 @@ class CompensationImageDecorator(object):
 
         # Get the index that the point is out of the range of extended pupil
         obscuration = inst.parameter["obscuration"]
-        idxout = (lutr > 1+onepixel)|(lutr < obscuration-onepixel)
+        idxout = (lutr > 1+onepixel) | (lutr < obscuration-onepixel)
 
         # Define the element to be NaN if it is out of range
         lutx[idxout] = np.nan
         luty[idxout] = np.nan
 
-        # Get the index in the extended area of outer boundary with the width of onepixel
-        idxbound = (lutr <= 1+onepixel)&(lutr > 1)
+        # Get the index in the extended area of outer boundary with the width
+        # of onepixel
+        idxbound = (lutr <= 1+onepixel) & (lutr > 1)
 
         # Calculate the extended x, y-coordinate (x' = x/r*r', r'=1)
         lutx[idxbound] = lutx[idxbound]/lutr[idxbound]
         luty[idxbound] = luty[idxbound]/lutr[idxbound]
 
-        # Get the index in the extended area of inner boundary with the width of onepixel
-        idxinbd = (lutr < obscuration)&(lutr > obscuration-onepixel)
-        
+        # Get the index in the extended area of inner boundary with the width
+        # of onepixel
+        idxinbd = (lutr < obscuration) & (lutr > obscuration-onepixel)
+
         # Calculate the extended x, y-coordinate (x' = x/r*r', r'=obscuration)
         lutx[idxinbd] = lutx[idxinbd]/lutr[idxinbd]*obscuration
         luty[idxinbd] = luty[idxinbd]/lutr[idxinbd]*obscuration
-    
+
         # Get the corrected x, y-coordinate on focal plane (lutxp, lutyp)
         if (model == "paraxial"):
             # No correction is needed in "paraxial" model
@@ -367,7 +404,7 @@ class CompensationImageDecorator(object):
             lutyp = luty
 
         elif (model == "onAxis"):
-    
+
             # Calculate F(x, y) = m * sqrt(f^2-R^2) / sqrt(f^2-(x^2+y^2)*R^2)
             # m is the mask scaling factor
             myA2 = (focalLength**2 - R**2) / (focalLength**2 - lutr**2 * R**2)
@@ -378,11 +415,11 @@ class CompensationImageDecorator(object):
             myA[idx] = np.nan
             myA[~idx] = np.sqrt(myA2[~idx])
 
-            # Mask scaling factor (for fast beam) 
+            # Mask scaling factor (for fast beam)
             maskScalingFactor = algo.parameter["maskScalingFactor"]
 
             # Calculate the x, y-coordinate on focal plane
-            # x' = F(x,y)*x + C*(dW/dx), y' = F(x,y)*y + C*(dW/dy) 
+            # x' = F(x,y)*x + C*(dW/dx), y' = F(x,y)*y + C*(dW/dy)
             lutxp = maskScalingFactor*myA*lutx
             lutyp = maskScalingFactor*myA*luty
 
@@ -392,9 +429,9 @@ class CompensationImageDecorator(object):
             tt = self.offAxisOffset
 
             cx = (self.offAxis_coeff[0, :] - self.offAxis_coeff[2, :]) * (tt+l)/(2*tt) + \
-                    self.offAxis_coeff[2, :]
+                self.offAxis_coeff[2, :]
             cy = (self.offAxis_coeff[1, :] - self.offAxis_coeff[3, :]) * (tt+l)/(2*tt) + \
-                    self.offAxis_coeff[3, :]
+                self.offAxis_coeff[3, :]
 
             # This will be inverted back by typesign later on.
             # We do the inversion here to make the (x,y)->(x',y') equations has
@@ -409,20 +446,22 @@ class CompensationImageDecorator(object):
                 costheta = 1
             elif (costheta < -1):
                 costheta = -1
-    
+
             sintheta = np.sqrt(1 - costheta**2)
             if (self.fieldY < self.fieldX):
                 sintheta = -sintheta
-    
-            # Create the pupil grid in off-axis model. This gives the x,y-coordinate 
-            # in the extended ring area defined by the parameter of onepixel.
+
+            # Create the pupil grid in off-axis model. This gives the
+            # x,y-coordinate in the extended ring area defined by the parameter
+            # of onepixel.
 
             # Get the mask-related parameters
-            maskCa, maskRa, maskCb, maskRb = self.__interpMaskParam(self.fieldX, 
-                                                        self.fieldY, inst.maskParam)
+            maskCa, maskRa, maskCb, maskRb = self._interpMaskParam(
+                self.fieldX, self.fieldY, inst.maskParam)
 
-            lutx, luty = self.__createPupilGrid(lutx, luty, onepixel, maskCa, 
-                                maskCb, maskRa, maskRb, self.fieldX, self.fieldY)
+            lutx, luty = self._createPupilGrid(
+                lutx, luty, onepixel, maskCa, maskCb, maskRa, maskRb,
+                self.fieldX, self.fieldY)
 
             # Calculate the x, y-coordinate on focal plane
 
@@ -433,9 +472,9 @@ class CompensationImageDecorator(object):
             # Use the mapping at reference orientation
             lutxp0 = polyFunc(cx, lutx0, y=luty0)
             lutyp0 = polyFunc(cy, lutx0, y=luty0)
-            
+
             # Rotate back to focal plane
-            lutxp = lutxp0*costheta - lutyp0*sintheta  
+            lutxp = lutxp0*costheta - lutyp0*sintheta
             lutyp = lutxp0*sintheta + lutyp0*costheta
 
             # Zemax data are in mm, therefore 1000
@@ -450,7 +489,7 @@ class CompensationImageDecorator(object):
         else:
             print('Wrong optical model type in compensate. \n')
             return
-    
+
         # Obscuration of annular aperture
         zobsR = algo.parameter["zobsR"]
 
@@ -461,26 +500,26 @@ class CompensationImageDecorator(object):
         if (zcCol.ndim == 1):
             lutxp = lutxp + myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dx")
             lutyp = lutyp + myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dy")
-    
+
         # Make the sign to be consistent
         if (self.atype == "extra"):
             lutxp = -lutxp
             lutyp = -lutyp
-    
+
         # Calculate the Jacobian matrix
         # In Model basis (zer: Zernike polynomials)
         if (zcCol.ndim == 1):
             if (model == "paraxial"):
                 J = 1 + myC * ZernikeAnnularJacobian(zcCol, lutx, luty, zobsR, "1st") + \
-                    myC**2 * ZernikeAnnularJacobian(zcCol, lutx, luty, zobsR, "2nd")    
-            
+                    myC**2 * ZernikeAnnularJacobian(zcCol, lutx, luty, zobsR, "2nd")
+
             elif (model == "onAxis"):
-                xpox = maskScalingFactor * myA * (1 + \
-                    lutx**2 * R**2. / (focalLength**2 - R**2 * lutr**2)) + \
+                xpox = maskScalingFactor * myA * (
+                    1 + lutx**2 * R**2. / (focalLength**2 - R**2 * lutr**2)) + \
                     myC * ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dx2")
-                
-                ypoy = maskScalingFactor * myA * (1 + \
-                    luty**2 * R**2. / (focalLength**2 - R**2 * lutr**2)) + \
+
+                ypoy = maskScalingFactor * myA * (
+                    1 + luty**2 * R**2. / (focalLength**2 - R**2 * lutr**2)) + \
                     myC * ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dy2")
 
                 xpoy = maskScalingFactor * myA * \
@@ -488,28 +527,28 @@ class CompensationImageDecorator(object):
                     myC * ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dxy")
 
                 ypox = xpoy
-    
+
                 J = xpox*ypoy - xpoy*ypox
 
             elif (model == "offAxis"):
                 xp0ox = polyGradFunc(cx, lutx0, luty0, "dx") * costheta - \
-                        polyGradFunc(cx, lutx0, luty0, "dy") * sintheta
-                
+                    polyGradFunc(cx, lutx0, luty0, "dy") * sintheta
+
                 yp0ox = polyGradFunc(cy, lutx0, luty0, "dx") * costheta - \
-                        polyGradFunc(cy, lutx0, luty0, "dy") * sintheta
-                
+                    polyGradFunc(cy, lutx0, luty0, "dy") * sintheta
+
                 xp0oy = polyGradFunc(cx, lutx0, luty0, "dx") * sintheta + \
-                        polyGradFunc(cx, lutx0, luty0, "dy") * costheta
-                
+                    polyGradFunc(cx, lutx0, luty0, "dy") * costheta
+
                 yp0oy = polyGradFunc(cy, lutx0, luty0, "dx") * sintheta + \
-                        polyGradFunc(cy, lutx0, luty0, "dy") * costheta
-                
+                    polyGradFunc(cy, lutx0, luty0, "dy") * costheta
+
                 xpox = (xp0ox*costheta - yp0ox*sintheta)*reduced_coordi_factor + \
-                        myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dx2")
-    
+                    myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dx2")
+
                 ypoy = (xp0oy*sintheta + yp0oy*costheta)*reduced_coordi_factor + \
-                        myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dy2")
-    
+                    myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dy2")
+
                 temp = myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dxy")
 
                 # if temp==0,xpoy doesn't need to be symmetric about x=y
@@ -519,54 +558,61 @@ class CompensationImageDecorator(object):
                 ypox = (xp0ox*sintheta + yp0ox*costheta)*reduced_coordi_factor + temp
 
                 J = xpox*ypoy - xpoy*ypox
-    
+
         return lutxp, lutyp, J
 
-    def __getFunction(self, name):
-        """
-        
-        Decide to call the function of __poly10_2D() or __poly10Grad(). This is to correct 
-        the off-axis distortion. A numerical solution with 2-dimensions 10 order polynomials 
-        to map between the telescope aperature and defocused image plane is used.
-        
-        Arguments:
-            name {[string]} -- Function name to call.
-        
-        Returns:
-            [float] -- Corrected image after the correction.
-        
-        Raises:
-            RuntimeError -- Raise error if the function name does not exist.
+    def _getFunction(self, name):
+        """Decide to call the function of _poly10_2D() or _poly10Grad().
+
+        This is to correct the off-axis distortion. A numerical solution with
+        2-dimensions 10 order polynomials to map between the telescope
+        aperature and defocused image plane is used.
+
+        Parameters
+        ----------
+        name : str
+            Function name to call.
+
+        Returns
+        -------
+        numpy.ndarray
+            Corrected image after the correction.
+
+        Raises
+        ------
+        RuntimeError
+            Raise error if the function name does not exist.
         """
 
         # Construnct the dictionary table for calling function.
         # The reason to use the dictionary is for the future's extension.
-        funcTable = dict(poly10_2D = self.__poly10_2D,
-                         poly10Grad = self.__poly10Grad)
+        funcTable = dict(poly10_2D=self._poly10_2D, poly10Grad=self._poly10Grad)
 
         # Look for the function to call
         if name in funcTable:
             return funcTable[name]
-    
+
         # Error for unknown function name
         raise RuntimeError("Unknown function name: %s" % name)
 
-    def __poly10_2D(self, c, data, y=None):
-        """
-        
-        Correct the off-axis distortion by fitting with a 10 order polynomial 
-        equation. 
-        
-        Arguments:
-            c {[float]} -- Parameters of off-axis distrotion.
-            data {[float]} -- x, y-coordinate on aperature. If y is provided, 
-                              this will be just the x-coordinate.
-        
-        Keyword Arguments:
-            y {[float]} -- y-coordinate at aperature (default: {None}).
-        
-        Returns:
-            [float] -- Corrected parameters for off-axis distortion.
+    def _poly10_2D(self, c, data, y=None):
+        """Correct the off-axis distortion by fitting with a 10 order
+        polynomial equation.
+
+        Parameters
+        ----------
+        c : numpy.ndarray
+            Parameters of off-axis distrotion.
+        data : numpy.ndarray
+            X, y-coordinate on aperature. If y is provided this will be just
+            the x-coordinate.
+        y : numpy.ndarray, optional
+            Y-coordinate at aperature. (the default is None.)
+
+        Returns
+        -------
+        numpy.ndarray
+            Corrected parameters for off-axis distortion.
         """
 
         # Decide the x, y-coordinate data on aperature
@@ -575,54 +621,73 @@ class CompensationImageDecorator(object):
             y = data[1, :]
         else:
             x = data
-    
+
         # Correct the off-axis distortion
         return poly10_2D(c, x.flatten(), y.flatten()).reshape(x.shape)
-    
-    def __poly10Grad(self, c, x, y, atype):
+
+    def _poly10Grad(self, c, x, y, atype):
+        """Correct the off-axis distortion by fitting with a 10 order
+        polynomial equation in the gradident part.
+
+        Parameters
+        ----------
+        c : numpy.ndarray
+            Parameters of off-axis distrotion.
+        x : numpy.ndarray
+            X-coordinate at aperature.
+        y : numpy.ndarray
+            Y-coordinate at aperature.
+        atype : str
+            Direction of gradient. It can be "dx" or "dy".
+
+        Returns
+        -------
+        numpy.ndarray
+            Corrected parameters for off-axis distortion.
         """
-        
-        Correct the off-axis distortion by fitting with a 10 order polynomial 
-        equation in the gradident part. 
-        
-        Arguments:
-            c {[float]} -- Parameters of off-axis distrotion.
-            x {[type]} -- x-coordinate at aperature.
-            y {[float]} -- y-coordinate at aperature.
-            atype {[string]} -- Direction of gradient. It can be "dx" or "dy".
-        
-        Returns:
-            [float] -- Corrected parameters for off-axis distortion.
-        """
-        
+
         return poly10Grad(c, x.flatten(), y.flatten(), atype).reshape(x.shape)
 
-    def __createPupilGrid(self, lutx, luty, onepixel, ca, cb, ra, rb, fieldX, fieldY=None):
-        """
-        
-        Create the pupil grid in off-axis model. This function gives the x,y-coordinate in the 
-        extended ring area defined by the parameter of onepixel.
+    def _createPupilGrid(self, lutx, luty, onepixel, ca, cb, ra, rb, fieldX,
+                         fieldY=None):
+        """Create the pupil grid in off-axis model.
 
-        Arguments:
-            lutx {[float]} -- x-coordinate on pupil plane.
-            luty {[float]} -- y-coordinate on pupil plane.
-            onepixel {[float]} -- Exteneded delta radius.
-            ca {[float]} -- Center of outer ring on the pupil plane.
-            cb {float} -- Center of inner ring on the pupil plane.
-            ra {[float]} -- Radius of outer ring on the pupil plane.
-            rb {[float]} -- Radius of inner ring on the pupil plane.
-            fieldX {[float]} -- x-coordinate of donut on the focal plane in degree.
-                                If only fieldX is given, this will be fldr = sqrt(2)*fieldX
-                                actually.
-        
-        Keyword Arguments:
-            fieldY {[float]} -- y-coordinate of donut on the focal plane in degree. (default: {None})
-        
-        Returns:
-            [float] -- x, y-coordinate of extended ring area on pupil plane.
+        This function gives the x,y-coordinate in the extended ring area
+        defined by the parameter of onepixel.
+
+        Parameters
+        ----------
+        lutx : numpy.ndarray
+            X-coordinate on pupil plane.
+        luty : numpy.ndarray
+            Y-coordinate on pupil plane.
+        onepixel : float
+            Exteneded delta radius.
+        ca : float
+            Center of outer ring on the pupil plane.
+        cb : float
+            Center of inner ring on the pupil plane.
+        ra : float
+            Radius of outer ring on the pupil plane.
+        rb : float
+            Radius of inner ring on the pupil plane.
+        fieldX : float
+            X-coordinate of donut on the focal plane in degree. If only fieldX
+            is given, this will be fldr = sqrt(2)*fieldX actually.
+        fieldY : float, optional
+            Y-coordinate of donut on the focal plane in degree. (the default is
+            None.)
+
+        Returns
+        -------
+        numpy.ndarray
+            X-coordinate of extended ring area on pupil plane.
+        numpy.ndarray
+            Y-coordinate of extended ring area on pupil plane.
         """
 
-        # Calculate fieldX, fieldY if only input of fieldX (= fldr = sqrt(2)*fieldX actually) 
+        # Calculate fieldX, fieldY if only input of
+        # fieldX (= fldr = sqrt(2)*fieldX actually)
         # is provided
         if (fieldY is None):
             # Input of filedX is fldr actually
@@ -630,38 +695,53 @@ class CompensationImageDecorator(object):
             # Divide fldr by sqrt(2) to get fieldX = fieldY
             fieldX = fldr/np.sqrt(2)
             fieldY = fieldX
-    
-        # Rotate the mask center after the off-axis correction based on the position 
-        # of fieldX and fieldY
-        cax, cay, cbx, cby = self.__rotateMaskParam(ca, cb, fieldX, fieldY)
-    
-        # Get x, y coordinate of extended outer boundary by the linear approximation
-        lutx, luty = self.__approximateExtendedXY(lutx, luty, cax, cay, ra, ra+onepixel, "outer")
 
-        # Get x, y coordinate of extended inner boundary by the linear approximation
-        lutx, luty = self.__approximateExtendedXY(lutx, luty, cbx, cby, rb-onepixel, rb, "inner")      
-    
+        # Rotate the mask center after the off-axis correction based on the
+        # position of fieldX and fieldY
+        cax, cay, cbx, cby = self._rotateMaskParam(ca, cb, fieldX, fieldY)
+
+        # Get x, y coordinate of extended outer boundary by the linear
+        # approximation
+        lutx, luty = self._approximateExtendedXY(lutx, luty, cax, cay, ra,
+                                                 ra+onepixel, "outer")
+
+        # Get x, y coordinate of extended inner boundary by the linear
+        # approximation
+        lutx, luty = self._approximateExtendedXY(lutx, luty, cbx, cby,
+                                                 rb-onepixel, rb, "inner")
+
         return lutx, luty
 
-    def __approximateExtendedXY(self, lutx, luty, cenX, cenY, innerR, outerR, config):
-        """
-        
-        Calculate the x, y-cooridnate on puil plane in the extended ring area by the linear
-        approxination, which is used in the off-axis correction. 
-        
-        Arguments:
-            lutx {[float]} -- x-coordinate on pupil plane.
-            luty {[float]} -- y-coordinate on pupil plane.
-            cenX {[float]} -- x-coordinate of boundary ring center.
-            cenY {[float]} -- y-coordinate of boundary ring center.
-            innerR {[float]} -- Inner radius of extended ring.
-            outerR {[float]} -- Outer radius of extended ring.
-            config {[string]} -- Configuration to calculate the x,y-coordinate in the extended ring.
-                                 "inner": inner extended ring; 
-                                 "outer": outer extended ring.
-        
-        Returns:
-            [float] -- x, y-coordinate of extended ring area on pupil plane.
+    def _approximateExtendedXY(self, lutx, luty, cenX, cenY, innerR, outerR,
+                               config):
+        """Calculate the x, y-cooridnate on puil plane in the extended ring
+        area by the linear approxination, which is used in the off-axis
+        correction.
+
+        Parameters
+        ----------
+        lutx : numpy.ndarray
+            X-coordinate on pupil plane.
+        luty : numpy.ndarray
+            Y-coordinate on pupil plane.
+        cenX : float
+            X-coordinate of boundary ring center.
+        cenY : float
+            Y-coordinate of boundary ring center.
+        innerR : float
+            Inner radius of extended ring.
+        outerR : float
+            Outer radius of extended ring.
+        config : str
+            Configuration to calculate the x,y-coordinate in the extended ring.
+            "inner": inner extended ring; "outer": outer extended ring.
+
+        Returns
+        -------
+        numpy.ndarray
+            X-coordinate of extended ring area on pupil plane.
+        numpy.ndarray
+            Y-coordinate of extended ring area on pupil plane.
         """
 
         # Catculate the distance to rotated center of boundary ring
@@ -671,8 +751,9 @@ class CompensationImageDecorator(object):
         tmp = lutr.copy()
         tmp[np.isnan(tmp)] = 999
 
-        # Get the available index that the related distance is between innderR and outerR
-        idxbound = (~np.isnan(lutr)) & (tmp >= innerR ) & (tmp <= outerR)
+        # Get the available index that the related distance is between innderR
+        # and outerR
+        idxbound = (~np.isnan(lutr)) & (tmp >= innerR) & (tmp <= outerR)
 
         # Deside R based on the configuration
         if (config == "outer"):
@@ -684,8 +765,8 @@ class CompensationImageDecorator(object):
             # Get the index that the related distance is smaller than innerR
             idxout = (tmp < innerR)
 
-        # Put the x, y-coordiate to be NaN if it is inside/ outside the pupil that is 
-        # after the off-axis correction.
+        # Put the x, y-coordiate to be NaN if it is inside/ outside the pupil
+        # that is after the off-axis correction.
         lutx[idxout] = np.nan
         luty[idxout] = np.nan
 
@@ -695,19 +776,30 @@ class CompensationImageDecorator(object):
 
         return lutx, luty
 
-    def __rotateMaskParam(self, ca, cb, fieldX, fieldY):
-        """
-        
-        Rotate the mask-related parameters of center.
-        
-        Arguments:
-            ca {[float]} -- Mask-related parameter of center.
-            cb {float} -- Mask-related parameter of center.
-            fieldX {[float]} -- x-coordinate of donut on the focal plane in degree.
-            fieldY {[float]} -- y-coordinate of donut on the focal plane in degree.
-        
-        Returns:
-            [float] -- Projected x, y elements
+    def _rotateMaskParam(self, ca, cb, fieldX, fieldY):
+        """Rotate the mask-related parameters of center.
+
+        Parameters
+        ----------
+        ca : float
+            Mask-related parameter of center.
+        cb : float
+            Mask-related parameter of center.
+        fieldX : float
+            X-coordinate of donut on the focal plane in degree.
+        fieldY : float
+            Y-coordinate of donut on the focal plane in degree.
+
+        Returns
+        -------
+        float
+            Projected x element after the rotation.
+        float
+            Projected y element after the rotation.
+        float
+            Projected x element after the rotation.
+        float
+            Projected y element after the rotation.
         """
 
         # Calculate the sin(theta) and cos(theta) for the rotation
@@ -732,15 +824,18 @@ class CompensationImageDecorator(object):
         return cax, cay, cbx, cby
 
     def getOffAxisCorr(self, instDir, order):
-        """
-        
-        Map the coefficients of off-axis correction for x, y-projection of intra- and 
-        extra-image. This is for the mapping of coordinate from the telescope apearature 
-        to defocal image plane.
-        
-        Arguments:
-            instDir {[string]} -- Path to specific instrument directory.
-            order {[int]} -- Up to order-th of off-axis correction.
+        """Map the coefficients of off-axis correction for x, y-projection of
+        intra- and extra-image.
+
+        This is for the mapping of coordinate from the telescope apearature to
+        defocal image plane.
+
+        Parameters
+        ----------
+        instDir : str
+            Path to specific instrument directory.
+        order : int
+            Up to order-th of off-axis correction.
         """
 
         # List of configuration
@@ -763,26 +858,30 @@ class CompensationImageDecorator(object):
             filePath = os.path.join(instDir, matchFileName)
 
             # Read the file
-            corr_coeff, offset = self.__getOffAxisCorr_single(filePath)
+            corr_coeff, offset = self._getOffAxisCorrSingle(filePath)
             temp.append(corr_coeff)
 
         # Give the values
         self.offAxis_coeff = np.array(temp)
         self.offAxisOffset = offset
 
-    def __getOffAxisCorr_single(self, confFile):
-        """
-        
-        Get the image-related pamameters for the off-axis distortion by the linear 
-        approximation with a series of fitted parameters with LSST ZEMAX model.
-        
-        Arguments:
-            confFile {[string]} -- Path of configuration file.
-        
-        Returns:
-            [float] -- Coefficients for the off-axis distortion based on the linear 
-                       response.
-            [float] -- Defocal distance in m.
+    def _getOffAxisCorrSingle(self, confFile):
+        """Get the image-related pamameters for the off-axis distortion by the
+        linear approximation with a series of fitted parameters with LSST
+        ZEMAX model.
+
+        Parameters
+        ----------
+        confFile : str
+            Path of configuration file.
+
+        Returns
+        -------
+        numpy.ndarray
+            Coefficients for the off-axis distortion based on the linear
+            response.
+        float
+            Defocal distance in m.
         """
 
         # Calculate the distance from donut to origin (aperature)
@@ -790,7 +889,7 @@ class CompensationImageDecorator(object):
 
         # Read the configuration file
         cdata = np.loadtxt(confFile)
-                        
+
         # Record the offset (defocal distance)
         offset = cdata[0, 0]
 
@@ -798,64 +897,85 @@ class CompensationImageDecorator(object):
         c = cdata[:, 1:]
 
         # Get the ruler, which is the distance to center
-        # ruler is between 1.51 and 1.84 degree here   
+        # ruler is between 1.51 and 1.84 degree here
         ruler = np.sqrt(c[:, 0]**2 + c[:, 1]**2)
 
-        # Get the fitted parameters for off-axis correction by linear approximation
-        corr_coeff = self.__linearApprox(fldr, ruler, c[:, 2:])
-    
+        # Get the fitted parameters for off-axis correction by linear
+        # approximation
+        corr_coeff = self._linearApprox(fldr, ruler, c[:, 2:])
+
         return corr_coeff, offset
 
-    def __interpMaskParam(self, fieldX, fieldY, maskParam):
-        """
-        
-        Get the mask-related pamameters for the off-axis distortion and vignetting correction 
-        by the linear approximation with a series of fitted parameters with LSST ZEMAX model.
-        
-        Arguments:
-            fieldX {[float]} -- x-coordinate of donut on the focal plane in degree.
-            fieldY {[float]} -- y-coordinate of donut on the focal plane in degree.
-            maskParam {[string]} -- Fitted coefficient file for the off-axis distortion and 
-                                    vignetting correction 
-        
-        Returns:
-            [float] -- Coefficients for the off-axis distortion and vignetting correction based 
-                       on the linear response.
+    def _interpMaskParam(self, fieldX, fieldY, maskParam):
+        """Get the mask-related pamameters for the off-axis distortion and
+        vignetting correction by the linear approximation with a series of
+        fitted parameters with LSST ZEMAX model.
+
+        Parameters
+        ----------
+        fieldX : float
+            X-coordinate of donut on the focal plane in degree.
+        fieldY : float
+            Y-coordinate of donut on the focal plane in degree.
+        maskParam : str
+            Fitted coefficient file for the off-axis distortion and vignetting
+            correction.
+
+        Returns
+        -------
+        float
+            'ca' coefficient for the off-axis distortion and vignetting
+            correction based on the linear response.
+        float
+            'ra' coefficient for the off-axis distortion and vignetting
+            correction based on the linear response.
+        float
+            'cb' coefficient for the off-axis distortion and vignetting
+            correction based on the linear response.
+        float
+            'rb' coefficient for the off-axis distortion and vignetting
+            correction based on the linear response.
         """
 
         # Calculate the distance from donut to origin (aperature)
         fldr = np.sqrt(fieldX**2 + fieldY**2)
-        
+
         # Load the mask parameter
         c = np.loadtxt(maskParam)
 
         # Get the ruler, which is the distance to center
-        # ruler is between 1.51 and 1.84 degree here    
+        # ruler is between 1.51 and 1.84 degree here
         ruler = np.sqrt(2)*c[:, 0]
 
-        # Get the fitted parameters for off-axis correction by linear approximation
-        param = self.__linearApprox(fldr, ruler, c[:, 1:])
+        # Get the fitted parameters for off-axis correction by linear
+        # approximation
+        param = self._linearApprox(fldr, ruler, c[:, 1:])
 
         # Define related parameters
         ca = param[0]
         ra = param[1]
         cb = param[2]
         rb = param[3]
-    
+
         return ca, ra, cb, rb
 
-    def __linearApprox(self, fldr, ruler, parameters):
-        """
-        
-        Get the fitted parameters for off-axis correction by linear approximation
-        
-        Arguments:
-            fldr {[float]} -- Distance from donut to origin (aperature).
-            ruler {[float]} -- A series of distance with available parameters for the fitting.
-            parameters {[float]} -- Referenced parameters for the fitting.
-        
-        Returns:
-            [float] -- Fitted parameters based on the linear approximation.
+    def _linearApprox(self, fldr, ruler, parameters):
+        """Get the fitted parameters for off-axis correction by linear
+        approximation.
+
+        Parameters
+        ----------
+        fldr : float
+            Distance from donut to origin (aperature).
+        ruler : numpy.ndarray
+            A series of distance with available parameters for the fitting.
+        parameters : numpy.ndarray
+            Referenced parameters for the fitting.
+
+        Returns
+        -------
+        numpy.ndarray
+            Fitted parameters based on the linear approximation.
         """
 
         # Sort the ruler and parameters based on the magnitude of ruler
@@ -867,15 +987,15 @@ class CompensationImageDecorator(object):
         compDis = (ruler >= fldr)
 
         # fldr is too big and out of range
-        if (fldr > ruler.max()):  
+        if (fldr > ruler.max()):
             # Take the coefficients in the highest boundary
             p2 = parameters.shape[0] - 1
-            p1 = 0            
+            p1 = 0
             w1 = 0
             w2 = 1
 
         # fldr is too small to be in the range
-        elif (fldr < ruler.min()):  
+        elif (fldr < ruler.min()):
             # Take the coefficients in the lowest boundary
             p2 = 0
             p1 = 0
@@ -892,22 +1012,30 @@ class CompensationImageDecorator(object):
             w1 = (ruler[p2]-fldr)/(ruler[p2]-ruler[p1])
             w2 = 1-w1
 
-        # Get the fitted parameters for off-axis correction by linear approximation
+        # Get the fitted parameters for off-axis correction by linear
+        # approximation
         param = w1*parameters[p1, :] + w2*parameters[p2, :]
 
         return param
 
     def makeMaskList(self, inst, model):
-        """
-        
-        Calculate the mask list based on the obscuration and optical model.
-        
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
+        """Calculate the mask list based on the obscuration and optical model.
+
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+
+        Returns
+        -------
+        numpy.ndarray
+            The list of mask.
         """
 
-        # Masklist = [center_x, center_y, radius_of_boundary, 1/ 0 for outer/ inner boundary]
+        # Masklist = [center_x, center_y, radius_of_boundary,
+        #             1/ 0 for outer/ inner boundary]
         obscuration = inst.parameter["obscuration"]
         if (model in ("paraxial", "onAxis")):
 
@@ -915,58 +1043,69 @@ class CompensationImageDecorator(object):
                 masklist = np.array([0, 0, 1, 1])
             else:
                 masklist = np.array([[0, 0, 1, 1],
-                                          [0, 0, obscuration, 0]])
+                                    [0, 0, obscuration, 0]])
         else:
             # Get the mask-related parameters
-            maskCa, maskRa, maskCb, maskRb = self.__interpMaskParam(self.fieldX, 
-                                                        self.fieldY, inst.maskParam)
+            maskCa, maskRa, maskCb, maskRb = self._interpMaskParam(
+                self.fieldX, self.fieldY, inst.maskParam)
 
             # Rotate the mask-related parameters of center
-            cax, cay, cbx, cby = self.__rotateMaskParam(maskCa, maskCb, self.fieldX, self.fieldY)
-            masklist = np.array([[0, 0, 1, 1], [0, 0, obscuration, 0], 
+            cax, cay, cbx, cby = self._rotateMaskParam(
+                maskCa, maskCb, self.fieldX, self.fieldY)
+            masklist = np.array([[0, 0, 1, 1], [0, 0, obscuration, 0],
                                  [cax, cay, maskRa, 1], [cbx, cby, maskRb, 0]])
 
         return masklist
 
-    def __showProjection(self, lutxp, lutyp, sensorFactor, projSamples, raytrace=False):
-        """
-        
-        Calculate the x, y-projection of image on pupil. This can be used to calculate 
-        the center of projection in compensate().
-        
-        Arguments:
-            lutxp {[float]} -- x-coordinate on pupil plane. The value of element will be 
-                               NaN if that point is not inside the pupil.
-            lutyp {[float]} -- y-coordinate on pupil plane. The value of element will be 
-                               NaN if that point is not inside the pupil.
-            sensorFactor {[float]} -- ? (Need to check the meaning of this.)
-            projSamples {[int]} -- Dimension of projected image. This value considers the
-                                   magnification ratio of donut image.
-            raytrace {[bool]} -- Consider the ray trace or not. If the value is true, the 
-                                 times of photon hit will aggregate. (default: {False})
-        
-        Returns:
-            [float] -- Projection of image. It will be a binary image if raytrace=False.
+    def _showProjection(self, lutxp, lutyp, sensorFactor, projSamples,
+                        raytrace=False):
+        """Calculate the x, y-projection of image on pupil.
+
+        This can be used to calculate the center of projection in compensate().
+
+        Parameters
+        ----------
+        lutxp : numpy.ndarray
+            X-coordinate on pupil plane. The value of element will be NaN if
+            that point is not inside the pupil.
+        lutyp : numpy.ndarray
+            Y-coordinate on pupil plane. The value of element will be NaN if
+            that point is not inside the pupil.
+        sensorFactor : float
+            Sensor factor.
+        projSamples : int
+            Dimension of projected image. This value considers the
+            magnification ratio of donut image.
+        raytrace : bool, optional
+            Consider the ray trace or not. If the value is true, the times of
+            photon hit will aggregate. (the default is False.)
+
+        Returns
+        -------
+        numpy.ndarray
+            Projection of image. It will be a binary image if raytrace=False.
         """
 
         # Dimension of pupil image
         n1, n2 = lutxp.shape
 
-        # Construct the binary matrix on pupil. It is noted that if the raytrace is true, 
-        # the value of element is allowed to be greater than 1.
+        # Construct the binary matrix on pupil. It is noted that if the
+        # raytrace is true, the value of element is allowed to be greater
+        # than 1.
         show_lutxyp = np.zeros([n1, n2])
 
-        # Get the index in pupil. If a point's value is NaN, this point is outside the pupil.        
+        # Get the index in pupil. If a point's value is NaN, this point is
+        # outside the pupil.
         idx = (~np.isnan(lutxp)).nonzero()
         for ii, jj in zip(idx[0], idx[1]):
             # Calculate the projected x, y-coordinate in pixel
             # x=0.5 is center of pixel#1
             xR = int(np.round((lutxp[ii, jj]+sensorFactor)*projSamples/sensorFactor/2 + 0.5))
             yR = int(np.round((lutyp[ii, jj]+sensorFactor)*projSamples/sensorFactor/2 + 0.5))
-    
+
             # Check the projected coordinate is in the range of image or not.
             # If the check passes, the times will be recorded.
-            if (xR>0 and xR<n2 and yR>0 and yR<n1):
+            if (xR > 0 and xR < n2 and yR > 0 and yR < n1):
                 # Aggregate the times
                 if raytrace:
                     show_lutxyp[yR-1, xR-1] += 1
@@ -978,22 +1117,26 @@ class CompensationImageDecorator(object):
         return show_lutxyp
 
     def makeMask(self, inst, model, boundaryT, maskScalingFactorLocal):
-        """
-        
-        Get the binary mask which considers the obscuration and off-axis correction.
+        """Get the binary mask which considers the obscuration and off-axis
+        correction.
+
         There will be two mask parameters to be calculated:
         pMask: padded mask for use at the offset planes
         cMask: non-padded mask corresponding to aperture
-        
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-            boundaryT {[int]} -- Extended boundary in pixel. It defines how far the 
-                                 computation mask extends beyond the pupil mask. And, 
-                                 in fft, it is also the width of Neuman boundary where 
-                                 the derivative of the wavefront is set to zero.
-            maskScalingFactorLocal {[float]} -- Mask scaling factor (for fast beam) for
-                                                local correction.
+
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+        boundaryT : int
+            Extended boundary in pixel. It defines how far the computation mask
+            extends beyond the pupil mask. And, in fft, it is also the width of
+            Neuman boundary where the derivative of the wavefront is set to
+            zero.
+        maskScalingFactorLocal : float
+            Mask scaling factor (for fast beam) for local correction.
         """
 
         sensorSamples = inst.parameter["sensorSamples"]
@@ -1013,32 +1156,35 @@ class CompensationImageDecorator(object):
             # Distance to center on pupil
             r = np.sqrt((inst.xSensor - masklist[ii, 0])**2 +
                         (inst.ySensor - masklist[ii, 1])**2)
-            
+
             # Find the indices that correspond to the mask element, set them to
             # the pass/ block boolean
 
             # Get the index inside the aperature
             idx = (r <= masklist[ii, 2])
-                        
-            # Get the higher and lower boundary beyond the pupil mask by extension.
+
+            # Get the higher and lower boundary beyond the pupil mask by
+            # extension.
             # The extension level is dicided by boundaryT.
-            # In fft, this is also the Neuman boundary where the derivative of the 
-            # wavefront is set to zero.
+            # In fft, this is also the Neuman boundary where the derivative of
+            # the wavefront is set to zero.
             pixelSize = inst.parameter["pixelSize"]
             if (masklist[ii, 3] >= 1):
-                aidx = np.nonzero( r <= masklist[ii, 2]*(1+boundaryT*pixelSize/rMask) )
+                aidx = np.nonzero(r <= masklist[ii, 2]*(1+boundaryT*pixelSize/rMask))
             else:
-                aidx = np.nonzero( r <= masklist[ii, 2]*(1-boundaryT*pixelSize/rMask) )
+                aidx = np.nonzero(r <= masklist[ii, 2]*(1-boundaryT*pixelSize/rMask))
 
-            # Initialize both mask elements to the opposite of the pass/ block boolean
+            # Initialize both mask elements to the opposite of the pass/ block
+            # boolean
             pMaskii = (1 - masklist[ii, 3]) * \
-                        np.ones([sensorSamples, sensorSamples], dtype=int)
+                np.ones([sensorSamples, sensorSamples], dtype=int)
             cMaskii = pMaskii.copy()
 
             pMaskii[idx] = masklist[ii, 3]
             cMaskii[aidx] = masklist[ii, 3]
 
-            # Multiplicatively add the current mask elements to the model masks.
+            # Multiplicatively add the current mask elements to the model
+            # masks.
             # This is try to find the common mask region.
 
             # padded mask for use at the offset planes

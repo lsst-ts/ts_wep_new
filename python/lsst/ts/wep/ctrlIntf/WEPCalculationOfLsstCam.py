@@ -1,4 +1,4 @@
-from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation 
+from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
 
 

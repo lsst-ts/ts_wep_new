@@ -1,14 +1,11 @@
 import os
 import re
-import time
 import numpy as np
-from astropy.io import fits
 
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
-from lsst.ts.wep.Utility import getModulePath, abbrevDectectorName, \
-                                searchDonutPos
+from lsst.ts.wep.Utility import abbrevDectectorName, searchDonutPos
 
 
 class WepController(object):
@@ -43,7 +40,7 @@ class WepController(object):
         self.butlerWrapper = None
 
     def setPostIsrCcdInputs(self, inputs):
-        """Set the inputs of post instrument signature removal (ISR) CCD images.
+        """Set inputs of post instrument signature removal (ISR) CCD images.
 
         Parameters
         ----------
@@ -176,7 +173,7 @@ class WepController(object):
             raft, sensor, channel = m.groups()[0:3]
 
         # This is for the phosim mapper use.
-        # For example, raft is "R22" and sensor is "S11". 
+        # For example, raft is "R22" and sensor is "S11".
         raftAbbName = "R" + raft[0] + raft[-1]
         sensorAbbName = "S" + sensor[0] + sensor[-1]
 
@@ -224,7 +221,7 @@ class WepController(object):
             # Get the bright star id list on specific sensor
             brightStarIdList = list(nbrStar.getId())
             for starIdIdx in range(len(brightStarIdList)):
-                
+
                 # Get the single star map
                 for jj in range(len(defocalImgList)):
 
@@ -233,9 +230,9 @@ class WepController(object):
                     # Get the segment of image
                     if (ccdImg is not None):
                         singleSciNeiImg, allStarPosX, allStarPosY, magRatio, \
-                        offsetX, offsetY = \
+                            offsetX, offsetY = \
                             self.sourProc.getSingleTargetImage(
-                                        ccdImg, nbrStar, starIdIdx, filterType)
+                                ccdImg, nbrStar, starIdIdx, filterType)
 
                         # Only consider the single donut if no deblending
                         if (not doDeblending) and (len(magRatio) != 1):
@@ -247,7 +244,7 @@ class WepController(object):
 
                             if (len(magRatio) == 1):
                                 realcx, realcy = searchDonutPos(imgDeblend)
-                            else:                               
+                            else:
                                 realcx = allStarPosX[-1]
                                 realcy = allStarPosY[-1]
 
@@ -268,7 +265,7 @@ class WepController(object):
                             sizeInPix = self.wfsEsti.getSizeInPix()
                             x0 = np.floor(realcx - sizeInPix / 2).astype("int")
                             y0 = np.floor(realcy - sizeInPix / 2).astype("int")
-                            imgDeblend = imgDeblend[y0:y0 + sizeInPix, 
+                            imgDeblend = imgDeblend[y0:y0 + sizeInPix,
                                                     x0:x0 + sizeInPix]
 
                         # Rotate the image if the sensor is the corner
@@ -277,7 +274,7 @@ class WepController(object):
 
                             # Get the Euler angle
                             eulerZangle = round(self.sourProc.getEulerZinDeg(
-                                                                    abbrevName))
+                                abbrevName))
 
                             # Change the sign if the angle < 0
                             while (eulerZangle < 0):
@@ -295,7 +292,7 @@ class WepController(object):
                         # Check the donut exists in the list or not
                         starId = brightStarIdList[starIdIdx]
                         donutIndex = self._searchDonutListId(
-                                            donutMap[sensorName], starId)                             
+                            donutMap[sensorName], starId)
 
                         # Create the donut object and put into the list if it
                         # is needed
@@ -305,7 +302,7 @@ class WepController(object):
                             pixelX = realcx + offsetX
                             pixelY = realcy + offsetY
                             fieldX, fieldY = self.sourProc.camXYtoFieldXY(
-                                                                pixelX, pixelY)
+                                pixelX, pixelY)
 
                             # Instantiate the DonutImage class
                             donutImg = DonutImage(starId, pixelX, pixelY,
@@ -314,7 +311,7 @@ class WepController(object):
 
                             # Search for the donut index again
                             donutIndex = self._searchDonutListId(
-                                                donutMap[sensorName], starId)
+                                donutMap[sensorName], starId)
 
                         # Get the donut image list
                         donutList = donutMap[sensorName]
@@ -420,13 +417,13 @@ class WepController(object):
                 intraDonut.setWfErr(zer4UpNm)
                 extraDonut.setWfErr(zer4UpNm)
 
-        # Intentionally to expose this return value to show the input, donutMap,
-        # has been modified.
+        # Intentionally to expose this return value to show the input,
+        # donutMap, has been modified.
         return donutMap
 
     def _calcSglWfErr(self, intraImg, extraImg, intraFieldXY, extraFieldXY):
-        """Calculate the wavefront error in annular Zernike polynomials (z4-z22)
-        for single donut.
+        """Calculate the wavefront error in annular Zernike polynomials
+        (z4-z22) for single donut.
 
         Parameters
         ----------
@@ -446,9 +443,9 @@ class WepController(object):
         """
 
         # Set the images
-        self.wfsEsti.setImg(intraFieldXY, image=intraImg, 
+        self.wfsEsti.setImg(intraFieldXY, image=intraImg,
                             defocalType=self.wfsEsti.getIntraImg().INTRA)
-        self.wfsEsti.setImg(extraFieldXY, image=extraImg, 
+        self.wfsEsti.setImg(extraFieldXY, image=extraImg,
                             defocalType=self.wfsEsti.getExtraImg().EXTRA)
 
         # Reset the wavefront estimator
@@ -589,7 +586,7 @@ class WepController(object):
             if (intraImg is not None):
 
                 # Get the projected image
-                projImg = self._getProjImg(fieldXY, intraImg, 
+                projImg = self._getProjImg(fieldXY, intraImg,
                                            self.wfsEsti.getIntraImg().INTRA,
                                            zcCol)
 
@@ -598,10 +595,10 @@ class WepController(object):
 
             extraImg = donut.getExtraImg()
             if (extraImg is not None):
-                
+
                 # Get the projected image
                 projImg = self._getProjImg(fieldXY, extraImg,
-                                           self.wfsEsti.getExtraImg().EXTRA, 
+                                           self.wfsEsti.getExtraImg().EXTRA,
                                            zcCol)
 
                 # Collect the projected donut
@@ -638,7 +635,7 @@ class WepController(object):
         numpy.ndarray
             Projected image.
         """
-        
+
         # Set the image
         self.wfsEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
 
@@ -650,7 +647,7 @@ class WepController(object):
 
         # Get the distortion correction (offaxis)
         algo = self.wfsEsti.getAlgo()
-        parameter = algo.getParam() 
+        parameter = algo.getParam()
         offAxisCorrOrder = parameter["offAxisPolyOrder"]
 
         inst = self.wfsEsti.getInst()
@@ -709,108 +706,6 @@ class WepController(object):
 
         return stackImg
 
-    # def getPostIsrDefocalImgMap(self, obsId=None, obsIdList=None):
-
-    #     # """
-
-    #     # Get the post-ISR defocal image map.
-        
-    #     # Keyword Arguments:
-    #     #     obsIdList {[list]} -- Observation Id list in [intraObsId, extraObsId]. (default: {None})
-    #     #     expInDmCoor {[bool]} -- Exposure image is in DM coordinate system. If True, this function will 
-    #     #                             rotate the exposure image to camera coordinate. This only works for 
-    #     #                             LSST FAM at this moment.
-        
-    #     # Returns:
-    #     #     [dict] -- Post-ISR image map.
-    #     # """
-
-    #     # Construct the dictionary 
-    #     wfsImgMap = dict()
-
-    #     # Get the waveront image map
-    #     sensorNameList = self.sourSelc.camera.getWfsCcdList()
-    #     for sensorName in sensorNameList:
-
-    #         # Get the sensor name information
-    #         raft, sensor, channel = self._getSensorInfo(sensorName)
-
-    #         # The intra/ extra defocal images are decided by obsId
-    #         if (obsIdList is not None):
-
-    #             imgList = []
-    #             for visit in obsIdList:
-
-    #                 # Get the exposure image in ndarray
-    #                 exp = self.butlerWrapper.getPostIsrCcd(visit, raft, sensor)
-    #                 img = self.butlerWrapper.getImageData(exp)
-
-    #                 # # Change the image to camera coordinate
-    #                 # if (expInDmCoor):
-    #                 #     img = np.rot90(img.copy(), k=3)
-
-    #                 imgList.append(img)
-
-    #             wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0],
-    #                                                  extraImg=imgList[1])
-
-    #         # # The intra/ extra defocal images are decided by physical configuration
-    #         # # C0: intra, C1: extra
-    #         # if (wfsDir is not None):
-                
-    #         #     # Get the abbreviated name
-    #         #     abbrevName = abbrevDectectorName(sensorName)
-
-    #         #     # Search for the file name
-    #         #     matchFileName = self.__searchFileName(wfsFileList, abbrevName, snap=snap)
-                
-    #         #     if (matchFileName is not None):
-                    
-    #         #         # Get the file name
-    #         #         fitsFilsPath = os.path.join(self.dataCollector.pathOfRawData, wfsDir, 
-    #         #                                     matchFileName)
-    #         #         wfsImg = fits.getdata(fitsFilsPath)
-
-    #         #         # Add image to map
-    #         #         wfsImgMap[sensorName] = DefocalImage()
-
-    #         #         # "C0" = "A" = "Intra-focal image"
-    #         #         if (channel=="A"):
-    #         #             wfsImgMap[sensorName].setImg(intraImg=wfsImg)
-    #         #         # "C1" = "B" = "extra-focal image"
-    #         #         elif (channel=="B"):
-    #         #             wfsImgMap[sensorName].setImg(extraImg=wfsImg)
-
-    #     return wfsImgMap
-
-    # def __searchFileName(self, fileList, matchName, snap=0):
-    #     """
-        
-    #     Search the file name in list.
-        
-    #     Arguments:
-    #         fileList {[list]} -- File name list.
-    #         matchName {[str]} -- Match name.
-
-    #     Keyword Arguments:
-    #         snap {int} -- Snap number (default: {0})
-        
-    #     Returns:
-    #         [str] -- Matched file name.
-    #     """
-
-    #     matchFileName = None
-    #     for fileName in fileList:
-    #         m = re.match(r"\S*%s_E00%d\S*" % (matchName, snap), fileName)
-
-    #         if (m is not None):
-    #             matchFileName = m.group()
-    #             break
-
-    #     return matchFileName
-
 
 if __name__ == "__main__":
-
-    # Do the unit test
-    unittest.main()
+    pass

@@ -6,7 +6,7 @@ from lsst.ts.wep.Utility import FilterType
 
 
 class CameraData(object):
-    
+
     def __init__(self, camera):
         """Initialize the camera data class.
 
@@ -129,10 +129,10 @@ class CameraData(object):
                 ymin = bbox.getMinY()
                 ymax = bbox.getMaxY()
                 self._corners[detectorName] = \
-                                (np.array([xmin, xmin, xmax, xmax]), 
-                                 np.array([ymin, ymax, ymin, ymax]))
+                    (np.array([xmin, xmin, xmax, xmax]),
+                     np.array([ymin, ymax, ymin, ymax]))
 
-                # The CCD dimension here is an estimation. 
+                # The CCD dimension here is an estimation.
                 # Based on LCA-13381, there are three types of sensors.
                 # e2V CCD250: 40.04 mm x 40.96 mm
                 # STA 4400: 20.00 mm x 40.72 mm
@@ -215,8 +215,8 @@ class CameraData(object):
 
         keep = []
         for ii in range(len(starsRaInPixel)):
-            if (-offset <= starsRaInPixel[ii] <= ccdDim[0] + offset and 
-                -offset <= starsDeclInPixel[ii] <= ccdDim[1] + offset):
+            if (-offset <= starsRaInPixel[ii] <= ccdDim[0] + offset and
+               -offset <= starsDeclInPixel[ii] <= ccdDim[1] + offset):
                 keep.append(ii)
 
         # Remove the stars that are not on the detector
@@ -285,7 +285,7 @@ class CameraData(object):
             tuples). For example, output['R:0,0 S:2,2B'] = [(23.0, -5.0),
             (23.1, -5.0), (23.0, -5.1), (23.1, -5.1)] would mean that the
             wavefront sensor named 'R:0,0 S:2,2B' has its corners at RA 23,
-            Dec -5; RA 23.1, Dec -5; RA 23, Dec -5.1; and RA 23.1, Dec -5.1 
+            Dec -5; RA 23.1, Dec -5; RA 23, Dec -5.1; and RA 23.1, Dec -5.1
             Coordinates are in degrees.
         """
 

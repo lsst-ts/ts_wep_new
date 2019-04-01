@@ -11,7 +11,7 @@ class TestCamFactory(unittest.TestCase):
     """Test the CamFactory class."""
 
     def testCreateCam(self):
-        
+
         lsstCam = CamFactory.createCam(CamType.LsstCam)
         self.assertTrue(isinstance(lsstCam, LsstCam))
 

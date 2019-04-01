@@ -4,7 +4,7 @@ from scipy.integrate import nquad
 import unittest
 
 from lsst.ts.wep.cwfs.Tool import ZernikeAnnularEval, padArray, extractArray, \
-                                  getConfigValue
+    getConfigValue
 from lsst.ts.wep.Utility import getModulePath
 
 
@@ -14,7 +14,7 @@ class TestTool(unittest.TestCase):
     def setUp(self):
 
         # Create the mesh of x, y-coordinate
-        point = 400 
+        point = 400
         ratio = 0.9
         yy, xx = np.mgrid[-(point/2 - 0.5):(point/2 + 0.5),
                           -(point/2 - 0.5):(point/2 + 0.5)]
@@ -38,7 +38,7 @@ class TestTool(unittest.TestCase):
         dd = np.sqrt(self.xx**2 + self.yy**2)
 
         # Define the invalid range
-        idx = (dd>1)|(dd<e)
+        idx = (dd > 1) | (dd < e)
 
         # Create the Zernike terms
         Z = np.zeros(22)
@@ -59,8 +59,10 @@ class TestTool(unittest.TestCase):
         for ii in range(28):
             Z = np.zeros(28)
             Z[ii] = 1
-            funcNor = lambda r, theta: r*ZernikeAnnularEval(Z, r*np.cos(theta), r*np.sin(theta), e)**2
-            normalization = nquad(funcNor, [[e ,1 ],[0 ,2*np.pi]])[0]
+
+            normalization = nquad(self._genNormalizedFunc,
+                                  [[e, 1], [0, 2*np.pi]], args=(Z, e))[0]
+
             self.assertAlmostEqual(normalization, ansValue)
 
         # Check the orthogonality for Z1 - Z28
@@ -71,9 +73,11 @@ class TestTool(unittest.TestCase):
                 if (ii != jj):
                     Z2 = np.zeros(28)
                     Z2[ii] = 1
-                    funcOrtho = lambda r, theta: r*ZernikeAnnularEval(Z1, r*np.cos(theta), r*np.sin(theta), e) * \
-                                                   ZernikeAnnularEval(Z2, r*np.cos(theta), r*np.sin(theta), e)
-                    orthogonality = nquad(funcOrtho, [[e ,1 ],[0 ,2*np.pi]])[0]
+
+                    orthogonality = nquad(self._genOrthogonalFunc,
+                                          [[e, 1], [0, 2*np.pi]],
+                                          args=(Z1, Z2, e))[0]
+
                     self.assertAlmostEqual(orthogonality, 0)
 
         # Increase the dimension
@@ -90,6 +94,19 @@ class TestTool(unittest.TestCase):
         varName = "Focal_length"
         value = getConfigValue(configFilePath, varName, index=2)
         self.assertEqual(value, 10.312)
+
+    def _genNormalizedFunc(self, r, theta, Z, e):
+
+        func = r * ZernikeAnnularEval(Z, r*np.cos(theta), r*np.sin(theta), e)**2
+
+        return func
+
+    def _genOrthogonalFunc(self, r, theta, Z1, Z2, e):
+
+        func = r * ZernikeAnnularEval(Z1, r*np.cos(theta), r*np.sin(theta), e) * \
+            ZernikeAnnularEval(Z2, r*np.cos(theta), r*np.sin(theta), e)
+
+        return func
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-import os
 import sqlite3
 import numpy as np
 
@@ -67,15 +66,15 @@ class LocalDatabase(DefaultDatabase):
         for item in self.cursor.fetchall():
 
             # It is noted that the data type of simobjid is big interger
-            # in UW database 
+            # in UW database
             simobjid.append(item[0])
             ra.append(item[1])
             decl.append(item[2])
 
-            if (filterType == FilterType.U):              
-                lsstMagU.append(item[3])    
+            if (filterType == FilterType.U):
+                lsstMagU.append(item[3])
 
-            elif (filterType == FilterType.G):              
+            elif (filterType == FilterType.G):
                 lsstMagG.append(item[3])
 
             elif (filterType == FilterType.R):
@@ -90,7 +89,7 @@ class LocalDatabase(DefaultDatabase):
             elif (filterType == FilterType.Y):
                 lsstMagY.append(item[3])
 
-        return StarData(simobjid, ra, decl, lsstMagU, lsstMagG, lsstMagR,  
+        return StarData(simobjid, ra, decl, lsstMagU, lsstMagG, lsstMagR,
                         lsstMagI, lsstMagZ, lsstMagY)
 
     def _getTableName(self, filterType):
@@ -126,7 +125,7 @@ class LocalDatabase(DefaultDatabase):
             search
         """
 
-        # Search the simobjid data 
+        # Search the simobjid data
         tableName = self._getTableName(filterType)
         command = "SELECT id, ra, decl From " + tableName + \
                   " WHERE simobjid in" + \
@@ -156,7 +155,7 @@ class LocalDatabase(DefaultDatabase):
         # Compare ra and decl to see the existance of star in database
         tableName = self._getTableName(filterType)
         command = "SELECT id FROM " + tableName + \
-                  " WHERE ra = %f AND decl = %f" 
+                  " WHERE ra = %f AND decl = %f"
         query = command % (ra, decl)
         self.cursor.execute(query)
 
@@ -203,11 +202,11 @@ class LocalDatabase(DefaultDatabase):
         existIdList = []
         for ii in range(len(brightStarList)):
             raDec = neighborStarMap.getRaDecl()[brightStarList[ii]]
-            if (self.searchRaDecl(filterType,raDec[0],raDec[1])):
+            if (self.searchRaDecl(filterType, raDec[0], raDec[1])):
                 existIdList.append(brightStarList[ii])
 
-        # Collect the lists not in database yet. 
-        # remainIDList is the bright star list. And allStarList is the list 
+        # Collect the lists not in database yet.
+        # remainIDList is the bright star list. And allStarList is the list
         # contains the bright stars and related neighboring stars.
         remainIdList = []
         allStarList = []
@@ -219,7 +218,7 @@ class LocalDatabase(DefaultDatabase):
                     # Make sure the starID is not in the allStarList yet
                     if starID not in allStarList:
                         allStarList.append(starID)
-       
+
         # Insert the star data to local data base
         tableName = self._getTableName(filterType)
         for simobjID in allStarList:
@@ -231,7 +230,7 @@ class LocalDatabase(DefaultDatabase):
 
             raDec = neighborStarMap.getRaDecl()[simobjID]
             mag = neighborStarMap.getMag(filterType)[simobjID]
-            
+
             if simobjID in remainIdList:
                 brightStar = True
             else:
@@ -302,7 +301,7 @@ class LocalDatabase(DefaultDatabase):
 
         # Delete the data
         tableName = self._getTableName(filterType)
-        for id in listID:       
+        for id in listID:
             command = "DELETE FROM " + tableName + " WHERE id=?"
             self.cursor.execute(command, (id,))
 

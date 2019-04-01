@@ -4,8 +4,7 @@ import unittest
 
 from lsst.ts.wep.SourceProcessor import SourceProcessor
 from lsst.ts.wep.bsc.NbrStar import NbrStar
-from lsst.ts.wep.Utility import getModulePath, abbrevDectectorName, \
-                                expandDetectorName, FilterType
+from lsst.ts.wep.Utility import getModulePath, FilterType
 
 
 class TestSourceProcessor(unittest.TestCase):
@@ -39,7 +38,7 @@ class TestSourceProcessor(unittest.TestCase):
         self.assertEqual(self.sourProc.sensorDimList["R22_S11"],
                          (4000, 4072))
         self.assertEqual(self.sourProc.sensorFocaPlaneInDeg["R22_S11"], (0, 0))
-        self.assertNotEqual(self.sourProc.sensorFocaPlaneInDeg["R00_S22_C0"], 
+        self.assertNotEqual(self.sourProc.sensorFocaPlaneInDeg["R00_S22_C0"],
                             self.sourProc.sensorFocaPlaneInDeg["R00_S22_C1"])
 
     def testConfig(self):
@@ -63,7 +62,7 @@ class TestSourceProcessor(unittest.TestCase):
         fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
 
         ansFieldX, ansFieldY = \
-            self.sourProc.sensorFocaPlaneInDeg[self.sourProc.sensorName]    
+            self.sourProc.sensorFocaPlaneInDeg[self.sourProc.sensorName]
         self.assertEqual(fieldX, ansFieldX)
         self.assertEqual(fieldY, ansFieldY)
 
@@ -98,17 +97,17 @@ class TestSourceProcessor(unittest.TestCase):
         return fieldX, fieldY
 
     def testDmXY2CamXY(self):
-        
+
         self.sourProc.config(sensorName="R22_S11")
         self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
 
     def testCamXY2DmXY(self):
-        
+
         self.sourProc.config(sensorName="R22_S11")
         self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
 
     def testIsVignette(self):
-        
+
         isVignette = self.sourProc.isVignette(1.76, 0)
         self.assertTrue(isVignette)
 
@@ -129,20 +128,20 @@ class TestSourceProcessor(unittest.TestCase):
         defocalDis = 0.25
         nbrStar = self._generateNbrStar()
         ccdImgIntra, ccdImgExtra = self.sourProc.simulateImg(
-                        imageFolderPath, defocalDis, nbrStar, FilterType.REF,
-                        noiseRatio=0)
+            imageFolderPath, defocalDis, nbrStar, FilterType.REF,
+            noiseRatio=0)
 
         return ccdImgIntra, ccdImgExtra
 
     def _generateNbrStar(self):
 
         nbrStar = NbrStar()
-        nbrStar.starId = {523572575: [], 
+        nbrStar.starId = {523572575: [],
                           523572679: [523572671]}
-        nbrStar.lsstMagG = {523572575: 14.66652, 
-                            523572671: 16.00000, 
+        nbrStar.lsstMagG = {523572575: 14.66652,
+                            523572671: 16.00000,
                             523572679: 13.25217}
-        nbrStar.raDeclInPixel = {523572679: (3966.44, 1022.91), 
+        nbrStar.raDeclInPixel = {523572679: (3966.44, 1022.91),
                                  523572671: (3968.77, 1081.02),
                                  523572575: (3475.48, 479.33)}
         return nbrStar
@@ -150,7 +149,7 @@ class TestSourceProcessor(unittest.TestCase):
     def testGetSingleTargetImage(self):
 
         sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-                                                    self._getSingleTargetImage()
+            self._getSingleTargetImage()
 
         self.assertEqual(sglSciNeiImg.shape, (310, 310))
         self.assertAlmostEqual(allStarPosX[0], 126.98)
@@ -171,16 +170,15 @@ class TestSourceProcessor(unittest.TestCase):
             self.sourProc.getSingleTargetImage(ccdImgIntra, nbrStar,
                                                starIndex, FilterType.REF)
 
-        return sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, \
-               offsetY
+        return sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY
 
     def testDoDeblending(self):
-        
+
         sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-                                            self._getSingleTargetImage()
+            self._getSingleTargetImage()
 
         imgDeblend, realcx, realcy = self.sourProc.doDeblending(
-                    sglSciNeiImg, allStarPosX, allStarPosY, magRatio)
+            sglSciNeiImg, allStarPosX, allStarPosY, magRatio)
 
         self.assertEqual(imgDeblend.shape, (310, 310))
         self.assertLess(np.abs(realcx-184.49), 3)
@@ -195,7 +193,7 @@ class TestSourceProcessor(unittest.TestCase):
         raDeclInPixel = nbrStar.getRaDeclInPixel()
         camX, camY = self.sourProc.dmXY2CamXY(raDeclInPixel[523572679][0],
                                               raDeclInPixel[523572679][1])
-        delta = np.sqrt( (realCameraX-camX)**2 + (realCameraY-camY)**2 )
+        delta = np.sqrt((realCameraX-camX)**2 + (realCameraY-camY)**2)
         self.assertLess(delta, 10)
 
 

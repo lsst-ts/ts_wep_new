@@ -1,31 +1,31 @@
-import os, sys
+import os
+import sys
 import numpy as np
 
-import matplotlib
-# Must be before importing matplotlib.pyplot or pylab!
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from scipy.ndimage import generate_binary_structure, iterate_structure
 from scipy.ndimage.filters import laplace
 from scipy.ndimage.morphology import binary_dilation, binary_erosion
 
-from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularEval, ZernikeMaskedFit, ZernikeAnnularGrad
-from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularEval, \
+    ZernikeMaskedFit, ZernikeAnnularGrad
+
+plt.switch_backend('Agg')
 
 
 class Algorithm(object):
 
     def __init__(self, algoFolder):
-        """
+        """Initialize the Algorithm class.
 
         Algorithm used to solve the transport of intensity equation to get
         normal/ annular Zernike polynomials.
 
-        Arguments:
-            algoFolderPath {[str]} -- Path to algorithm folder.
+        Parameters
+        ----------
+        algoFolder : str
+            Path to algorithm folder.
         """
 
         # Record the file name/ path
@@ -61,10 +61,8 @@ class Algorithm(object):
         return self.parameter
 
     def reset(self):
-        """
-        
-        Reset the calculation for the new input images with the same algorithm settings.
-        """
+        """Reset the calculation for the new input images with the same
+        algorithm settings."""
 
         self.caustic = False
         self.converge = np.zeros(self.converge.shape)
@@ -80,19 +78,20 @@ class Algorithm(object):
         self.cMaskPad = None
 
     def config(self, algoName, inst, debugLevel=0):
-        """
-        
-        Configure the algorithm to solve TIE.
-        
-        Arguments:
-            algoName {[str]} -- Algorithm configuration file to solve the Poisson's equation
-                                in the transport of intensity equation (TIE). It can be "fft"
-                                or "exp" here.
-            inst {[Instrument]} -- Instrument to use.
-        
-        Keyword Arguments:
-            debugLevel {int} -- Show the information under the running. If the value is higher,
-                                the information shows more. It can be 0, 1, 2, or 3. (default: {0})
+        """Configure the algorithm to solve TIE.
+
+        Parameters
+        ----------
+        algoName : str
+            Algorithm configuration file to solve the Poisson's equation in the
+            transport of intensity equation (TIE). It can be "fft" or "exp"
+            here.
+        inst : Instrument
+            Instrument to use.
+        debugLevel : int, optional
+            Show the information under the running. If the value is higher, the
+            information shows more. It can be 0, 1, 2, or 3. (the default is
+            0.)
         """
 
         # Name of algorithm
@@ -102,7 +101,7 @@ class Algorithm(object):
         self.filename = os.path.join(self.algoDir, "%s.algo" % algoName)
 
         # Get the parameters of algorithm
-        self.parameter = self.__readFile(self.algoDir, self.filename, inst)
+        self.parameter = self._readFile(self.algoDir, self.filename, inst)
 
         # Check the image has the problem or not
         self.caustic = False
@@ -119,8 +118,8 @@ class Algorithm(object):
         # Current number of outer-loop iteration
         self.currentItr = 0
 
-        # Record the coefficients of normal/ annular Zernike polynomials after z4
-        # in unit of nm
+        # Record the coefficients of normal/ annular Zernike polynomials after
+        # z4 in unit of nm
         self.zer4UpNm = np.zeros(numTerms-3)
 
         # Dimension of sensor samples in instrument
@@ -148,18 +147,22 @@ class Algorithm(object):
         self.pMaskPad = None
         self.cMaskPad = None
 
-    def __readFile(self, algoFolderPath, filename, inst):
-        """
-        
-        Read the algorithm file and calculate the parameters in algorithm.
-        
-        Arguments:
-            algoFolderPath {[str]} -- Path to algorithm folder.
-            filename {[str]} -- File name of algorithm configuration.
-            inst {[Instrument]} -- Instrument to use.
-        
-        Returns:
-            [dict] -- Parameters in algorithm.
+    def _readFile(self, algoFolderPath, filename, inst):
+        """Read the algorithm file and calculate the parameters in algorithm.
+
+        Parameters
+        ----------
+        algoFolderPath : str
+            Path to algorithm folder.
+        filename : str
+            File name of algorithm configuration.
+        inst : Instrument
+            Instrument to use.
+
+        Returns
+        -------
+        dict
+            Parameters in algorithm.
         """
 
         # Parameters specialzied for "fft" compared with "exp"
@@ -188,7 +191,8 @@ class Algorithm(object):
                     numTerms = int(line.split()[1])
 
                 elif (line.startswith("ZTerms")):
-                    ZTerms = np.hstack(([1, 2, 3], [int(x) for x in line.split()[1:]]))
+                    ZTerms = np.hstack(([1, 2, 3],
+                                        [int(x) for x in line.split()[1:]]))
 
                 elif (line.startswith("Num_of_outer_itr")):
                     outerItr = int(line.split()[1])
@@ -218,15 +222,18 @@ class Algorithm(object):
                     boundaryT = int(line.split()[2])
 
                 elif (line.startswith("Compensation_sequence")):
-                    compSequence = np.loadtxt(os.path.join(algoFolderPath, line.split()[1]))
+                    compSequence = np.loadtxt(os.path.join(algoFolderPath,
+                                                           line.split()[1]))
 
                 elif (line.startswith("Sumclip_sequence")):
-                    sumclipSequence = np.loadtxt(os.path.join(algoFolderPath, line.split()[1]))
+                    sumclipSequence = np.loadtxt(os.path.join(algoFolderPath,
+                                                              line.split()[1]))
 
         # Close the file
         fid.close()
 
-        # Give the values of ZTerms. Need to check why this is needed. Not find this variable is used.
+        # Give the values of ZTerms. Need to check why this is needed. Not find
+        # this variable is used.
         if (ZTerms is None):
             ZTerms = np.arange(numTerms) + 1
 
@@ -243,8 +250,9 @@ class Algorithm(object):
             if (len(compSequence.shape) == 1):
                 # Resize compSequence to be outerItr and
                 # set all etra values to compSequence[-1].
-                compSequence = np.append(compSequence,
-                                         compSequence[-1]*np.ones(outerItr-compSequence.shape[0]))
+                compSequence = np.append(
+                    compSequence,
+                    compSequence[-1]*np.ones(outerItr-compSequence.shape[0]))
 
         # Dimension of sensor samples in instrument
         sensorSamples = inst.parameter["sensorSamples"]
@@ -260,22 +268,26 @@ class Algorithm(object):
                 if (len(sumclipSequence.shape) == 1):
                     # Resize sumclipSequence to be outerItr and
                     # set all etra values to sumclipSequence[-1].
-                    sumclipSequence = np.append(sumclipSequence,
-                                          sumclipSequence[-1]*np.ones(outerItr+1-sumclipSequence.shape[0]))
+                    sumclipSequence = np.append(
+                        sumclipSequence,
+                        sumclipSequence[-1]*np.ones(outerItr+1-sumclipSequence.shape[0]))
 
             # Make sure the dimension is the order of multiple of 2
             if (padDim == 999):
-                # Enforce to be "int" type because the output of np.ceil is "float"
+                # Enforce to be "int" type because the output of np.ceil is
+                # "float"
                 padDim = int(2**np.ceil(np.log2(sensorSamples)))
             else:
-                # Enforce to be "int" type because the output of np.ceil is "float"
+                # Enforce to be "int" type because the output of np.ceil is
+                # "float"
                 padDim = int(2**np.ceil(np.log2(padDim)))
 
         # Mask scaling factor (for fast beam)
         # m = R'*f/(l*R), R': radius of the no-aberration image
         maskScalingFactor = inst.parameter["focalLength"]/inst.parameter["marginalFL"]
 
-        # Collect all parameters of algorithm into a single dictionary attribute
+        # Collect all parameters of algorithm into a single dictionary
+        # attribute
         parameter = {"PoissonSolver": PoissonSolver,
                      "numTerms": numTerms,
                      "ZTerms": ZTerms,
@@ -295,48 +307,57 @@ class Algorithm(object):
         return parameter
 
     def itr0(self, inst, I1, I2, model):
+        """Calculate the wavefront and coefficients of normal/ annular Zernike
+        polynomials in the first iteration time.
+
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
         """
 
-        Calculate the wavefront and coefficients of normal/ annular Zernike polynomials in the
-        first iteration time.
-
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-        """
-
-        # Reset the iteration time of outer loop and decide to reset the defocal
-        # images or not
-        self.__reset(I1, I2)
+        # Reset the iteration time of outer loop and decide to reset the
+        # defocal images or not
+        self._reset(I1, I2)
 
         # Solve the transport of intensity equation (TIE)
-        self.__singleItr(inst, I1, I2, model)
+        self._singleItr(inst, I1, I2, model)
 
     def runIt(self, inst, I1, I2, model, tol=1e-3):
-        """
+        """Calculate the wavefront error by solving the transport of intensity
+        equation (TIE).
 
-        Calculate the wavefront error by solving the transport of intensity equation (TIE).
-        The inner (for fft algorithm) and outer loops are used. The inner loop is to solve
-        the Poisson's equation. The outer loop is to compensate the intra- and extra-focal
-        images to mitigate the calculation of wavefront
+        The inner (for fft algorithm) and outer loops are used. The inner loop
+        is to solve the Poisson's equation. The outer loop is to compensate the
+        intra- and extra-focal images to mitigate the calculation of wavefront
         (e.g. S = -1/(delta Z) * (I1 - I2)/ (I1 + I2)).
 
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-            tol {[float]} -- Tolerance of difference of coefficients of Zk polynomials compared with
-                             the previours iteration.
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+        tol : float, optional
+            Tolerance of difference of coefficients of Zk polynomials compared
+            with the previours iteration. (the default is 1e-3.)
         """
 
-        # To have the iteration time initiated from global variable is to distinguish the manually
-        # and automatically iteration processes.
+        # To have the iteration time initiated from global variable is to
+        # distinguish the manually and automatically iteration processes.
         itr = self.currentItr
         while (itr <= self.parameter["outerItr"]):
-            stopItr = self.__singleItr(inst, I1, I2, model, tol)
+            stopItr = self._singleItr(inst, I1, I2, model, tol)
 
             # Stop the iteration of outer loop if converged
             if (stopItr):
@@ -345,52 +366,66 @@ class Algorithm(object):
             itr += 1
 
     def nextItr(self, inst, I1, I2, model, nItr=1):
-        """
+        """Run the outer loop iteration with the specific time defined in nItr.
 
-        Run the outer loop iteration with the specific time defined in nItr.
-
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-
-        Keyword Arguments:
-            nItr {int} -- Outer loop iteration time (default: {1}).
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+        nItr : int, optional
+            Outer loop iteration time. (the default is 1.)
         """
 
         #  Do the iteration
         ii = 0
         while (ii < nItr):
-            self.__singleItr(inst, I1, I2, model)
+            self._singleItr(inst, I1, I2, model)
             ii += 1
 
     def setDebugLevel(self, debugLevel):
-        """
+        """Set the debug level.
 
-        Set the debug level.
-
-        Arguments:
-            debugLevel {[int]} -- Show the information under the running. If the value is higher,
-                                  the information shows more. It can be 0, 1, 2, or 3.
+        Parameters
+        ----------
+        debugLevel : int
+            Show the information under the running. If the value is higher, the
+            information shows more. It can be 0, 1, 2, or 3.
         """
 
         # Set the debug level
         self.debugLevel = debugLevel
 
-    def __singleItr(self, inst, I1, I2, model, tol=1e-3):
-        """
+    def _singleItr(self, inst, I1, I2, model, tol=1e-3):
+        """Run the outer-loop with single iteration to solve the transport of
+        intensity equation (TIE).
 
-        Run the outer-loop with single iteration to solve the transport of intensity equation (TIE).
-        This is to compensate the approximation of wavefront S = -1/(delta Z) * (I1 - I2)/ (I1 + I2)).
+        This is to compensate the approximation of wavefront:
+        S = -1/(delta Z) * (I1 - I2)/ (I1 + I2)).
 
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-            model {[string]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis".
-            tol {[float]} -- Tolerance of difference of coefficients of Zk polynomials compared with
-                             the previours iteration.
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        model : str
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+        tol : float, optional
+            Tolerance of difference of coefficients of Zk polynomials compared
+            with the previours iteration. (the default is 1e-3.)
+
+        Returns
+        -------
+        bool
+            Status of iteration.
         """
 
         # Use the zonal mode ("zer")
@@ -410,10 +445,11 @@ class Algorithm(object):
                     print("Error: The intra and extra image stamps need to be of same size.")
                     sys.exit()
 
-                # Calculate the pupil mask (binary matrix) and related parameters
+                # Calculate the pupil mask (binary matrix) and related
+                # parameters
                 I1.makeMask(inst, model, self.parameter["boundaryT"], 1)
                 I2.makeMask(inst, model, self.parameter["boundaryT"], 1)
-                self.__makeMasterMask(I1, I2, self.parameter["PoissonSolver"])
+                self._makeMasterMask(I1, I2, self.parameter["PoissonSolver"])
 
                 # Load the offAxis correction coefficients
                 if (model == "offAxis"):
@@ -421,8 +457,8 @@ class Algorithm(object):
                     I1.getOffAxisCorr(instDir, self.parameter["offAxisPolyOrder"])
                     I2.getOffAxisCorr(instDir, self.parameter["offAxisPolyOrder"])
 
-                # Cocenter the images to the center referenced to fieldX and fieldY. Need to check the
-                # availability of this.
+                # Cocenter the images to the center referenced to fieldX and
+                # fieldY. Need to check the availability of this.
                 I1.imageCoCenter(inst, debugLevel=self.debugLevel)
                 I2.imageCoCenter(inst, debugLevel=self.debugLevel)
 
@@ -464,46 +500,49 @@ class Algorithm(object):
                 # Add partial feedback of residual estimated wavefront in Zk
                 self.zcomp = self.zcomp + ztmp*feedbackGain
 
-                # Remove the image distortion if the optical model is not "paraxial"
-                # Only the optical model of "onAxis" or "offAxis" is considered here
+                # Remove the image distortion if the optical model is not
+                # "paraxial"
+                # Only the optical model of "onAxis" or "offAxis" is considered
+                # here
                 I1.compensate(inst, self, self.zcomp, model)
                 I2.compensate(inst, self, self.zcomp, model)
 
-            # Check the image condition. If there is the problem, done with this __singleItr().
-            if (I1.caustic == True or I2.caustic == True):
+            # Check the image condition. If there is the problem, done with
+            # this _singleItr().
+            if (I1.caustic is True) or (I2.caustic is True):
                 self.converge[:, jj] = self.converge[:, jj - 1]
                 self.caustic = True
                 return
 
             # Correct the defocal images if I1 and I2 are belong to different
             # sources, which is determined by the (fieldX, field Y)
-            I1, I2 = self.__applyI1I2pMask(I1, I2)
+            I1, I2 = self._applyI1I2pMask(I1, I2)
 
             # Solve the Poisson's equation
-            self.zc, self.West = self.__solvePoissonEq(inst, I1, I2, jj)
+            self.zc, self.West = self._solvePoissonEq(inst, I1, I2, jj)
 
             # Record/ calculate the Zk coefficient and wavefront
             if (compMode == "zer"):
                 self.converge[:, jj] = self.zcomp + self.zc
                 self.wcomp = self.West + ZernikeAnnularEval(
-                                                    np.concatenate(([0, 0, 0], self.zcomp[3:])),
-                                                    inst.xoSensor, inst.yoSensor,
-                                                    self.parameter["zobsR"])
+                    np.concatenate(([0, 0, 0], self.zcomp[3:])), inst.xoSensor,
+                    inst.yoSensor, self.parameter["zobsR"])
 
         else:
-            # Once we run into caustic, stop here, results may be close to real aberration.
+            # Once we run into caustic, stop here, results may be close to real
+            # aberration.
             # Continuation may lead to disatrous results.
             self.converge[:, jj] = self.converge[:, jj - 1]
 
-        # Record the coefficients of normal/ annular Zernike polynomials after z4
-        # in unit of nm
+        # Record the coefficients of normal/ annular Zernike polynomials after
+        # z4 in unit of nm
         self.zer4UpNm = self.converge[3:, jj]*1e9
 
         # Status of iteration
         stopItr = False
 
         # Calculate the difference
-        if (jj>0):
+        if (jj > 0):
             diffZk = np.sum(np.abs(self.converge[:, jj]-self.converge[:, jj-1]))*1e9
 
             # Check the Status of iteration
@@ -521,27 +560,31 @@ class Algorithm(object):
 
         return stopItr
 
-    def __solvePoissonEq(self, inst, I1, I2, iOutItr=0):
-        """
+    def _solvePoissonEq(self, inst, I1, I2, iOutItr=0):
+        """Solve the Poisson's equation by Fourier transform (differential) or
+        serial expansion (integration).
 
-        Solve the Poisson's equation by Fourier transform (differential) or serial expansion
-        (integration).
+        There is no convergence for fft actually. Need to add the difference
+        comparison and X-alpha method. Need to discuss further for this.
 
-        There is no convergence for fft actually. Need to add the difference comparison and
-        Xa method. Need to discuss further for this.
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        iOutItr : int, optional
+            ith number of outer loop iteration which is important in "fft"
+            algorithm. (the default is 0.)
 
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-
-        Keyword Arguments:
-            iOutItr {[int]} -- ith number of outer loop iteration which is important
-                               in "fft" algorithm (default: {0}).
-
-        Returns:
-            [float] -- Coefficients of normal/ annular Zernike polynomials.
-            [float] -- Estimated wavefront.
+        Returns
+        -------
+        numpy.ndarray
+            Coefficients of normal/ annular Zernike polynomials.
+        numpy.ndarray
+            Estimated wavefront.
         """
 
         # Calculate the aperature pixel size
@@ -559,7 +602,8 @@ class Algorithm(object):
         PoissonSolver = self.parameter["PoissonSolver"]
         if (PoissonSolver == "fft"):
 
-            # Use the differential method by fft to solve the Poisson's equation
+            # Use the differential method by fft to solve the Poisson's
+            # equation
 
             # Parameter to determine the threshold of calculating I0.
             sumclipSequence = self.parameter["sumclipSequence"]
@@ -576,7 +620,8 @@ class Algorithm(object):
                 print("iOuter=%d, cliplevel=%4.2f" % (iOutItr, cliplevel))
                 print(v.shape)
 
-            # Calculate the const of fft: FT{Delta W} = -4*pi^2*(u^2+v^2) * FT{W}
+            # Calculate the const of fft:
+            # FT{Delta W} = -4*pi^2*(u^2+v^2) * FT{W}
             u2v2 = -4 * (np.pi**2) * (u*u + v*v)
 
             # Set origin to Inf to result in 0 at origin after filtering
@@ -584,7 +629,7 @@ class Algorithm(object):
             u2v2[ctrIdx, ctrIdx] = np.inf
 
             # Calculate the wavefront signal
-            Sini = self.__createSignal(inst, I1, I2, cliplevel)
+            Sini = self._createSignal(inst, I1, I2, cliplevel)
 
             # Find the just-outside and just-inside indices of a ring in pixels
             # This is for the use in setting dWdn = 0
@@ -600,8 +645,8 @@ class Algorithm(object):
 
             bordery, borderx = np.nonzero(ApringOut)
 
-            # Put the signal in boundary (since there's no existing Sestimate, S just equals self.S
-            # as the initial condition of SCF
+            # Put the signal in boundary (since there's no existing Sestimate,
+            # S just equals self.S as the initial condition of SCF
             S = Sini.copy()
             for jj in range(int(self.parameter["innerItr"])):
 
@@ -611,21 +656,22 @@ class Algorithm(object):
                 # Calculate W by W=IFT{ FT{S}/(-4*pi^2*(u^2+v^2)) }
                 W = np.fft.fftshift(np.fft.irfft2(np.fft.fftshift(SFFT/u2v2), s=S.shape))
 
-                # Estimate the wavefront (includes zeroing offset & masking to the aperture size)
+                # Estimate the wavefront (includes zeroing offset & masking to
+                # the aperture size)
 
                 # Take the estimated wavefront
                 West = extractArray(W, sensorSamples)
 
                 # Calculate the offset
-                offset = West[self.pMask==1].mean()
+                offset = West[self.pMask == 1].mean()
                 West = West - offset
-                West[self.pMask==0] = 0
+                West[self.pMask == 0] = 0
 
                 # Set dWestimate/dn = 0 around boundary
                 WestdWdn0 = West.copy()
 
-                # Do a 3x3 average around each border pixel, including only those pixels
-                # inside the aperture
+                # Do a 3x3 average around each border pixel, including only
+                # those pixels inside the aperture
                 for ii in range(len(borderx)):
                     reg = West[borderx[ii] - boundaryT:
                                borderx[ii] + boundaryT + 1,
@@ -637,16 +683,19 @@ class Algorithm(object):
                                             bordery[ii] - boundaryT:
                                             bordery[ii] + boundaryT + 1]
 
-                    WestdWdn0[borderx[ii], bordery[ii]] = reg[np.nonzero(intersectIdx)].mean()
+                    WestdWdn0[borderx[ii], bordery[ii]] = \
+                        reg[np.nonzero(intersectIdx)].mean()
 
                 # Take Laplacian to find sensor signal estimate (Delta W = S)
                 del2W = laplace(WestdWdn0)/dOmega
 
-                # Extend the dimension of signal to the order of 2 for "fft" to use
+                # Extend the dimension of signal to the order of 2 for "fft" to
+                # use
                 Sest = padArray(del2W, padDim)
 
-                # Put signal back inside boundary, leaving the rest of Sestimate
-                Sest[self.pMaskPad==1] = Sini[self.pMaskPad==1]
+                # Put signal back inside boundary, leaving the rest of
+                # Sestimate
+                Sest[self.pMaskPad == 1] = Sini[self.pMaskPad == 1]
 
                 # Need to recheck this condition
                 S = Sest
@@ -656,16 +705,18 @@ class Algorithm(object):
 
             # Calculate the coefficient of normal/ annular Zernike polynomials
             if (self.parameter["compMode"] == "zer"):
-                zc = ZernikeMaskedFit(West, inst.xSensor, inst.ySensor, numTerms, self.pMask, zobsR)
+                zc = ZernikeMaskedFit(West, inst.xSensor, inst.ySensor,
+                                      numTerms, self.pMask, zobsR)
             else:
                 zc = np.zeros(numTerms)
 
         elif (PoissonSolver == "exp"):
 
-            # Use the integration method by serial expansion to solve the Poisson's equation
+            # Use the integration method by serial expansion to solve the
+            # Poisson's equation
 
             # Calculate I0 and dI
-            I0, dI = self.__getdIandI(I1, I2)
+            I0, dI = self._getdIandI(I1, I2)
 
             # Get the x, y coordinate in mask. The element outside mask is 0.
             xSensor = inst.xSensor*self.cMask
@@ -687,15 +738,17 @@ class Algorithm(object):
                 dZidx[ii, :, :] = ZernikeAnnularGrad(zcCol, xSensor, ySensor, zobsR, "dx")
                 dZidy[ii, :, :] = ZernikeAnnularGrad(zcCol, xSensor, ySensor, zobsR, "dy")
 
-                # Set the specific Zk cofficient back to 0 to avoid interfering other Zk's calculation
+                # Set the specific Zk cofficient back to 0 to avoid interfering
+                # other Zk's calculation
                 zcCol[ii] = 0
 
-            # Calculate Mij matrix, need to check the stability of integration and symmetry later
+            # Calculate Mij matrix, need to check the stability of integration
+            # and symmetry later
             Mij = np.zeros([numTerms, numTerms])
             for ii in range(numTerms):
                 for jj in range(numTerms):
-                    Mij[ii, jj] = np.sum( I0*(dZidx[ii, :, :].squeeze()*dZidx[jj, :, :].squeeze() +
-                                              dZidy[ii, :, :].squeeze()*dZidy[jj, :, :].squeeze()) )
+                    Mij[ii, jj] = np.sum(I0*(dZidx[ii, :, :].squeeze()*dZidx[jj, :, :].squeeze() +
+                                             dZidy[ii, :, :].squeeze()*dZidy[jj, :, :].squeeze()))
             Mij = dOmega/(apertureDiameter/2.)**2 * Mij
 
             # Calculate dz
@@ -715,40 +768,50 @@ class Algorithm(object):
 
             # Estimate the wavefront surface based on z4 - z22
             # z0 - z3 are set to be 0 instead
-            West = ZernikeAnnularEval(np.concatenate(([0, 0, 0], zc[3:])), xSensor, ySensor, zobsR)
+            West = ZernikeAnnularEval(np.concatenate(([0, 0, 0], zc[3:])),
+                                      xSensor, ySensor, zobsR)
 
         return zc, West
 
-    def __createSignal(self, inst, I1, I2, cliplevel):
-        """
+    def _createSignal(self, inst, I1, I2, cliplevel):
+        """Calculate the wavefront singal for "fft" to use in solving the
+        Poisson's equation.
 
-        Calculate the wavefront singal for "fft" to use in solving the Poisson's equation.
-
-        Need to discuss the method to define threshold and discuss to use np.median() instead.
+        Need to discuss the method to define threshold and discuss to use
+        np.median() instead.
         Need to discuss why the calculation of I0 is different from "exp".
 
-        Arguments:
-            inst {[Instrument]} -- Instrument to use.
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-            cliplevel {[float]} -- Parameter to determine the threshold of calculating I0.
+        Parameters
+        ----------
+        inst : Instrument
+            Instrument to use.
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        cliplevel : float
+            Parameter to determine the threshold of calculating I0.
 
-        Returns:
-            [float] -- Approximated wavefront signal.
+        Returns
+        -------
+        numpy.ndarray
+            Approximated wavefront signal.
         """
 
         # Check the condition of images
-        I1image, I2image = self.__checkImageDim(I1, I2)
+        I1image, I2image = self._checkImageDim(I1, I2)
 
-        # Wavefront signal S=-(1/I0)*(dI/dz) is approximated to be -(1/delta z)*(I1-I2)/(I1+I2)
+        # Wavefront signal S=-(1/I0)*(dI/dz) is approximated to be
+        # -(1/delta z)*(I1-I2)/(I1+I2)
         num = I1image - I2image
         den = I1image + I2image
 
-        # Define the effective minimum central signal element by the threshold ( I0=(I1+I2)/2 )
+        # Define the effective minimum central signal element by the threshold
+        # ( I0=(I1+I2)/2 )
 
         # Calculate the threshold
         pixelList = den * self.cMask
-        pixelList = pixelList[pixelList!=0]
+        pixelList = pixelList[pixelList != 0]
 
         low = pixelList.min()
         high = pixelList.max()
@@ -757,13 +820,15 @@ class Algorithm(object):
         # Define the effective minimum central signal element
         den[den < medianThreshold*cliplevel] = 1.5*medianThreshold
 
-        # Calculate delta z = f(f-l)/l, f: focal length, l: defocus distance of the image planes
+        # Calculate delta z = f(f-l)/l, f: focal length, l: defocus distance of
+        # the image planes
         focalLength = inst.parameter["focalLength"]
         offset = inst.parameter["offset"]
         deltaZ = focalLength*(focalLength-offset)/offset
 
-        # Calculate the wavefront signal. Enforce the element outside the mask to be 0.
-        den[den==0] = np.inf
+        # Calculate the wavefront signal. Enforce the element outside the mask
+        # to be 0.
+        den[den == 0] = np.inf
 
         # Calculate the wavefront signal
         S = num/den/deltaZ
@@ -774,24 +839,31 @@ class Algorithm(object):
 
         return Sout
 
-    def __getdIandI(self, I1, I2):
-        """
+    def _getdIandI(self, I1, I2):
+        """Calculate the central image and differential image to be used in the
+        serial expansion method.
 
-        Calculate the central image and differential image to be used in the serial expansion
-        method. It is noted that the images are assumed to be co-center already. And the intra-/
-        extra-focal image can overlap with one another after the rotation of 180 degree.
+        It is noted that the images are assumed to be co-center already. And
+        the intra-/ extra-focal image can overlap with one another after the
+        rotation of 180 degree.
 
-        Arguments:
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
+        Parameters
+        ----------
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
 
-        Returns:
-            [float] -- Image data of I0.
-            [float] -- Differential image (dI) of I0.
+        Returns
+        -------
+        numpy.ndarray
+            Image data of I0.
+        numpy.ndarray
+            Differential image (dI) of I0.
         """
 
         # Check the condition of images
-        I1image, I2image = self.__checkImageDim(I1, I2)
+        I1image, I2image = self._checkImageDim(I1, I2)
 
         # Calculate the central image and differential iamge
         I0 = (I1image+I2image)/2
@@ -799,25 +871,32 @@ class Algorithm(object):
 
         return I0, dI
 
-    def __checkImageDim(self, I1, I2):
-        """
+    def _checkImageDim(self, I1, I2):
+        """Check the dimension of images.
 
-        Check the dimension of images. It is noted that the I2 image is rotated by 180
-        degree.
-        Need to check the reason of rotation. Is it because the I2 is assusmed to
-        be extra image and rotated by 180 degree already in Image.py?
+        It is noted that the I2 image is rotated by 180 degree.
 
-        Arguments:
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
+        Parameters
+        ----------
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
 
-        Returns:
-            [float] -- Defocal images. It is noted that the I2 image is rotated by
-                       180 degree.
+        Returns
+        -------
+        numpy.ndarray
+            I1 defocal image.
+        numpy.ndarray
+            I2 defocal image. It is noted that the I2 image is rotated by 180
+            degree.
 
-        Raises:
-            Exception -- Check the dimension of images is n by n or not.
-            Exception -- Check two defocal images have the same size or not.
+        Raises
+        ------
+        Exception
+            Check the dimension of images is n by n or not.
+        Exception
+            Check two defocal images have the same size or not.
         """
 
         # Check the condition of images
@@ -833,28 +912,30 @@ class Algorithm(object):
         # Define I1
         I1image = I1.image
 
-        # Rotate the image by 180 degree through rotating two times of 90 degree
+        # Rotate the image by 180 degree through rotating two times of 90
+        # degree
         I2image = np.rot90(I2.image, k=2)
 
         return I1image, I2image
 
-    def __makeMasterMask(self, I1, I2, poissonSolver=None):
+    def _makeMasterMask(self, I1, I2, poissonSolver=None):
+        """Calculate the common mask of defocal images.
+
+        Parameters
+        ----------
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
+        poissonSolver : str, optional
+            Algorithm to solve the Poisson's equation. If the "fft" is used,
+            the mask dimension will be extended to the order of 2 for the "fft"
+            to use. (the default is None.)
         """
 
-        Calculate the common mask of defocal images.
-
-        Arguments:
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-
-        Keyword Arguments:
-            poissonSolver {[string]} -- Algorithm to solve the Poisson's equation. If the "fft" is
-                                        used, the mask dimension will be extended to the order of 2
-                                        for the "fft" to use.
-        """
-
-        # Get the overlap region of mask for intra- and extra-focal images. This is to avoid the
-        # anormalous signal due to difference in vignetting.
+        # Get the overlap region of mask for intra- and extra-focal images.
+        # This is to avoid the anormalous signal due to difference in
+        # vignetting.
         self.pMask = I1.pMask*I2.pMask
         self.cMask = I1.cMask*I2.cMask
 
@@ -864,21 +945,28 @@ class Algorithm(object):
             self.pMaskPad = padArray(self.pMask, padDim)
             self.cMaskPad = padArray(self.cMask, padDim)
 
-    def __applyI1I2pMask(self, I1, I2):
-        """
+    def _applyI1I2pMask(self, I1, I2):
+        """Correct the defocal images if I1 and I2 are belong to different
+        sources.
 
-        Correct the defocal images if I1 and I2 are belong to different sources.
+        (There is a problem for this actually. If I1 and I2 come from different
+        sources, what should the correction of TIE be? At this moment, the
+        fieldX and fieldY of I1 and I2 should be different. And the sources are
+        different also.)
 
-        (There is a problem for this actually. If I1 and I2 come from different sources, what should
-        the correction of TIE be? At this moment, the fieldX and fieldY of I1 and I2 should be different.
-        And the sources are different also.)
+        Parameters
+        ----------
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
 
-        Arguments:
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
-
-        Returns:
-            [Image] -- Corrected images.
+        Returns
+        -------
+        numpy.ndarray
+            Corrected I1 image.
+        numpy.ndarray
+            Corrected I2 image.
         """
 
         # Get the overlap region of images and do the normalization.
@@ -887,25 +975,28 @@ class Algorithm(object):
             # Get the overlap region of image
             I1.updateImage(I1.image*self.pMask)
 
-            # Rotate the image by 180 degree through rotating two times of 90 degree
+            # Rotate the image by 180 degree through rotating two times of 90
+            # degree
             I2.updateImage(I2.image*np.rot90(self.pMask, 2))
 
             # Do the normalization of image.
             I1.updateImage(I1.image/np.sum(I1.image))
             I2.updateImage(I2.image/np.sum(I2.image))
 
-        # Return the correct images. It is noted that there is no need of vignetting correction.
-        # This is after masking already in __singleItr() or itr0().
+        # Return the correct images. It is noted that there is no need of
+        # vignetting correction.
+        # This is after masking already in _singleItr() or itr0().
         return I1, I2
 
-    def __reset(self, I1, I2):
-        """
+    def _reset(self, I1, I2):
+        """Reset the iteration time of outer loop and defocal images.
 
-        Reset the iteration time of outer loop and defocal images.
-
-        Arguments:
-            I1 {[Image]} -- Intra- or extra-focal image.
-            I2 {[Image]} -- Intra- or extra-focal image.
+        Parameters
+        ----------
+        I1 : Image
+            Intra- or extra-focal image.
+        I2 : Image
+            Intra- or extra-focal image.
         """
 
         # Reset the current iteration time to 0
@@ -935,22 +1026,25 @@ class Algorithm(object):
             pass
 
     def outZer4Up(self, unit="nm", filename=None, showPlot=False):
-        """
+        """Put the coefficients of normal/ annular Zernike polynomials on
+        terminal or file ande show the image if it is needed.
 
-        Put the coefficients of normal/ annular Zernike polynomials on terminal
-        or file ande show the image if it is needed.
-
-        Keyword Arguments:
-            unit {[string]} -- Unit of the coefficients of normal/ annular Zernike polynomials.
-                               It can be m, nm, or um. (default: {"nm"})
-            filename {[string]} -- Name of output file. (default: {None})
-            showPlot {[bool]} -- Decide to show the plot or not. (default: {False})
+        Parameters
+        ----------
+        unit : str, optional
+            Unit of the coefficients of normal/ annular Zernike polynomials. It
+            can be m, nm, or um. (the default is "nm".)
+        filename : str, optional
+            Name of output file. (the default is None.)
+        showPlot : bool, optional
+            Decide to show the plot or not. (the default is False.)
         """
 
         # List of Zn,m
-        Znm = ["Z0,0", "Z1,1", "Z1,-1", "Z2,0", "Z2,-2", "Z2,2",  "Z3,-1", "Z3,1", "Z3,-3", "Z3,3", 
-               "Z4,0", "Z4,2", "Z4,-2", "Z4,4", "Z4,-4", "Z5,1", "Z5,-1", "Z5,3", "Z5,-3", "Z5,5", 
-               "Z5,-5", "Z6,0"]
+        Znm = ["Z0,0", "Z1,1", "Z1,-1", "Z2,0", "Z2,-2", "Z2,2", "Z3,-1",
+               "Z3,1", "Z3,-3", "Z3,3", "Z4,0", "Z4,2", "Z4,-2", "Z4,4",
+               "Z4,-4", "Z5,1", "Z5,-1", "Z5,3", "Z5,-3", "Z5,5", "Z5,-5",
+               "Z6,0"]
 
         # Decide the format of z based on the input unit (m, nm, or um)
         if (unit == "m"):

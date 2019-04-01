@@ -110,7 +110,7 @@ class StarData(object):
         """
 
         if (filterType == FilterType.U):
-            self.lsstMagU = self._changeToNpArrayIfNeeded(mag) 
+            self.lsstMagU = self._changeToNpArrayIfNeeded(mag)
         elif (filterType == FilterType.G):
             self.lsstMagG = self._changeToNpArrayIfNeeded(mag)
         elif (filterType == FilterType.R):
@@ -302,7 +302,7 @@ class StarData(object):
                 valArray = self.lsstMagU
 
             elif (filterType == FilterType.G):
-                valArray = self.lsstMagG            
+                valArray = self.lsstMagG
 
             elif (filterType == FilterType.R):
                 valArray = self.lsstMagR
@@ -341,13 +341,13 @@ class StarData(object):
             List of index candidate.
         """
 
-        idxCand = [idx for idx in range(len(valArray)) \
+        idxCand = [idx for idx in range(len(valArray))
                    if lowMag <= valArray[idx] <= highMag]
 
         return idxCand
 
     def getNeighboringStar(self, idxCand, maxDist, filterType,
-        maxNumOfNbrStar=0):
+                           maxNumOfNbrStar=0):
         """Get the neighboring stars of candidate stars based on the specific
         max distance and number of neighboring star.
 
@@ -381,11 +381,11 @@ class StarData(object):
 
             # Decide the number of neighboring stars
             for ii in range(numOfIdxCand):
-                idxNbrStar = np.where(starDistances[ii,:] < maxDist)[0]
-                
+                idxNbrStar = np.where(starDistances[ii, :] < maxDist)[0]
+
                 # Delete candidate star itself
-                idxNbrStar = np.delete(idxNbrStar, 
-                                       np.where(idxNbrStar==idxCand[ii]))
+                idxNbrStar = np.delete(idxNbrStar,
+                                       np.where(idxNbrStar == idxCand[ii]))
 
                 # Remove the candidate star if there is the neighboring star
                 # brighter than itself
@@ -416,7 +416,7 @@ class StarData(object):
                 if ((np.where(magNbrStar < magSelf)[0]).size != 0):
                     brighterNeighbor = True
                 else:
-                    brighterNeighbor = False 
+                    brighterNeighbor = False
 
                 # Restrict the maximum number of neighboring stars
                 if (len(idxNbrStar) > maxNumOfNbrStar):
@@ -425,8 +425,7 @@ class StarData(object):
                     highNeighboringStar = False
 
                 # Record the information of neighboring stars
-                if (brighterNeighbor == False and 
-                    highNeighboringStar == False):
+                if (brighterNeighbor is False and highNeighboringStar is False):
                     nbrStar.addStar(self, idxCand[ii], idxNbrStar, filterType)
 
         return nbrStar

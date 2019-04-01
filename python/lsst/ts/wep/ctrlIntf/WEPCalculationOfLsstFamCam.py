@@ -1,4 +1,4 @@
-from lsst.ts.wep.ctrlIntf.WEPCalculationOfPiston import WEPCalculationOfPiston 
+from lsst.ts.wep.ctrlIntf.WEPCalculationOfPiston import WEPCalculationOfPiston
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
 
 

@@ -36,7 +36,7 @@ class CamDataCollector(object):
 
         command = "ingestCalibs.py"
         argstring = "%s %s --validity 99999 --output %s" % (
-                        self.destDir, calibFiles, self.destDir)
+            self.destDir, calibFiles, self.destDir)
         runProgram(command, argstring=argstring)
 
     def ingestImages(self, imgFiles):

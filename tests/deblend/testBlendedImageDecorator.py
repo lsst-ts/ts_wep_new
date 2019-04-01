@@ -23,26 +23,26 @@ class TestBlendedImageDecorator(unittest.TestCase):
 
         # Set the image file
         self.adapImage = AdapThresImage()
-        self.adapImage.setImg(imageFile = imageFile)
+        self.adapImage.setImg(imageFile=imageFile)
 
         self.zeroImage = BlendedImageDecorator()
-        self.zeroImage.setImg(image = np.zeros([120,120]))
+        self.zeroImage.setImg(image=np.zeros([120, 120]))
 
         self.randImage = BlendedImageDecorator()
-        self.randImage.setImg(image = np.random.rand(120,120))
+        self.randImage.setImg(image=np.random.rand(120, 120))
 
     def testBlendedImage(self):
 
         # Generate the blended image
         image, imageMain, imageNeighbor, neighborX, neighborY = \
-                            self.adapImage.generateMultiDonut(1.3, 0.1, 0.0)
+            self.adapImage.generateMultiDonut(1.3, 0.1, 0.0)
 
         blendImage = BlendedImageDecorator()
         blendImage.setImg(image=image)
 
         # Do the deblending
-        imgDeblend, realcx, realcy = blendImage.deblendDonut(
-                                        [neighborX, neighborY], 0.1)
+        imgDeblend, realcx, realcy = \
+            blendImage.deblendDonut([neighborX, neighborY], 0.1)
 
         # Do the comparison
         delta = np.sum(np.abs(imageMain-imgDeblend))

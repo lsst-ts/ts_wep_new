@@ -151,9 +151,9 @@ class ButlerWrapper(object):
         if isinstance(exposure, np.ndarray):
             data = exposure
         elif hasattr(exposure, "getMaskedImage"):
-            data = exposure.getMaskedImage().getImage().getArray() 
+            data = exposure.getMaskedImage().getImage().getArray()
         elif hasattr(exposure, "getImage"):
-            data = exposure.getImage().getArray() 
+            data = exposure.getImage().getArray()
         else:
             data = exposure.getArray()
 

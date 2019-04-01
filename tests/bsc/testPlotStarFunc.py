@@ -23,7 +23,7 @@ class TestPlotStarFunc(unittest.TestCase):
         dbAdress = os.path.join(self.modulePath, "tests", "testData", "bsc.db3")
         self.sourSelc.connect(dbAdress)
         neighborStarMap, starMap, wavefrontSensors = \
-                                        self.sourSelc.getTargetStar(offset=0)
+            self.sourSelc.getTargetStar(offset=0)
         self.sourSelc.disconnect()
 
         # Collect the data for the test of plot functions

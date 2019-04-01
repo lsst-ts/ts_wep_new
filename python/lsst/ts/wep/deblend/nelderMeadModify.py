@@ -7,53 +7,65 @@
 """
 
 import copy
-import numpy as np
 
 
 def feval(func, vars=()):
+    """Evaluate the function.
+
+    Parameters
+    ----------
+    func : callable
+        Function to evaluate.
+    vars : tuple, optional
+        Inputs of function (the default is ().)
+
+    Returns
+    -------
+    float
+        Output of evaluated function.
     """
-    
-    Evaluate the function.
-    
-    Arguments:
-        func {[object]} -- Function to evaluate.
-    
-    Keyword Arguments:
-        vars {tuple} -- Inputs of function (default: {()}).
-    
-    Returns:
-        [double] -- Output of evaluated function.
-    """
+
     return eval("func")(*vars)
 
 
-def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6, no_improv_break=10, max_iter=0,
-                     alpha=1., gamma=2., rho=-0.5, sigma=0.5):
-    """
-    
-    Optimization of the Nelder-Mead algorithm.
-    
-    Arguments:
-        func {[object]} -- Function to optimize, must return a scalar score and operate over a 
-                           numpy array of the same dimensions as x_start.
-        x_start {[numpy array]} -- Initial position.
-    
-    Keyword Arguments:
-        args {tuple} -- [description] (default: {()})
-        step {float} -- Look-around radius in initial step (default: {0.1}).
-        no_improve_thr {float} -- Break after no_improv_break iterations with an improvement lower 
-                                  than no_improv_thr (default: {10e-6}).
-        no_improv_break {int} -- Break after no_improv_break iterations with an improvement lower 
-                                 than no_improv_thr (default: {10})
-        max_iter {int} -- Always break after this number of iterations. 
-                          Set it to 0 to loop indefinitely (default: {0}).
-        alpha {float} -- Reflection parameter of the algorithm (default: {1.}).
-        gamma {float} -- Expansion parameter of the algorithm (default: {2.}).
-        rho {float} -- Contraction parameter of the algorithm (default: {-0.5}).
-        sigma {float} -- Reduction parameter of the algorithm (default: {0.5}).
+def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
+                     no_improv_break=10, max_iter=0, alpha=1., gamma=2.,
+                     rho=-0.5, sigma=0.5):
+    """Optimization of the Nelder-Mead algorithm.
 
-    Returns:
-        [tuple] -- Best parameter array and best score for the evaluated function.
+    Parameters
+    ----------
+    func : callable
+        Function to optimize, must return a scalar score and operate over a
+        numpy array of the same dimensions as x_start.
+    x_start : numpy.ndarray
+        Initial position.
+    args : tuple, optional
+        Additional arguments required by func. (the default is ().)
+    step : float, optional
+        Look-around radius in initial step (the default is 0.1.)
+    no_improve_thr : float, optional
+        Break after no_improv_break iterations with an improvement lower than
+        no_improv_thr (the default is 10e-6.)
+    no_improv_break : int, optional
+        Break after no_improv_break iterations with an improvement lower than
+        no_improv_thr (the default is 10.)
+    max_iter : int, optional
+        Always break after this number of iterations. Set it to 0 to loop
+        indefinitely (the default is 0.)
+    alpha : float, optional
+        Reflection parameter of the algorithm. (the default is 1.)
+    gamma : float, optional
+        Expansion parameter of the algorithm. (the default is 2.)
+    rho : float, optional
+        Contraction parameter of the algorithm. (the default is -0.5.)
+    sigma : float, optional
+        Reduction parameter of the algorithm (the default is 0.5.)
+
+    Returns
+    -------
+    tuple
+        Best parameter array and best score for the evaluated function.
     """
 
     # init
@@ -70,7 +82,7 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6, no_
         x[i] = x[i] + step
 
         vars = (x,) + args
-        score = feval(func, vars)  
+        score = feval(func, vars)
 
         res.append([x, score])
 

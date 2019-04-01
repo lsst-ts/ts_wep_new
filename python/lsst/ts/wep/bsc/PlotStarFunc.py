@@ -14,8 +14,8 @@ def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit,
         dictionary key is the detector name. The item is a list contains the
         detector's corners information.
     starMap : dict
-        Collection of star information. The dictionary key is the detector name.
-        The item is the stars with the type of StarData.
+        Collection of star information. The dictionary key is the detector
+        name. The item is the stars with the type of StarData.
     neighborStarMap : dict
         Collection of information of neighboring stars on sensors. The
         dictionary key is the detector name. The item is the neighboring stars
@@ -98,8 +98,8 @@ def _plotSingleRaDecl(wavefrontSensor, stars, neighboringStar, acrossRA0):
 
         # Get the candidate stars
         raDecl = neighboringStar.getRaDecl()
-        candidateX = np.append(candidateX, raDecl[candidateStar][0]) 
-        candidateY = np.append(candidateY, raDecl[candidateStar][1]) 
+        candidateX = np.append(candidateX, raDecl[candidateStar][0])
+        candidateY = np.append(candidateY, raDecl[candidateStar][1])
 
         # Get the neighboring stars
         for star in neighboringStars:
@@ -109,15 +109,15 @@ def _plotSingleRaDecl(wavefrontSensor, stars, neighboringStar, acrossRA0):
     # Shift the coordinates if sensors cross RA=0
     if (acrossRA0):
         # Shift Ra position for the plotting
-        sensorX[np.where(sensorX>180)] = sensorX[np.where(sensorX>180)] - 360
+        sensorX[np.where(sensorX > 180)] = sensorX[np.where(sensorX > 180)] - 360
         if (len(starX)):
-            starX[np.where(starX>180)] = starX[np.where(starX>180)] - 360
+            starX[np.where(starX > 180)] = starX[np.where(starX > 180)] - 360
         if (len(neighborStarMapX)):
-            neighborStarMapX[np.where(neighborStarMapX>180)] = \
-                        neighborStarMapX[np.where(neighborStarMapX>180)] - 360
+            neighborStarMapX[np.where(neighborStarMapX > 180)] = \
+                neighborStarMapX[np.where(neighborStarMapX > 180)] - 360
         if (len(candidateX)):
-            candidateX[np.where(candidateX>180)] = \
-                        candidateX[np.where(candidateX>180)] - 360
+            candidateX[np.where(candidateX > 180)] = \
+                candidateX[np.where(candidateX > 180)] - 360
 
     # Rearrange points to plot the quadrilateral
     sensorX, sensorY = _getQuadrilateral(sensorX, sensorY)
@@ -153,27 +153,27 @@ def _getQuadrilateral(Xvalues, Yvalues):
     """
 
     # Check the length of X and Y should be 4
-    if (len(Xvalues)!=4) or (len(Yvalues)!=4):
+    if (len(Xvalues) != 4) or (len(Yvalues) != 4):
         raise ValueError("The length of X and Y should be 4.")
 
     # Find the diagonal
-    pair = [[2,3], [1,3], [1,2]]
+    pair = [[2, 3], [1, 3], [1, 2]]
     indexDiag = -1
-    for ii in range(1,4):
+    for ii in range(1, 4):
         # Get line equation by "y = m * x + b"
         m = (Yvalues[ii] - Yvalues[0]) / (Xvalues[ii] - Xvalues[0])
         if np.isfinite(m):
 
             b = Yvalues[0] - m * Xvalues[0]
-            
+
             dis1 = m * Xvalues[pair[ii - 1][0]] + b - \
-                   Yvalues[pair[ii - 1][0]]
+                Yvalues[pair[ii - 1][0]]
             dis2 = m * Xvalues[pair[ii - 1][1]] + b - \
-                   Yvalues[pair[ii - 1][1]]
+                Yvalues[pair[ii - 1][1]]
 
             # Find the diagonal
-            if (dis1 * dis2<0):
-                indexDiag = ii 
+            if (dis1 * dis2 < 0):
+                indexDiag = ii
 
     if (indexDiag != -1):
         Xtemp = Xvalues[2]
@@ -187,7 +187,7 @@ def _getQuadrilateral(Xvalues, Yvalues):
         Yvalues[indexDiag] = Ytemp
 
     Xvalues = np.append(Xvalues, Xvalues[0])
-    Yvalues = np.append(Yvalues, Yvalues[0])    
+    Yvalues = np.append(Yvalues, Yvalues[0])
 
     return Xvalues, Yvalues
 
@@ -224,8 +224,8 @@ def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None,
     for candidateStar, neighboringStars in neighboringStar.getId().items():
 
         # Get the candidate stars
-        candidateX = np.append(candidateX, raDeclInPixel[candidateStar][0]) 
-        candidateY = np.append(candidateY, raDeclInPixel[candidateStar][1]) 
+        candidateX = np.append(candidateX, raDeclInPixel[candidateStar][0])
+        candidateY = np.append(candidateY, raDeclInPixel[candidateStar][1])
 
         # Get the neighboring stars
         for star in neighboringStars:

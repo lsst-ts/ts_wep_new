@@ -84,7 +84,7 @@ class DefaultDatabase(object):
                             lsstMagR, lsstMagI, lsstMagZ, lsstMagY)
 
         # Query regions does not cross the RA = 0
-        else:                            
+        else:
             return self._queryTable(filterType, top, bottom, left, right)
 
     def _queryTable(self, filterType, top, bottom, left, right):

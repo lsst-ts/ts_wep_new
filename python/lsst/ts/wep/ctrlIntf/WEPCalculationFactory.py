@@ -2,7 +2,7 @@ from lsst.ts.wep.Utility import CamType
 
 from lsst.ts.wep.ctrlIntf.WEPCalculationOfLsstCam import WEPCalculationOfLsstCam
 from lsst.ts.wep.ctrlIntf.WEPCalculationOfLsstFamCam import \
-                                                    WEPCalculationOfLsstFamCam
+    WEPCalculationOfLsstFamCam
 from lsst.ts.wep.ctrlIntf.WEPCalculationOfComCam import WEPCalculationOfComCam
 
 
@@ -21,7 +21,7 @@ class WEPCalculationFactory(object):
         ----------
         camType : CamType
             The camera type to get the wavefront calculator for.
- 
+
         Returns
         -------
         WEPCalculationOfLsstCam, WEPCalculationOfLsstFamCam, or

@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class AstWcsSol(object):
     """AST world coordinate system (WCS) solution provided by DM team."""
 

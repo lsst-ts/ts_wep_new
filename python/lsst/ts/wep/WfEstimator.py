@@ -1,22 +1,21 @@
-import os, sys
-import numpy as np
+import sys
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.cwfs.CompensationImageDecorator import \
-                                                    CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 
 
 class WfEstimator(object):
 
     def __init__(self, instruFolderPath, algoFolderPath):
-        """
+        """Initialize the wavefront estimator class.
 
-        Initialize the wavefront estimator class.
-
-        Arguments:
-            instruFolderPath {[str]} -- Path to instrument directory.
-            algoFolderPath {[str]} -- Path to algorithm directory.
+        Parameters
+        ----------
+        instruFolderPath : str
+            Path to instrument directory.
+        algoFolderPath : str
+            Path to algorithm directory.
         """
 
         self.algo = Algorithm(algoFolderPath)
@@ -102,41 +101,53 @@ class WfEstimator(object):
 
         self.algo.reset()
 
-    def config(self, solver="exp", instName="lsst", opticalModel="offAxis", defocalDisInMm=None, 
-                sizeInPix=120, debugLevel=0):
-        """
-        
-        Configure the TIE solver.
-        
-        Keyword Arguments:
-            solver {[str]} -- Algorithm to solve the Poisson's equation in the transport of 
-                            intensity equation (TIE). It can be "fft" or "exp" here. 
-                            (default: {"exp"})
-            instName {[str]} -- Instrument name. It is "lsst" in the baseline. (default: {"lsst"})
-            opticalModel {[str]} -- Optical model. It can be "paraxial", "onAxis", or "offAxis". 
-                                    (default: {"offAxis"})
-            defocalDisInMm {[float]} -- Defocal distance in mm. (default: {None})
-            sizeInPix {[int]} -- Wavefront image pixel size. (default: {120}) 
-            debugLevel {[int]} -- Show the information under the running. If the value is higher, 
-                                    the information shows more. It can be 0, 1, 2, or 3. 
-                                    (default: {0})
+    def config(self, solver="exp", instName="lsst", opticalModel="offAxis",
+               defocalDisInMm=None, sizeInPix=120, debugLevel=0):
+        """Configure the TIE solver.
 
-        Raises:
-            ValueError -- Wrong instrument name.
-            ValueError -- No intra-focal image.
-            ValueError -- Wrong Poisson solver name.
-            ValueError -- Wrong optical model.
+        Parameters
+        ----------
+        solver : str, optional
+            Algorithm to solve the Poisson's equation in the transport of
+            intensity equation (TIE). It can be "fft" or "exp" here. (the
+            default is "exp".)
+        instName : str, optional
+            Instrument name. It is "lsst" in the baseline. (the default is
+            "lsst".)
+        opticalModel : str, optional
+            Optical model. It can be "paraxial", "onAxis", or "offAxis". (the
+            default is "offAxis".)
+        defocalDisInMm : float, optional
+            Defocal distance in mm. (the default is None.)
+        sizeInPix : int, optional
+            Wavefront image pixel size. (the default is 120.)
+        debugLevel : int, optional
+            Show the information under the running. If the value is higher,
+            the information shows more. It can be 0, 1, 2, or 3. (the default
+            is 0.)
+
+        Raises
+        ------
+        ValueError
+            Wrong instrument name.
+        ValueError
+            No intra-focal image.
+        ValueError
+            Wrong Poisson solver name.
+        ValueError
+            Wrong optical model.
         """
 
         # Check the inputs and assign the parameters used in the TIE
-        # Need to change the way to hold the instance of Instrument and Algorithm
+        # Need to change the way to hold the instance of Instrument and
+        # Algorithm
 
         # Update the isnstrument name
         if (defocalDisInMm is not None):
             instName = instName + str(int(10*defocalDisInMm))
 
-        if instName not in ("lsst", "lsst05", "lsst10", "lsst15", "lsst20", "lsst25", "comcam10", 
-                            "comcam15", "comcam20"):
+        if instName not in ("lsst", "lsst05", "lsst10", "lsst15", "lsst20",
+                            "lsst25", "comcam10", "comcam15", "comcam20"):
             raise ValueError("Instrument can not be '%s'." % instName)
 
         # Set the available wavefront image size (n x n)
@@ -156,22 +167,25 @@ class WfEstimator(object):
             self.opticalModel = opticalModel
 
     def setImg(self, fieldXY, image=None, imageFile=None, defocalType=None):
-        """
+        """Set the wavefront image.
 
-        Set the wavefront image.
+        Parameters
+        ----------
+        fieldXY : tuple or list
+            Position of donut on the focal plane in degree for intra- and
+            extra-focal images.
+        image : numpy.ndarray, optional
+            Array of image. (the default is None.)
+        imageFile : str, optional
+            Path of image file. (the default is None.)
+        defocalType : str, optional
+            Type of image. It should be "intra" or "extra". (the default is
+            None.)
 
-        Arguments:
-            fieldXY {[float]} -- Position of donut on the focal plane in degree for intra- 
-                                 and extra-focal images.
-
-        Keyword Arguments:
-            image {[float]} -- Array of image. (default: {None})
-            imageFile {[str]} -- Path of image file. (default: {None})
-            defocalType {[str]} -- Type of image. It should be "intra" or "extra". 
-                                    (default: {None})
-
-        Raises:
-            ValueError -- Wrong defocal type.
+        Raises
+        ------
+        ValueError
+            Wrong defocal type.
         """
 
         # Check the defocal type
@@ -180,36 +194,47 @@ class WfEstimator(object):
 
         # Read the image and assign the type
         if (defocalType == self.ImgIntra.INTRA):
-            self.ImgIntra.setImg(fieldXY, image=image, imageFile=imageFile, atype=defocalType)
+            self.ImgIntra.setImg(fieldXY, image=image, imageFile=imageFile,
+                                 atype=defocalType)
         elif (defocalType == self.ImgIntra.EXTRA):
-            self.ImgExtra.setImg(fieldXY, image=image, imageFile=imageFile, atype=defocalType)
+            self.ImgExtra.setImg(fieldXY, image=image, imageFile=imageFile,
+                                 atype=defocalType)
 
     def calWfsErr(self, tol=1e-3, showZer=False, showPlot=False):
-        """
+        """Calculate the wavefront error.
 
-        Calculate the wavefront error.
+        Parameters
+        ----------
+        tol : float, optional
+            [description] (the default is 1e-3.)
+        showZer : bool, optional
+            Decide to show the annular Zernike polynomails or not. (the default
+            is False.)
+        showPlot : bool, optional
+            Decide to show the plot or not. (the default is False.)
 
-        Keyword Arguments:
-            tol {number} -- Tolerance of difference of coefficients of Zk polynomials compared 
-                            with the previours iteration. (default: {1e-3})
-            showZer {bool} -- Decide to show the annular Zernike polynomails or not. 
-                                (default: {False})
-            showPlot {bool} -- Decide to show the plot or not. (default: {False})
+        Returns
+        -------
+        numpy.ndarray
+            Coefficients of Zernike polynomials (z4 - z22).
 
-        Returns:
-            [float] -- Coefficients of Zernike polynomials (z4 - z22).
+        Raises
+        ------
+        RuntimeError
+            Input image shape is wrong.
         """
 
         # Check the image size
-        for img in (self.ImgIntra,  self.ImgExtra):
+        for img in (self.ImgIntra, self.ImgExtra):
             d1, d2 = img.image.shape
             if (d1 != self.sizeInPix) or (d2 != self.sizeInPix):
-                raise RuntimeError("Input image shape is (%d, %d), not required (%d, %d)" % 
-                                    (d1, d2, self.sizeInPix, self.sizeInPix))
+                raise RuntimeError("Input image shape is (%d, %d), not required (%d, %d)" % (
+                    d1, d2, self.sizeInPix, self.sizeInPix))
 
         # Calculate the wavefront error.
         # Run cwfs
-        self.algo.runIt(self.inst, self.ImgIntra, self.ImgExtra, self.opticalModel, tol=tol)
+        self.algo.runIt(self.inst, self.ImgIntra, self.ImgExtra,
+                        self.opticalModel, tol=tol)
 
         # Show the Zernikes Zn (n>=4)
         if (showZer):
@@ -218,12 +243,13 @@ class WfEstimator(object):
         return self.algo.zer4UpNm
 
     def outParam(self, filename=None):
-        """
+        """Put the information of images, instrument, and algorithm on terminal
+        or file.
 
-        Put the information of images, instrument, and algorithm on terminal or file.
-
-        Keyword Arguments:
-            filename {[str]} -- Name of output file. (default: {None})
+        Parameters
+        ----------
+        filename : str, optional
+            Name of output file. (the default is None.)
         """
 
         # Write the parameters into a file if needed.
@@ -237,50 +263,51 @@ class WfEstimator(object):
             fout.write("Intra image: \t %s\n" % self.ImgIntra.name)
 
         if (self.ImgIntra.fieldX is not None):
-            fout.write("Intra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgIntra.fieldX, 
-                                                                        self.ImgIntra.fieldY))
+            fout.write("Intra image field in deg =(%6.3f, %6.3f)\n" % (
+                self.ImgIntra.fieldX, self.ImgIntra.fieldY))
 
         if (self.ImgExtra.name is not None):
             fout.write("Extra image: \t %s\n" % self.ImgExtra.name)
 
         if (self.ImgExtra.fieldX is not None):
-            fout.write("Extra image field in deg =(%6.3f, %6.3f)\n" % (self.ImgExtra.fieldX, 
-                                                                        self.ImgExtra.fieldY))
+            fout.write("Extra image field in deg =(%6.3f, %6.3f)\n" % (
+                self.ImgExtra.fieldX, self.ImgExtra.fieldY))
 
         if (self.opticalModel is not None):
             fout.write("Using optical model:\t %s\n" % self.opticalModel)
 
         # Read the instrument file
         if (self.inst.filename is not None):
-            self.__readConfigFile(fout, self.inst, "instrument")
+            self._readConfigFile(fout, self.inst, "instrument")
 
         # Read the algorithm file
         if (self.algo.filename is not None):
-            self.__readConfigFile(fout, self.algo, "algorithm")
+            self._readConfigFile(fout, self.algo, "algorithm")
 
         # Close the file
         if (filename is not None):
             fout.close()
 
-    def __readConfigFile(self, fout, config, configName):
-        """
-        
-        Read the configuration file
-        
-        Arguments:
-            fout {[file]} -- File instance.
-            config {[metadata]} -- Instance of configuration. It is Instrument or Algorithm 
-                                   here.
-            configName {[str]} -- Name of configuration.
+    def _readConfigFile(self, fout, config, configName):
+        """Read the configuration file
+
+        Parameters
+        ----------
+        fout : file
+            File instance.
+        config : Instrument or Algorithm
+            Instance of configuration. It is Instrument or Algorithm here.
+        configName : str
+            Name of configuration.
         """
 
         # Create a new line
         fout.write("\n")
-        
+
         # Open the file
         fconfig = open(config.filename)
         fout.write("---" + configName + " file: --- %s ----------\n" % config.filename)
-        
+
         # Read the file information
         iscomment = False
         for line in fconfig:

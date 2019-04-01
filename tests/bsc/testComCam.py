@@ -93,7 +93,7 @@ class TestComCam(unittest.TestCase):
         stars = self._populatePixelFromRADecl()
         starsOnDet = self.camera.getStarsOnDetector(stars, 1e7)
 
-        self.assertEqual(len(starsOnDet.getId()), 3) 
+        self.assertEqual(len(starsOnDet.getId()), 3)
         self.assertEqual(len(starsOnDet.getRA()), 3)
         self.assertEqual(len(starsOnDet.getDecl()), 3)
         self.assertEqual(len(starsOnDet.getRaInPixel()), 3)
@@ -112,7 +112,7 @@ class TestComCam(unittest.TestCase):
         stars = self._populatePixelFromRADecl()
         starsOnDet = self.camera.getStarsOnDetector(stars, 0)
 
-        self.assertEqual(len(starsOnDet.getId()), 0) 
+        self.assertEqual(len(starsOnDet.getId()), 0)
         self.assertEqual(len(starsOnDet.getRA()), 0)
         self.assertEqual(len(starsOnDet.getDecl()), 0)
         self.assertEqual(len(starsOnDet.getRaInPixel()), 0)
@@ -124,7 +124,7 @@ class TestComCam(unittest.TestCase):
         self.assertEqual(len(starsOnDet.getMag(FilterType.Z)), 0)
         self.assertEqual(len(starsOnDet.getMag(FilterType.Y)), 0)
 
-        self.assertEqual(len(stars.getId()), 3) 
+        self.assertEqual(len(stars.getId()), 3)
         self.assertEqual(len(stars.getRA()), 3)
         self.assertEqual(len(stars.getDecl()), 3)
         self.assertEqual(len(stars.getRaInPixel()), 3)

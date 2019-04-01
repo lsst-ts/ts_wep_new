@@ -6,7 +6,7 @@ from lsst.ts.wep.ctrlIntf.SensorWavefrontData import SensorWavefrontData
 class WEPCalculation(object):
     """Base class for converting the wavefront images into wavefront errors.
 
-    There will be different implementations of this for different 
+    There will be different implementations of this for different
     types of CCDs (normal, full array mode, comcam, cmos, shwfs).
     """
 
@@ -68,7 +68,7 @@ class WEPCalculation(object):
         raInDeg : float
             Right ascension in degree. The value should be in (0, 360).
         decInDeg : float
-            Declination in degree. The value should be in (-90, 90). 
+            Declination in degree. The value should be in (-90, 90).
         """
 
         self.raInDeg = raInDeg
@@ -83,7 +83,7 @@ class WEPCalculation(object):
         raInDeg : float
             Right ascension in degree. The value should be in (0, 360).
         decInDeg : float
-            Declination in degree. The value should be in (-90, 90). 
+            Declination in degree. The value should be in (-90, 90).
         """
 
         return self.raInDeg, self.decInDeg

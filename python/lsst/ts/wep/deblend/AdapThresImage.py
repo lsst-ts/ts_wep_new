@@ -1,4 +1,3 @@
-import os
 import numpy as np
 
 from skimage.filters import threshold_local
@@ -10,19 +9,32 @@ from lsst.ts.wep.cwfs.Image import Image
 class AdapThresImage(Image):
 
     def generateMultiDonut(self, spaceCoef, magRatio, theta):
-        """
-        
-        Gemerate multiple donut images. Only one neightboring star will be generated for test,
-        which is the baseline of LSST.
-        
-        Arguments:
-            spaceCoef {[float]} -- Spacing coefficient to decide the distance between donuts.
-            magRatio {[float]} -- Magnitude ratio of new donut compared with the original one.
-            theta {[float]} -- Theta angle of generated neighboring star.
-        
-        Returns:
-            [float] -- Image of donuts.
-            [float] -- Neighboring donut (x, y) position.
+        """Gemerate multiple donut images.
+
+        Only one neightboring star will be generated for test, which is the
+        baseline of LSST.
+
+        Parameters
+        ----------
+        spaceCoef : float
+            Spacing coefficient to decide the distance between donuts.
+        magRatio : float
+            Magnitude ratio of new donut compared with the original one.
+        theta : float
+            Theta angle of generated neighboring star.
+
+        Returns
+        -------
+        numpy.ndarray
+            Image of donuts.
+        numpy.ndarray
+            Image of bright star.
+        numpy.ndarray
+            Image of neighboring star.
+        float
+            Position x of neighboring star.
+        float
+            Position y of neighboring star.
         """
 
         # Check the inputs
@@ -34,7 +46,7 @@ class AdapThresImage(Image):
             return -1
 
         # Get the center and radius of self-donut
-        selfX, selfY, selfR, imgBinary = self.getCenterAndR_ef(checkEntropy = True)
+        selfX, selfY, selfR, imgBinary = self.getCenterAndR_ef(checkEntropy=True)
 
         # Get the position of new donut based on spaceCoef and theta
         newX = selfX + spaceCoef*selfR*np.cos(theta)
@@ -45,7 +57,7 @@ class AdapThresImage(Image):
         lengthY = max(selfY, newY) - min(selfY, newY) + 5*selfR
         length = int(max(lengthX, lengthY))
 
-        # Enforce the length to be even for the symmetry 
+        # Enforce the length to be even for the symmetry
         if (length%2 == 1):
             length += 1
 
@@ -76,19 +88,27 @@ class AdapThresImage(Image):
         return image, imageMain, imageNeighbor, newX, newY
 
     def getCenterAndR_adap(self, blockSize=33):
-        """
-        
-        Calculate the weighting center and radius of circle based on the adapative 
-        threshold. 
+        """Calculate the weighting center and radius of circle based on the
+        adapative threshold.
 
-        Arguments:
-            blockSize {[int]} -- Block size for adaptive threshold. This value should 
-                                 be odd.
+        Parameters
+        ----------
+        blockSize : int, optional
+            Block size for adaptive threshold. This value should be odd. (the
+            default is 33.
 
-        Returns:
-            [float] -- Values of weighting center (realcx, realcy) and radius (realR).
+        Returns
+        -------
+        float
+            Weighting center x.
+        float
+            Weighting center y.
+        float
+            Radius.
+        numpy.ndarray[int]
+            Binary image.
         """
-        
+
         # Adaptive threshold
         delta = 1
         times = 0
@@ -111,11 +131,12 @@ class AdapThresImage(Image):
 
             # New value of blockSize
             blockSize = oddRearR
-        
+
         # Calculate the center of mass
         realcy, realcx = center_of_mass(imgBinary)
 
-        # The values of (realcx, realcy, realR) will be (nan, nan, 0.0) for the invalid image.
+        # The values of (realcx, realcy, realR) will be (nan, nan, 0.0) for the
+        # invalid image.
         if (not np.isfinite([realcx, realcy]).any()):
             print("Can not fit donut to circle.")
 

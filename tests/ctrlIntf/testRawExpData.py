@@ -17,19 +17,19 @@ class TestRawExpData(unittest.TestCase):
         self.assertEqual(len(visit), 0)
 
     def testGetSnap(self):
-        
+
         snap = self.rawExpData.getSnap()
         self.assertTrue(isinstance(snap, list))
         self.assertEqual(len(snap), 0)
 
     def testGetRawExp(self):
-        
+
         rawExpDir = self.rawExpData.getRawExpDir()
         self.assertTrue(isinstance(rawExpDir, list))
         self.assertEqual(len(rawExpDir), 0)
 
     def testAppend(self):
-        
+
         visit = 1
         snap = 0
         rawExpDir = "rawExpDir"
@@ -49,7 +49,7 @@ class TestRawExpData(unittest.TestCase):
         self.assertEqual(len(rawExpDirInObj), 1)
 
     def testAppendWithNegativeVisit(self):
-        
+
         self.assertRaises(ValueError, self.rawExpData.append, -1, 0, "temp")
 
     def testAppendWithNegativeSnap(self):

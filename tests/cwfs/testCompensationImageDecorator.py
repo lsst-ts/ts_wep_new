@@ -3,12 +3,11 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.CompensationImageDecorator import \
-                                                    CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 from lsst.ts.wep.Utility import getModulePath
 
 
-class tempAlgo(object):
+class TempAlgo(object):
     """Temporary algorithm class used for the testing."""
 
     def __init__(self):
@@ -22,7 +21,7 @@ class CompensationImageDecoratorTest(unittest.TestCase):
 
         # Get the path of module
         modulePath = getModulePath()
-        
+
         # Define the instrument folder
         instruFolder = os.path.join(modulePath, "configData", "cwfs",
                                     "instruData")
@@ -89,8 +88,8 @@ class CompensationImageDecoratorTest(unittest.TestCase):
 
         model = "offAxis"
         masklist = wfsImg.makeMaskList(self.inst, model)
-        masklistAns = np.array([[0, 0, 1, 1], [0, 0, 0.61, 0], 
-                                [-0.21240585, -0.21240585, 1.2300922, 1], 
+        masklistAns = np.array([[0, 0, 1, 1], [0, 0, 0.61, 0],
+                                [-0.21240585, -0.21240585, 1.2300922, 1],
                                 [-0.08784336, -0.08784336, 0.55802573, 0]])
         self.assertAlmostEqual(np.sum(np.abs(masklist-masklistAns)), 0)
 
@@ -114,7 +113,7 @@ class CompensationImageDecoratorTest(unittest.TestCase):
     def testFuncCompensation(self):
 
         # Generate a fake algorithm class
-        algo = tempAlgo()
+        algo = TempAlgo()
         algo.parameter = {"numTerms": 22, "offAxisPolyOrder": 10, "zobsR": 0.61}
 
         # Test the function of image compensation

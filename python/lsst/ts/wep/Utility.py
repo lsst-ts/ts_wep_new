@@ -18,7 +18,7 @@ class FilterType(Enum):
 
     @staticmethod
     def fromString(arg):
-        """Instantiate the FilterType based on a string that maps 
+        """Instantiate the FilterType based on a string that maps
         one-to-one with the filters.
 
         Parameters
@@ -28,8 +28,8 @@ class FilterType(Enum):
 
         Returns
         -------
-        FilterType 
-            The FilterType corresponding to the string. 
+        FilterType
+            The FilterType corresponding to the string.
         """
         char = arg.strip().lower()
         string2Filter = {
@@ -102,7 +102,7 @@ def getModulePath(module=lsst.ts.wep, startIdx=1, endIdx=-4):
 
     # Get the path of module
     modulePathList = os.path.dirname(module.__file__).split(
-                                os.sep)[int(startIdx):int(endIdx)]
+        os.sep)[int(startIdx):int(endIdx)]
     modulePath = os.path.join(os.sep, *modulePathList)
 
     return modulePath
@@ -304,11 +304,10 @@ def readPhoSimSettingData(folderPath, fileName, atype):
         data = []
         # Analyze the sensor name to find the amplifier
         if (fileName == "segmentation.txt"):
-            
+
             sensorNameStr = lineElement[0].split("_")
-            if (len(sensorNameStr)==3):
+            if (len(sensorNameStr) == 3):
                 if sensorNameStr[2] in ampList:
-                    name = lineElement[0]
                     # Get the segmentation in txt file
                     if (atype == "readOutDim"):
                         # parallel prescan, serial overscan, serial prescan,
@@ -319,22 +318,22 @@ def readPhoSimSettingData(folderPath, fileName, atype):
 
         elif (fileName == "focalplanelayout.txt"):
 
-                # Analyze the sensor name to make sure this line of data is
-                # needed
-                sensorNameStr = lineElement[0].split("_")
-                if (len(sensorNameStr) == 2 or len(sensorNameStr) == 3):
-                    if (atype == "fieldCenter"):
-                        # Collect the field center:
-                        # x position (microns), y position (microns), pixel
-                        # size (microns) number of x pixels, number of y pixels
-                        data = lineElement[1:6]
-                    elif (atype == "eulerRot"):
-                        # Collect the euler Rotation (degrees)
-                        data = lineElement[10:13]
+            # Analyze the sensor name to make sure this line of data is
+            # needed
+            sensorNameStr = lineElement[0].split("_")
+            if (len(sensorNameStr) == 2 or len(sensorNameStr) == 3):
+                if (atype == "fieldCenter"):
+                    # Collect the field center:
+                    # x position (microns), y position (microns), pixel
+                    # size (microns) number of x pixels, number of y pixels
+                    data = lineElement[1:6]
+                elif (atype == "eulerRot"):
+                    # Collect the euler Rotation (degrees)
+                    data = lineElement[10:13]
 
         # Collect the data
         if (data):
-            ccdData.update({lineElement[0]:data})
+            ccdData.update({lineElement[0]: data})
 
     # Close the file
     fid.close()

@@ -9,8 +9,8 @@ class ComCam(CameraData):
     def __init__(self):
         """Initialize the commissioning camera class."""
 
-        # The comcam's configuration here is approximated by taking the central 
-        # raft of lsst camera.    
+        # The comcam's configuration here is approximated by taking the central
+        # raft of lsst camera.
         super(ComCam, self).__init__(LsstSimMapper().camera)
         self._initDetectors(SCIENCE)
 

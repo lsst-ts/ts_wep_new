@@ -86,7 +86,7 @@ class SourceProcessor(object):
         self.sensorFocaPlaneInDeg = sensorFocaPlaneInDeg
         self.sensorFocaPlaneInUm = sensorFocaPlaneInUm
         self.sensorEulerRot = readPhoSimSettingData(
-                                folderPath, self.PHOSIM_FOCALPLANE, "eulerRot")
+            folderPath, self.PHOSIM_FOCALPLANE, "eulerRot")
 
     def _shiftCenterWfs(self, sensorName, focalPlaneData):
         """Shift the fieldXY of center of wavefront sensors.
@@ -232,11 +232,11 @@ class SourceProcessor(object):
 
         # Calculate the transformed coordinate in degree.
         fieldX, fieldY = self._rotCam2FocalPlane(
-                            self.sensorName, fieldXc, fieldYc, deltaX, deltaY)
+            self.sensorName, fieldXc, fieldYc, deltaX, deltaY)
 
         return fieldX, fieldY
 
-    def _rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY, 
+    def _rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY,
                            clockWise=False):
         """Do the rotation from camera coordinate to focal plane coordinate or
         vice versa.
@@ -277,9 +277,9 @@ class SourceProcessor(object):
         # Calculate the new x, y by the rotation. This is important for
         # wavefront sensor.
         newX = centerX + np.cos(eulerZinRad) * deltaX - \
-               np.sin(eulerZinRad) * deltaY
+            np.sin(eulerZinRad) * deltaY
         newY = centerY + np.sin(eulerZinRad) * deltaX + \
-               np.cos(eulerZinRad)*deltaY
+            np.cos(eulerZinRad)*deltaY
 
         return newX, newY
 
@@ -302,7 +302,7 @@ class SourceProcessor(object):
         """
 
         # Camera coordinate is defined in LCA-13381. Define camera coordinate
-        # (x, y) and DM coordinate (x', y'), then the relation is: 
+        # (x, y) and DM coordinate (x', y'), then the relation is:
         # Camera team +y = DM team +x'
         # Camera team +x = DM team -y'
 
@@ -367,7 +367,7 @@ class SourceProcessor(object):
             Field x in degree.
         fieldY : float
             Field y in degree.
-        
+
         Returns
         -------
         bool
@@ -382,7 +382,7 @@ class SourceProcessor(object):
         else:
             return False
 
-    def simulateImg(self, imageFolderPath, defocalDis, nbrStar, filterType, 
+    def simulateImg(self, imageFolderPath, defocalDis, nbrStar, filterType,
                     noiseRatio=0.01):
         """Simulate the defocal CCD images with the neighboring star map.
 
@@ -469,9 +469,9 @@ class SourceProcessor(object):
 
             # Choose a random donut image from the file
             donutImageIntra = self._getDonutImgFromFile(
-                                    imageFolderPath, intraFileList[randNum])
+                imageFolderPath, intraFileList[randNum])
             donutImageExtra = self._getDonutImgFromFile(
-                                    imageFolderPath, extraFileList[randNum])
+                imageFolderPath, extraFileList[randNum])
 
             # Get the bright star magnitude
             magBS = starMag[brightStar]
@@ -523,7 +523,7 @@ class SourceProcessor(object):
 
         # Get the donut image from the file by the delegation
         self.blendedImageDecorator.setImg(
-                            imageFile=os.path.join(imageFolderPath, fileName))
+            imageFile=os.path.join(imageFolderPath, fileName))
 
         return self.blendedImageDecorator.getImg().copy()
 
@@ -551,7 +551,7 @@ class SourceProcessor(object):
 
         # Add the donut image on the CCD image
         ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += \
-                                                                    donutImage
+            donutImage
 
     def getSingleTargetImage(self, ccdImg, nbrStar, index, filterType):
         """Get the image of single scientific target and related neighboring
@@ -573,9 +573,9 @@ class SourceProcessor(object):
         numpy.ndarray
             Ccd image of target stars.
         numpy.ndarray
-            Star positions in x. The arange is [neighboring stars, bright star].
+            Star x-positions. The arange is [neighboring stars, bright star].
         numpy.ndarray
-            Star positions in y. The arange is [neighboring stars, bright star].
+            Star y-positions. The arange is [neighboring stars, bright star].
         numpy.ndarray
             Star magnitude ratio compared with the bright star. The arange is
             [neighboring stars, bright star].
@@ -611,7 +611,7 @@ class SourceProcessor(object):
         allStarPosY = []
         for star in allStar:
 
-            # Get the star pixel position 
+            # Get the star pixel position
             starX, starY = raDeclInPixel[star]
 
             # Transform the coordiante from DM team to camera team
@@ -645,11 +645,6 @@ class SourceProcessor(object):
             # Use d-1 instead of d+1 to avoid the boundary touch
             d = d-1
 
-        # Compare the distances from the central point to four boundaries of
-        # ccd image
-        cenYup = ccdD1 - cenY
-        cenXright = ccdD2 - cenX
-
         # If central x or y plus d/2 will over the boundary, shift the
         # central x, y values
         cenY = self._shiftCenter(cenY, ccdD1, d / 2)
@@ -662,8 +657,7 @@ class SourceProcessor(object):
         offsetX = cenX - d / 2
         offsetY = cenY - d / 2
         singleSciNeiImg = \
-                ccdImg[int(offsetY):int(cenY + d / 2),
-                       int(offsetX):int(cenX + d / 2)]
+            ccdImg[int(offsetY):int(cenY + d / 2), int(offsetX):int(cenX + d / 2)]
 
         # Get the stars position in the new coordinate system
         # The final one is the bright star
@@ -683,8 +677,7 @@ class SourceProcessor(object):
         # Calculate the magnitude ratio
         magRatio = 1 / 100 ** ((magRatio - magRatio[-1]) / 5.0)
 
-        return singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, \
-               offsetY
+        return singleSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY
 
     def _shiftCenter(self, center, boundary, distance):
         """Shift the center if its distance to boundary is less than required.
@@ -759,7 +752,7 @@ class SourceProcessor(object):
         # Do the deblending
         imgDeblend, realcx, realcy = \
             self.blendedImageDecorator.deblendDonut(
-                    [allStarPosX[0], allStarPosY[0]], magRatio[0])
+                [allStarPosX[0], allStarPosY[0]], magRatio[0])
 
         return imgDeblend, realcx, realcy
 

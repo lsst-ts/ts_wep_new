@@ -8,7 +8,7 @@ from lsst.ts.wep.Utility import getModulePath
 
 class TestAdapThresImage(unittest.TestCase):
     """Test the AdapThresImage class."""
-    
+
     def setUp(self):
 
         # Get the path of module
@@ -22,13 +22,13 @@ class TestAdapThresImage(unittest.TestCase):
 
         # Set the image file
         self.adapImage = AdapThresImage()
-        self.adapImage.setImg(imageFile = imageFile)
+        self.adapImage.setImg(imageFile=imageFile)
 
         self.zeroImage = AdapThresImage()
-        self.zeroImage.setImg(image = np.zeros([120,120]))
+        self.zeroImage.setImg(image=np.zeros([120, 120]))
 
         self.randImage = AdapThresImage()
-        self.randImage.setImg(image = np.random.rand(120,120))
+        self.randImage.setImg(image=np.random.rand(120, 120))
 
     def testFunc(self):
 
@@ -36,18 +36,18 @@ class TestAdapThresImage(unittest.TestCase):
         realcx, realcy, realR, imgBinary = self.adapImage.getCenterAndR_adap()
         self.assertEqual([round(realcx), round(realcy), round(realR)],
                          [61, 61, 38])
-        
-        realcx, realcy, realR, imgBinary = self.adapImage.getCenterAndR_ef(
-                                                            checkEntropy=True)
+
+        realcx, realcy, realR, imgBinary = \
+            self.adapImage.getCenterAndR_ef(checkEntropy=True)
         self.assertEqual([round(realcx), round(realcy), round(realR)],
                          [61, 61, 38])
 
-        realcx, realcy, realR, imgBinary = self.zeroImage.getCenterAndR_ef(
-                                                            checkEntropy=True)
+        realcx, realcy, realR, imgBinary = \
+            self.zeroImage.getCenterAndR_ef(checkEntropy=True)
         self.assertEqual(realcx, [])
 
-        realcx, realcy, realR, imgBinary = self.randImage.getCenterAndR_ef(
-                                                            checkEntropy=True)
+        realcx, realcy, realR, imgBinary = \
+            self.randImage.getCenterAndR_ef(checkEntropy=True)
         self.assertEqual(realcx, [])
 
 

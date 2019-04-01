@@ -105,7 +105,7 @@ class NbrStar(object):
         candStarId = stars.getId()
         self.starId[candStarId[idxCand]] = candStarId[idxNbrStar].tolist()
 
-        # Collect coordinates and magnitude of candidate and neighboring stars 
+        # Collect coordinates and magnitude of candidate and neighboring stars
         indexStar = np.append(idxNbrStar, idxCand)
         for index in indexStar:
             self.raDecl[candStarId[index]] = (stars.getRA()[index],

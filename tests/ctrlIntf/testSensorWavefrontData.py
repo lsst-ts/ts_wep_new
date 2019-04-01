@@ -47,7 +47,7 @@ class TestSensorWavefrontData(unittest.TestCase):
         pixelX = 2.0
         pixelY = 3.0
         fieldX = 1.5
-        fieldY = 1.6 
+        fieldY = 1.6
         donut = DonutImage(starId, pixelX, pixelY, fieldX, fieldY)
 
         return donut

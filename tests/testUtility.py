@@ -1,7 +1,7 @@
 import unittest
 
 from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
-                                mapFilterRefToG, FilterType
+    mapFilterRefToG, FilterType
 
 
 class TestUtility(unittest.TestCase):

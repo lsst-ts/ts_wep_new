@@ -2,7 +2,7 @@ from lsst.ts.wep.bsc.Filter import Filter
 from lsst.ts.wep.bsc.CamFactory import CamFactory
 from lsst.ts.wep.bsc.DatabaseFactory import DatabaseFactory
 from lsst.ts.wep.bsc.LocalDatabaseForStarFile import LocalDatabaseForStarFile
-from lsst.ts.wep.Utility import FilterType, mapFilterRefToG
+from lsst.ts.wep.Utility import mapFilterRefToG
 
 
 class SourceSelector(object):
@@ -156,13 +156,13 @@ class SourceSelector(object):
 
             # Check the candidate of bright stars based on the magnitude
             indexCandidate = starsOnDet.checkCandidateStars(
-                                mappedFilterType, lowMagnitude, highMagnitude)
+                mappedFilterType, lowMagnitude, highMagnitude)
 
             # Determine the neighboring stars based on the distance and
             # allowed number of neighboring stars
             neighborStar = starsOnDet.getNeighboringStar(
-                                indexCandidate, self.maxDistance,
-                                mappedFilterType, self.maxNeighboringStar)
+                indexCandidate, self.maxDistance, mappedFilterType,
+                self.maxNeighboringStar)
             neighborStarMap[detector] = neighborStar
 
         # Remove the data that has no bright star
@@ -242,8 +242,7 @@ class SourceSelector(object):
         # Write the sky data into the temporary table
         self.db.createTable(mappedFilterType)
         self.db.insertDataByFile(skyFilePath, mappedFilterType, skiprows=1)
-        neighborStarMap, starMap, wavefrontSensors = \
-                            self.getTargetStar(offset=offset)
+        neighborStarMap, starMap, wavefrontSensors = self.getTargetStar(offset=offset)
 
         # Delete the table
         self.db.deleteTable(mappedFilterType)

@@ -25,7 +25,7 @@ class TestDefocalImage(unittest.TestCase):
         self.assertEqual(np.sum(extraImg), np.sum(self.extraImg))
 
     def testSetImg(self):
-        
+
         intraImg = np.arange(1)
         extraImg = np.arange(2)
         self.defocalImg.setImg(intraImg=intraImg, extraImg=extraImg)

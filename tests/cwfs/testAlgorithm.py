@@ -3,8 +3,7 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.CompensationImageDecorator import \
-                                                    CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.Utility import getModulePath
 
@@ -22,14 +21,11 @@ class TestAlgorithm(unittest.TestCase):
                                     "instruData")
 
         # Define the algorithm folder
-        algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
-                                      "algo")
+        self.algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
+                                           "algo")
 
         # Define the instrument name
         instruName = "lsst"
-
-        # Define the algorithm being used: "exp" or "fft"
-        useAlgorithm = "fft"
 
         # Define the image folder and image names
         # Image data -- Don't know the final image format.
@@ -66,15 +62,11 @@ class TestAlgorithm(unittest.TestCase):
 
     def testExp(self):
 
-        # Define the algorithm folder
-        algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
-                                      "algo")
-
         # Define the algorithm being used: "exp" or "fft"
         useAlgorithm = "exp"
 
         # Define the algorithm to be used.
-        algo = Algorithm(algoFolderPath)
+        algo = Algorithm(self.algoFolderPath)
         algo.config(useAlgorithm, self.inst, debugLevel=3)
         algo.setDebugLevel(0)
         self.assertEqual(algo.debugLevel, 0)
@@ -107,15 +99,11 @@ class TestAlgorithm(unittest.TestCase):
 
     def testFFT(self):
 
-        # Define the algorithm folder
-        algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
-                                      "algo")
-
         # Define the algorithm being used: "exp" or "fft"
         useAlgorithm = "fft"
 
         # Define the algorithm to be used.
-        algo = Algorithm(algoFolderPath)
+        algo = Algorithm(self.algoFolderPath)
         algo.config(useAlgorithm, self.inst, debugLevel=0)
 
         # Run it

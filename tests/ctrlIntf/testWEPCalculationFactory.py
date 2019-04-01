@@ -3,8 +3,7 @@ import unittest
 from lsst.ts.wep.Utility import CamType
 from lsst.ts.wep.ctrlIntf.WEPCalculationFactory import WEPCalculationFactory
 from lsst.ts.wep.ctrlIntf.WEPCalculationOfLsstCam import WEPCalculationOfLsstCam
-from lsst.ts.wep.ctrlIntf.WEPCalculationOfLsstFamCam import \
-                                                    WEPCalculationOfLsstFamCam
+from lsst.ts.wep.ctrlIntf.WEPCalculationOfLsstFamCam import WEPCalculationOfLsstFamCam
 from lsst.ts.wep.ctrlIntf.WEPCalculationOfComCam import WEPCalculationOfComCam
 
 
@@ -24,7 +23,7 @@ class TestWEPCalculationFactory(unittest.TestCase):
     def testGetCalculatorOfLsstFamCam(self):
 
         calculator = self.wepCalculationFactory.getCalculator(
-                                                        CamType.LsstFamCam)
+            CamType.LsstFamCam)
 
         self.assertTrue(isinstance(calculator, WEPCalculationOfLsstFamCam))
 

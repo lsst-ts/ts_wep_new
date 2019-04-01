@@ -11,7 +11,7 @@ class TestCamIsrWrapper(unittest.TestCase):
     """Test the CamIsrWrapper class."""
 
     def setUp(self):
-        
+
         self.dataDir = os.path.join(getModulePath(), "tests", "tmpIsr")
         self.isrDir = os.path.join(self.dataDir, "input")
         self._makeDir(self.isrDir)
@@ -83,10 +83,10 @@ class TestCamIsrWrapper(unittest.TestCase):
         # Check the condition
         postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName,
                                      "postISRCCD")
-        self.assertTrue(os.path.exists(postIsrCcdDir)) 
+        self.assertTrue(os.path.exists(postIsrCcdDir))
 
     def _genFakeFlat(self, fakeFlatDir, detector):
-        
+
         currWorkDir = self._getCurrWorkDir()
 
         self._changeWorkDir(fakeFlatDir)

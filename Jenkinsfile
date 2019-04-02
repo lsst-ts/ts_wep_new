@@ -8,7 +8,7 @@ pipeline {
         // The nodes in T&S teams is 'jenkins-el7-1'.
         // It is recommended by SQUARE team do not add the label.
         docker {
-            image 'lsstts/aos:w_2019_02'
+            image 'lsstts/aos:w_2019_12'
             args '-u root'
         }
     }
@@ -18,9 +18,8 @@ pipeline {
     }
 
     environment {
-        // Use the double quote instead of single quote
-        // Add the PYTHONPATH
-        PYTHONPATH="${env.WORKSPACE}/python"
+        // Position of LSST stack directory
+        LSST_STACK="/opt/lsst/software/stack"
         // XML report path
         XML_REPORT="jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
@@ -36,18 +35,14 @@ pipeline {
                 withEnv(["HOME=${env.WORKSPACE}"]) {
                     sh """
                         source /opt/rh/devtoolset-6/enable
-                        source /opt/lsst/loadLSST.bash
+                        source ${env.LSST_STACK}/loadLSST.bash
+                        setup sims_catUtils -t sims_w_2019_12
                         conda install scikit-image
-                        python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
-                        git clone --branch master https://github.com/lsst/obs_lsst.git
-                        cd obs_lsst/
-                        git checkout 69b4a98
                         setup -k -r .
-                        scons
-                        cd ..
+                        python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
-                        git checkout b8d87d9
+                        git checkout 7b02084
                         setup -k -r .
                         scons
                     """
@@ -65,15 +60,13 @@ pipeline {
                 withEnv(["HOME=${env.WORKSPACE}"]) {
                     sh """
                         source /opt/rh/devtoolset-6/enable
-                        source /opt/lsst/loadLSST.bash
-                        setup sims_catUtils -t sims_w_2019_02
-                        cd obs_lsst/
-                        setup -k -r .
-                        cd ..
+                        source ${env.LSST_STACK}/loadLSST.bash
+                        setup sims_catUtils -t sims_w_2019_12
                         cd phosim_utils/
                         setup -k -r .
                         cd ..
-                        pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.WORKSPACE}/${env.XML_REPORT} ${env.WORKSPACE}/tests/cwfs/*.py ${env.WORKSPACE}/tests/bsc/*.py ${env.WORKSPACE}/tests/deblend/*.py ${env.WORKSPACE}/tests/ctrlIntf/*.py ${env.WORKSPACE}/tests/*.py
+                        setup -k -r .
+                        pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.XML_REPORT} tests/
                     """
                 }
             }

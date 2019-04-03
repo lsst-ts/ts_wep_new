@@ -4,7 +4,7 @@ import re
 from scipy.ndimage.measurements import center_of_mass
 from enum import Enum
 
-import lsst.ts.wep
+from lsst.utils import getPackageDir
 
 
 class FilterType(Enum):
@@ -84,28 +84,16 @@ class BscDbType(Enum):
     LocalDbForStarFile = 2
 
 
-def getModulePath(module=lsst.ts.wep, startIdx=1, endIdx=-4):
+def getModulePath():
     """Get the path of module.
-    Parameters
-    ----------
-    module : str, optional
-        Module name. (the default is lsst.ts.ofc.)
-    startIdx : int, optional
-        Start index. (the default is 1.)
-    endIdx : int, optional
-        End index. (the default is -4.)
+
     Returns
     -------
     str
-        Directory path of module based on the start and end indexes.
+        Directory path of module.
     """
 
-    # Get the path of module
-    modulePathList = os.path.dirname(module.__file__).split(
-        os.sep)[int(startIdx):int(endIdx)]
-    modulePath = os.path.join(os.sep, *modulePathList)
-
-    return modulePath
+    return getPackageDir("ts_wep")
 
 
 def runProgram(command, binDir=None, argstring=None):

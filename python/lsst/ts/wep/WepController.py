@@ -14,7 +14,7 @@ class WepController(object):
                        "R:0,4 S:2,0,B", "R:4,0 S:0,2,A", "R:4,0 S:0,2,B",
                        "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
 
-    def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfsEsti):
+    def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfEsti):
         """Initialize the wavefront estimation pipeline (WEP) controller class.
 
         Parameters
@@ -27,7 +27,7 @@ class WepController(object):
             Source selector.
         sourProc : SourceProcessor
             Source processor.
-        wfsEsti : WfEstimator
+        wfEsti : WfEstimator
             Wavefront estimator.
         """
 
@@ -35,9 +35,77 @@ class WepController(object):
         self.isrWrapper = isrWrapper
         self.sourSelc = sourSelc
         self.sourProc = sourProc
-        self.wfsEsti = wfsEsti
+        self.wfEsti = wfEsti
 
         self.butlerWrapper = None
+
+    def getDataCollector(self):
+        """Get the attribute of data collector.
+
+        Returns
+        -------
+        CamDataCollector
+            Data collector.
+        """
+
+        return self.dataCollector
+
+    def getIsrWrapper(self):
+        """Get the attribute of ISR wraper.
+
+        ISR: Instrument signature removal.
+
+        Returns
+        -------
+        CamIsrWrapper
+            ISR wraper.
+        """
+
+        return self.isrWrapper
+
+    def getSourSelc(self):
+        """Get the attribute of source selector.
+
+        Returns
+        -------
+        SourceSelector
+            Source selector.
+        """
+
+        return self.sourSelc
+
+    def getSourProc(self):
+        """Get the attribute of source processor.
+
+        Returns
+        -------
+        SourceProcessor
+            Source processor.
+        """
+
+        return self.sourProc
+
+    def getWfEsti(self):
+        """Get the attribute of wavefront estimator.
+
+        Returns
+        -------
+        WfEstimator
+            Wavefront estimator.
+        """
+
+        return self.wfEsti
+
+    def getButlerWrapper(self):
+        """Get the attribute of butler wrapper.
+
+        Returns
+        -------
+        ButlerWrapper
+            Butler wrapper.
+        """
+
+        return self.butlerWrapper
 
     def setPostIsrCcdInputs(self, inputs):
         """Set inputs of post instrument signature removal (ISR) CCD images.
@@ -262,7 +330,7 @@ class WepController(object):
 
                         # Extract the image
                         if (len(magRatio) == 1):
-                            sizeInPix = self.wfsEsti.getSizeInPix()
+                            sizeInPix = self.wfEsti.getSizeInPix()
                             x0 = np.floor(realcx - sizeInPix / 2).astype("int")
                             y0 = np.floor(realcy - sizeInPix / 2).astype("int")
                             imgDeblend = imgDeblend[y0:y0 + sizeInPix,
@@ -443,16 +511,16 @@ class WepController(object):
         """
 
         # Set the images
-        self.wfsEsti.setImg(intraFieldXY, image=intraImg,
-                            defocalType=self.wfsEsti.getIntraImg().INTRA)
-        self.wfsEsti.setImg(extraFieldXY, image=extraImg,
-                            defocalType=self.wfsEsti.getExtraImg().EXTRA)
+        self.wfEsti.setImg(intraFieldXY, image=intraImg,
+                           defocalType=self.wfEsti.getIntraImg().INTRA)
+        self.wfEsti.setImg(extraFieldXY, image=extraImg,
+                           defocalType=self.wfEsti.getExtraImg().EXTRA)
 
         # Reset the wavefront estimator
-        self.wfsEsti.reset()
+        self.wfEsti.reset()
 
         # Calculate the wavefront error
-        zer4UpNm = self.wfsEsti.calWfsErr()
+        zer4UpNm = self.wfEsti.calWfsErr()
 
         return zer4UpNm
 
@@ -587,7 +655,7 @@ class WepController(object):
 
                 # Get the projected image
                 projImg = self._getProjImg(fieldXY, intraImg,
-                                           self.wfsEsti.getIntraImg().INTRA,
+                                           self.wfEsti.getIntraImg().INTRA,
                                            zcCol)
 
                 # Collect the projected donut
@@ -598,7 +666,7 @@ class WepController(object):
 
                 # Get the projected image
                 projImg = self._getProjImg(fieldXY, extraImg,
-                                           self.wfsEsti.getExtraImg().EXTRA,
+                                           self.wfEsti.getExtraImg().EXTRA,
                                            zcCol)
 
                 # Collect the projected donut
@@ -637,20 +705,20 @@ class WepController(object):
         """
 
         # Set the image
-        self.wfsEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
+        self.wfEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
 
         # Get the image in the type of CompensationImageDecorator
-        if (aType == self.wfsEsti.getIntraImg().INTRA):
-            img = self.wfsEsti.getIntraImg()
-        elif (aType == self.wfsEsti.getExtraImg().EXTRA):
-            img = self.wfsEsti.getExtraImg()
+        if (aType == self.wfEsti.getIntraImg().INTRA):
+            img = self.wfEsti.getIntraImg()
+        elif (aType == self.wfEsti.getExtraImg().EXTRA):
+            img = self.wfEsti.getExtraImg()
 
         # Get the distortion correction (offaxis)
-        algo = self.wfsEsti.getAlgo()
+        algo = self.wfEsti.getAlgo()
         parameter = algo.getParam()
         offAxisCorrOrder = parameter["offAxisPolyOrder"]
 
-        inst = self.wfsEsti.getInst()
+        inst = self.wfEsti.getInst()
         instDir = os.path.dirname(inst.getInstFileName())
 
         img.getOffAxisCorr(instDir, offAxisCorrOrder)
@@ -659,7 +727,7 @@ class WepController(object):
         img.imageCoCenter(inst)
 
         # Do the compensation/ projection
-        img.compensate(inst, algo, zcCol, self.wfsEsti.getOptModel())
+        img.compensate(inst, algo, zcCol, self.wfEsti.getOptModel())
 
         # Return the projected image
         return img.getImg()

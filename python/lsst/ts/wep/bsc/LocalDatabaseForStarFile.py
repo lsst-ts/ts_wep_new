@@ -26,10 +26,11 @@ class LocalDatabaseForStarFile(LocalDatabase):
             raise ValueError("%s exists in database already." % tableName)
 
         # Create the table
-        command = "CREATE TABLE %s" % tableName
-        command += "(id INTEGER PRIMARY KEY, simobjid INTEGER NOT NULL, "
-        command += "ra REAL, decl REAL, %smag REAL, bright_star NUMERIC)" \
-                   % filterType.name.lower()
+        command = ("CREATE TABLE %s "
+                   "(id INTEGER PRIMARY KEY, simobjid INTEGER NOT NULL, "
+                   "ra REAL, decl REAL, %smag REAL, bright_star NUMERIC)"
+                   ) % (tableName, filterType.name.lower())
+
         self.cursor.execute(command)
 
         # Commit the change to database
@@ -76,22 +77,29 @@ class LocalDatabaseForStarFile(LocalDatabase):
         # Get the data
         skyData = np.loadtxt(skyFilePath, skiprows=skiprows)
 
-        # Add the star
-        tableName = self._getTableName(filterType)
-        for ii in range(len(skyData)):
-            # Insert data
-            command = "INSERT INTO " + tableName + \
-                      " (simobjid, ra, decl, " + \
-                      filterType.name.lower() + "mag, bright_star) " + \
-                      "VALUES (?, ?, ?, ?, ?)"
+        # Only consider the non-empty data
+        if (len(skyData) != 0):
 
-            simobjID, ra, decl, mag = skyData[ii]
-            task = (int(simobjID), ra, decl, mag, 0)
+            # Change to 2D array if the input is 1D array
+            if (skyData.ndim == 1):
+                skyData = np.expand_dims(skyData, axis=0)
 
-            self.cursor.execute(command, task)
+            # Add the star
+            tableName = self._getTableName(filterType)
+            for ii in range(len(skyData)):
+                # Insert data
+                command = ("INSERT INTO %s "
+                           "(simobjid, ra, decl, %smag, bright_star) "
+                           "VALUES (?, ?, ?, ?, ?)"
+                           ) % (tableName, filterType.name.lower())
 
-        # Commit the change to database
-        self.connection.commit()
+                simobjID, ra, decl, mag = skyData[ii]
+                task = (int(simobjID), ra, decl, mag, 0)
+
+                self.cursor.execute(command, task)
+
+            # Commit the change to database
+            self.connection.commit()
 
     def deleteTable(self, filterType):
         """Delete the table in database.

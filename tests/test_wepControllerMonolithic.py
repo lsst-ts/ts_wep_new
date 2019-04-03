@@ -34,11 +34,11 @@ class TestWepControllerMonolithic(unittest.TestCase):
         isrWrapper = CamIsrWrapper(self.isrDir)
         sourSelc = self._configSourceSelector()
         sourProc = self._configSourceProcessor()
-        wfsEsti = self._configWfEstimator()
+        wfEsti = self._configWfEstimator()
 
         # Instantiate the WEP controller
         self.wepCntlr = WepController(dataCollector, isrWrapper, sourSelc,
-                                      sourProc, wfsEsti)
+                                      sourProc, wfEsti)
 
         # Intemediate data used in the test
         self.filter = FilterType.REF
@@ -88,17 +88,52 @@ class TestWepControllerMonolithic(unittest.TestCase):
                                         "instruData")
         algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
                                       "algo")
-        wfsEsti = WfEstimator(instruFolderPath, algoFolderPath)
+        wfEsti = WfEstimator(instruFolderPath, algoFolderPath)
 
         # Use the comcam to calculate the LSST central raft image
         # with 1.5 mm defocal distance
-        wfsEsti.config(solver="exp", instName="comcam",
-                       opticalModel="offAxis", defocalDisInMm=1.5,
-                       sizeInPix=160, debugLevel=0)
+        wfEsti.config(solver="exp", instName="comcam",
+                      opticalModel="offAxis", defocalDisInMm=1.5,
+                      sizeInPix=160, debugLevel=0)
 
-        return wfsEsti
+        return wfEsti
 
-    def testSteps(self):
+    def tearDown(self):
+
+        self.wepCntlr.getSourSelc().disconnect()
+
+        shutil.rmtree(self.dataDir)
+
+    def testGetDataCollector(self):
+
+        self.assertTrue(isinstance(self.wepCntlr.getDataCollector(),
+                                   CamDataCollector))
+
+    def testGetIsrWrapper(self):
+
+        self.assertTrue(isinstance(self.wepCntlr.getIsrWrapper(),
+                                   CamIsrWrapper))
+
+    def testGetSourSelc(self):
+
+        self.assertTrue(isinstance(self.wepCntlr.getSourSelc(),
+                                   SourceSelector))
+
+    def testGetSourProc(self):
+
+        self.assertTrue(isinstance(self.wepCntlr.getSourProc(),
+                                   SourceProcessor))
+
+    def testGetWfEsti(self):
+
+        self.assertTrue(isinstance(self.wepCntlr.getWfEsti(),
+                                   WfEstimator))
+
+    def testGetButlerWrapper(self):
+
+        self.assertEqual(self.wepCntlr.getButlerWrapper(), None)
+
+    def testMonolithicSteps(self):
         """Do the test based on the steps defined in the child class."""
 
         for name, step in self._steps():
@@ -122,12 +157,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
             if name.startswith("step"):
                 yield name, getattr(self, name)
 
-    def tearDown(self):
-
-        self.wepCntlr.sourSelc.disconnect()
-
-        shutil.rmtree(self.dataDir)
-
     def step1_genCalibsAndIngest(self):
 
         # Generate the fake flat images
@@ -138,11 +167,11 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self._genFakeFlat(fakeFlatDir, detector)
 
         # Generate the PhoSim mapper
-        self.wepCntlr.dataCollector.genPhoSimMapper()
+        self.wepCntlr.getDataCollector().genPhoSimMapper()
 
         # Do the ingestion
         calibFiles = os.path.join(fakeFlatDir, "*")
-        self.wepCntlr.dataCollector.ingestCalibs(calibFiles)
+        self.wepCntlr.getDataCollector().ingestCalibs(calibFiles)
 
     def _genFakeFlat(self, fakeFlatDir, detector):
 
@@ -167,16 +196,16 @@ class TestWepControllerMonolithic(unittest.TestCase):
                                      "phosimOutput", "realComCam",
                                      "repackagedFiles", "extra", "*.fits")
 
-        self.wepCntlr.dataCollector.ingestImages(intraImgFiles)
-        self.wepCntlr.dataCollector.ingestImages(extraImgFiles)
+        self.wepCntlr.getDataCollector().ingestImages(intraImgFiles)
+        self.wepCntlr.getDataCollector().ingestImages(extraImgFiles)
 
     def step3_doIsr(self):
 
         fileName = "isr_config.py"
-        self.wepCntlr.isrWrapper.config(doFlat=True, fileName=fileName)
+        self.wepCntlr.getIsrWrapper().config(doFlat=True, fileName=fileName)
 
         rerunName = "run1"
-        self.wepCntlr.isrWrapper.doISR(self.isrDir, rerunName=rerunName)
+        self.wepCntlr.getIsrWrapper().doISR(self.isrDir, rerunName=rerunName)
 
     def step4_setButlerInputsPath(self):
 
@@ -189,17 +218,17 @@ class TestWepControllerMonolithic(unittest.TestCase):
         ra = 0.0
         dec = 0.0
         rotSkyPos = 0.0
-        self.wepCntlr.sourSelc.setObsMetaData(ra, dec, rotSkyPos)
+        self.wepCntlr.getSourSelc().setObsMetaData(ra, dec, rotSkyPos)
 
         # Set the filter
-        self.wepCntlr.sourSelc.setFilter(self.filter)
+        self.wepCntlr.getSourSelc().setFilter(self.filter)
 
         # Get the target star by file
         skyFilePath = os.path.join(self.modulePath, "tests", "testData",
                                    "phosimOutput", "realComCam",
                                    "skyComCamInfo.txt")
         neighborStarMap, starMap, wavefrontSensors = \
-            self.wepCntlr.sourSelc.getTargetStarByFile(skyFilePath, offset=0)
+            self.wepCntlr.getSourSelc().getTargetStarByFile(skyFilePath, offset=0)
 
         # Assign the data for the following steps to use
         self.neighborStarMap = neighborStarMap

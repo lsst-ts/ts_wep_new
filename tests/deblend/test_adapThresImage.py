@@ -32,23 +32,38 @@ class TestAdapThresImage(unittest.TestCase):
 
     def testFunc(self):
 
+        # Answer of centroid
+        ansCx = 61
+        ansCy = 61
+        ansR = 38
+
+        # Allowed tolerace
+        tor = 5
+
         # Calculate the centroid
-        realcx, realcy, realR, imgBinary = self.adapImage.getCenterAndR_adap()
-        self.assertEqual([round(realcx), round(realcy), round(realR)],
-                         [61, 61, 38])
+        realCx, realCy, realR, imgBinary = self.adapImage.getCenterAndR_adap()
 
-        realcx, realcy, realR, imgBinary = \
+        delta = self._calcSqrtDelta(realCx, realCy, realR, ansCx, ansCy, ansR)
+        self.assertLess(delta, tor)
+
+        realCx, realCy, realR, imgBinary = \
             self.adapImage.getCenterAndR_ef(checkEntropy=True)
-        self.assertEqual([round(realcx), round(realcy), round(realR)],
-                         [61, 61, 38])
+        delta = self._calcSqrtDelta(realCx, realCy, realR, ansCx, ansCy, ansR)
+        self.assertLess(delta, tor)
 
-        realcx, realcy, realR, imgBinary = \
+        realCx, realCy, realR, imgBinary = \
             self.zeroImage.getCenterAndR_ef(checkEntropy=True)
-        self.assertEqual(realcx, [])
+        self.assertEqual(realCx, [])
 
-        realcx, realcy, realR, imgBinary = \
+        realCx, realCy, realR, imgBinary = \
             self.randImage.getCenterAndR_ef(checkEntropy=True)
-        self.assertEqual(realcx, [])
+        self.assertEqual(realCx, [])
+
+    def _calcSqrtDelta(self, realCx, realCy, realR, ansCx, ansCy, ansR):
+
+        delta = np.sqrt((realCx-ansCx)**2 + (realCy-ansCy)**2 + (realR-ansR)**2)
+
+        return delta
 
 
 if __name__ == "__main__":

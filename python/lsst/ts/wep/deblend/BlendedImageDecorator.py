@@ -77,8 +77,8 @@ class BlendedImageDecorator(object):
         bg1D = self.image.flatten()
         bgImgBinary1D = adapImgBinary.flatten()
         background = bg1D[bgImgBinary1D == 0]
-        bgPhist, pgCen = np.histogram(background, bins=256)
-        sysError = pgCen[0]
+        bgPhist, binEdges = np.histogram(background, bins=256)
+        sysError = np.mean(binEdges[0:2])
 
         # Remove the system error
         noSysErrImage = self.image - sysError

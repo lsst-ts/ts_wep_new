@@ -42,7 +42,7 @@ class TestBlendedImageDecorator(unittest.TestCase):
 
         # Do the deblending
         imgDeblend, realcx, realcy = \
-            blendImage.deblendDonut([neighborX, neighborY], 0.1)
+            blendImage.deblendDonut((neighborX, neighborY))
 
         # Do the comparison
         delta = np.sum(np.abs(imageMain-imgDeblend))
@@ -50,11 +50,11 @@ class TestBlendedImageDecorator(unittest.TestCase):
         self.assertLess(diffRatio, 0.01)
 
         # Test the zero image that can not be pass entropy test
-        imgDeblend, realcx, realcy = self.zeroImage.deblendDonut([10, 10], 0.1)
+        imgDeblend, realcx, realcy = self.zeroImage.deblendDonut((10, 10))
         self.assertEqual(imgDeblend, [])
 
         # Test the random image that can not be pass entropy test
-        imgDeblend, realcx, realcy = self.randImage.deblendDonut([10, 10], 0.1)
+        imgDeblend, realcx, realcy = self.randImage.deblendDonut((10, 10))
         self.assertEqual(imgDeblend, [])
 
 

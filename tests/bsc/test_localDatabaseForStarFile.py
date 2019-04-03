@@ -1,4 +1,6 @@
 import os
+import shutil
+import numpy as np
 import unittest
 
 from lsst.ts.wep.bsc.LocalDatabaseForStarFile import LocalDatabaseForStarFile
@@ -10,18 +12,29 @@ class TestLocalDatabaseForStarFile(unittest.TestCase):
 
     def setUp(self):
 
+        self.modulePath = getModulePath()
+
+        self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
+        self._makeDir(self.dataDir)
+
         self.filterType = FilterType.G
         self.db = LocalDatabaseForStarFile()
 
-        self.modulePath = getModulePath()
         dbAdress = os.path.join(self.modulePath, "tests", "testData",
                                 "bsc.db3")
         self.db.connect(dbAdress)
+
+    def _makeDir(self, directory):
+
+        if (not os.path.exists(directory)):
+            os.makedirs(directory)
 
     def tearDown(self):
 
         self.db.deleteTable(self.filterType)
         self.db.disconnect()
+
+        shutil.rmtree(self.dataDir)
 
     def testTableIsInDb(self):
 
@@ -49,10 +62,44 @@ class TestLocalDatabaseForStarFile(unittest.TestCase):
 
         skyFilePath = os.path.join(self.modulePath, "tests", "testData",
                                    "skyComCamInfo.txt")
+        idAll = self._insertDataToDbAndGetAllId(skyFilePath)
+
+        self.assertEqual(len(idAll), 4)
+
+    def _insertDataToDbAndGetAllId(self, skyFilePath):
+
         self.db.insertDataByFile(skyFilePath, self.filterType)
         idAll = self.db.getAllId(self.filterType)
 
-        self.assertEqual(len(idAll), 4)
+        return idAll
+
+    def testInsertDataByFileWithSingleStar(self):
+
+        self._createTable()
+
+        starData = [[1, 359.933039, -0.040709, 15.000000]]
+        skyFilePath = self._writeStarFile("sglStar.txt", starData=starData)
+        idAll = self._insertDataToDbAndGetAllId(skyFilePath)
+
+        self.assertEqual(len(idAll), 1)
+
+    def _writeStarFile(self, fileName, starData=[]):
+
+        header = "Id     Ra      Decl        Mag"
+        delimiter = "    "
+        filePath = os.path.join(self.dataDir, fileName)
+        np.savetxt(filePath, starData, delimiter=delimiter, header=header)
+
+        return filePath
+
+    def testInsertDataByFileWithoutStar(self):
+
+        self._createTable()
+
+        skyFilePath = self._writeStarFile("noStar.txt")
+        idAll = self._insertDataToDbAndGetAllId(skyFilePath)
+
+        self.assertEqual(len(idAll), 0)
 
     def testDeleteTable(self):
 

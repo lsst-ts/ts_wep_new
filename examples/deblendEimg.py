@@ -73,12 +73,8 @@ if __name__ == "__main__":
 
     print("Random shift of magnitude ratio of neighboring star is %f." % tmpMag)
 
-    # Add the random error to magnitude ratio of neighboring star
-    magRatio += tmpMag
-
     # Do the deblending
-    imgDeblend, realcx, realcy = blendImage.deblendDonut(
-        [neighborX, neighborY], magRatio)
+    imgDeblend, realcx, realcy = blendImage.deblendDonut((neighborX, neighborY))
 
     # Do the comaprison
     delta = np.sum(np.abs(imageMain-imgDeblend))

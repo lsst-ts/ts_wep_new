@@ -33,16 +33,13 @@ class BlendedImageDecorator(object):
 
         return getattr(self.__image, attributeName)
 
-    def deblendDonut(self, iniGuessXY, magRatio):
+    def deblendDonut(self, iniGuessXY):
         """Get the deblended donut image.
 
         Parameters
         ----------
         iniGuessXY : tuple or list
             Initial guess of (x, y) position of neighboring star.
-        magRatio : float
-            Initial guess of magnitude ratio between neighboring star and
-            bright star.
 
         Returns
         -------

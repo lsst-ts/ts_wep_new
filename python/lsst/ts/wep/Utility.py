@@ -96,6 +96,18 @@ def getModulePath():
     return getPackageDir("ts_wep")
 
 
+def getConfigDir():
+    """Get the directory of configuration files.
+
+    Returns
+    -------
+    str
+        Directory of configuration files.
+    """
+
+    return os.path.join(getModulePath(), "policy")
+
+
 def runProgram(command, binDir=None, argstring=None):
     """Run the program w/o arguments.
 

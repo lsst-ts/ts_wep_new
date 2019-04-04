@@ -233,14 +233,13 @@ class WfEstimator(object):
 
         # Calculate the wavefront error.
         # Run cwfs
-        self.algo.runIt(self.inst, self.ImgIntra, self.ImgExtra,
-                        self.opticalModel, tol=tol)
+        self.algo.runIt(self.ImgIntra, self.ImgExtra, self.opticalModel, tol=tol)
 
         # Show the Zernikes Zn (n>=4)
         if (showZer):
             self.algo.outZer4Up(showPlot=showPlot)
 
-        return self.algo.zer4UpNm
+        return self.algo.getZer4UpInNm()
 
     def outParam(self, filename=None):
         """Put the information of images, instrument, and algorithm on terminal

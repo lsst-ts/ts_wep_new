@@ -84,6 +84,11 @@ class BscDbType(Enum):
     LocalDbForStarFile = 2
 
 
+class DefocalType(Enum):
+    Intra = 1
+    Extra = 2
+
+
 def getModulePath():
     """Get the path of module.
 

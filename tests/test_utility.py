@@ -45,11 +45,6 @@ class TestUtility(unittest.TestCase):
         mappedFilterType = mapFilterRefToG(FilterType.U)
         self.assertEqual(mappedFilterType, FilterType.U)
 
-    def testGetModulePath(self):
-
-        moduleName = os.path.basename(getModulePath())
-        self.assertEqual(moduleName, "ts_wep")
-
     def testGetConfigDir(self):
 
         ansConfigDir = os.path.join(getModulePath(), "policy")

@@ -1,11 +1,8 @@
-import os
 import numpy as np
 from scipy.integrate import nquad
 import unittest
 
-from lsst.ts.wep.cwfs.Tool import ZernikeAnnularEval, padArray, extractArray, \
-    getConfigValue
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.cwfs.Tool import ZernikeAnnularEval, padArray, extractArray
 
 
 class TestTool(unittest.TestCase):
@@ -16,23 +13,26 @@ class TestTool(unittest.TestCase):
         # Create the mesh of x, y-coordinate
         point = 400
         ratio = 0.9
-        yy, xx = np.mgrid[-(point/2 - 0.5):(point/2 + 0.5),
-                          -(point/2 - 0.5):(point/2 + 0.5)]
-
-        xx = xx/(point*ratio/2)
-        yy = yy/(point*ratio/2)
+        xx, yy = self._genGridXy(point, ratio)
 
         # Define the attributes
         self.xx = xx
         self.yy = yy
 
-    def testFunc(self):
+    def _genGridXy(self, point, ratio):
 
-        # Get the path of module
-        modulePath = getModulePath()
+        yy, xx = np.mgrid[-(point / 2 - 0.5):(point / 2 + 0.5),
+                          -(point / 2 - 0.5):(point / 2 + 0.5)]
+
+        xx = xx / (point * ratio / 2)
+        yy = yy / (point * ratio / 2)
+
+        return xx, yy
+
+    def testZernikeAnnularEval(self):
 
         # Obscuration
-        e = 0
+        e = 0.61
 
         # Calculate the radius
         dd = np.sqrt(self.xx**2 + self.yy**2)
@@ -80,21 +80,6 @@ class TestTool(unittest.TestCase):
 
                     self.assertAlmostEqual(orthogonality, 0)
 
-        # Increase the dimension
-        ZmapInc = padArray(Zmap, Zmap.shape[0]+20)
-        self.assertAlmostEqual(ZmapInc.shape[0], Zmap.shape[0]+20)
-
-        # Decrease the dimension
-        ZmapDec = extractArray(ZmapInc, Zmap.shape[0])
-        self.assertAlmostEqual(ZmapDec.shape[0], Zmap.shape[0])
-
-        # Test the reading of file
-        configFilePath = os.path.join(modulePath, "configData", "cwfs",
-                                      "instruData", "lsst", "lsst.param")
-        varName = "Focal_length"
-        value = getConfigValue(configFilePath, varName, index=2)
-        self.assertEqual(value, 10.312)
-
     def _genNormalizedFunc(self, r, theta, Z, e):
 
         func = r * ZernikeAnnularEval(Z, r*np.cos(theta), r*np.sin(theta), e)**2
@@ -107,6 +92,32 @@ class TestTool(unittest.TestCase):
             ZernikeAnnularEval(Z2, r*np.cos(theta), r*np.sin(theta), e)
 
         return func
+
+    def testPadArray(self):
+
+        imgDim = 10
+        padPixelSize = 20
+
+        img, imgPadded = self._padRandomImg(imgDim, padPixelSize)
+
+        self.assertEqual(imgPadded.shape[0], imgDim + padPixelSize)
+
+    def _padRandomImg(self, imgDim, padPixelSize):
+
+        img = np.random.rand(imgDim, imgDim)
+        imgPadded = padArray(img, imgDim + padPixelSize)
+
+        return img, imgPadded
+
+    def testExtractArray(self):
+
+        imgDim = 10
+        padPixelSize = 20
+        img, imgPadded = self._padRandomImg(imgDim, padPixelSize)
+
+        imgExtracted = extractArray(imgPadded, imgDim)
+
+        self.assertEqual(imgExtracted.shape[0], imgDim)
 
 
 if __name__ == "__main__":

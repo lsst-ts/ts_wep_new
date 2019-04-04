@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from astropy.io import fits
+import warnings
 
 from scipy.stats import entropy
 from scipy.ndimage.measurements import center_of_mass
@@ -11,9 +12,8 @@ class Image(object):
     def __init__(self):
         """Image class for wavefront estimation."""
 
-        # Image parameters
-        self.image = None
-        self.name = None
+        self.image = np.array([])
+        self.imageFilePath = ""
 
     def getImg(self):
         """Get the image.
@@ -21,10 +21,21 @@ class Image(object):
         Returns
         -------
         numpy.ndarray
-            Get the image.
+            Image.
         """
 
         return self.image
+
+    def getImgFilePath(self):
+        """Get the image file path.
+
+        Returns
+        -------
+        str
+            Image file path.
+        """
+
+        return self.imageFilePath
 
     def setImg(self, image=None, imageFile=None):
         """Set the wavefront image.
@@ -40,10 +51,11 @@ class Image(object):
         # Read the file if there is no input image
         if (image is not None):
             self.image = image
+            self.imageFilePath = ""
         else:
             if (imageFile is not None):
                 self.image = self._readImgFile(imageFile)
-                self.name = imageFile
+                self.imageFilePath = imageFile
 
     def _readImgFile(self, imageFile):
         """Read the donut image.
@@ -57,16 +69,8 @@ class Image(object):
         -------
         numpy.ndarray
             Image data.
-
-        Raises
-        ------
-        IOError
-            IO error if the file type is not ".txt" or ".fits".
         """
 
-        image = None
-
-        # Check the format of image
         if (os.path.isfile(imageFile)):
             if (imageFile.endswith((".fits", ".fits.gz"))):
                 image = fits.getdata(imageFile)
@@ -76,24 +80,35 @@ class Image(object):
                 # I[0,0]   I[0,1]
                 # I[1,0]   I[1,1]
                 image = image[::-1, :]
-
-        if (image is None):
-            raise IOError("Unrecognised file type for %s" % imageFile)
+        else:
+            image = np.array([])
 
         return image
 
-    def getCenterAndR_ef(self, image=None, randNumFilePath=None,
-                         histogram_len=256, checkEntropy=False,
-                         entroThres=3.5, debugLevel=0):
+    def updateImage(self, image):
+        """Update the image of donut.
+
+        Parameters
+        ----------
+        image : numpy.ndarray
+            Donut image.
+        """
+
+        # Update the image
+        if (len(self.image) == 0):
+            warnings.warn("No 'image' is hold. Use setImg() instead.",
+                          category=UserWarning)
+        else:
+            self.image = image
+
+    def getCenterAndR_ef(self, image=None, histogram_len=256,
+                         checkEntropy=False, entroThres=3.5, debugLevel=0):
         """Get the centroid data by the random walk model.
 
         Parameters
         ----------
         image : numpy.ndarray, optional
             Image to do the analysis. (the default is None.)
-        randNumFilePath : str, optional
-            Random table file path. If not None, read this table instead of
-            using numpy random number function. (the default is None.)
         histogram_len : int, optional
             Nuber of bins in histogram. (the default is 256.)
         checkEntropy : bool, optional
@@ -161,13 +176,6 @@ class Image(object):
         startidx = range(start, end, -15)
 
         foundvalley = False
-
-        # Use a fixed rand table for the evaluation
-        if (randNumFilePath is not None):
-            iRand = 0
-            myRand = np.loadtxt(randNumFilePath)
-            myRand = np.tile(np.reshape(myRand, (1000, 1)), (10, 1))
-
         for istartPoint in range(len(startidx)):
             minind = startidx[istartPoint]
 
@@ -190,15 +198,8 @@ class Image(object):
                     # Generate the thermal fluctuation based on the random
                     # table to give a random walk/ step with a random thermal
                     # fluctuation.
-                    if (randNumFilePath is not None):
-                        ind = np.round(stepsize * (2 * myRand[iRand, 0] - 1))
-                        iRand += 1
-                        thermal = 1 + 0.5*myRand[iRand, 0] * \
-                            np.exp(1.0 * ii / (nwalk * 0.3))
-                        iRand += 1
-                    else:
-                        ind = np.round(stepsize * (2 * np.random.rand() - 1))
-                        thermal = 1 + 0.5*np.random.rand()*np.exp(1.0*ii/(nwalk*0.3))
+                    ind = np.round(stepsize * (2 * np.random.rand() - 1))
+                    thermal = 1 + 0.5*np.random.rand()*np.exp(1.0*ii/(nwalk*0.3))
 
                     # Check the index of bin is whithin the range of histogram
                     if ((minind + ind < 1) or (minind + ind > (histogram_len))):
@@ -257,21 +258,6 @@ class Image(object):
 
         return realcx, realcy, realR, imgBinary
 
-    def updateImage(self, image):
-        """Update the image of donut.
-
-        Parameters
-        ----------
-        image : numpy.ndarray
-            Donut image.
-        """
-
-        # Update the image
-        if (self.image is not None):
-            self.image = image
-        else:
-            print("The attribute:image is None. Use setImg() instead.")
-
     def getSNR(self):
         """Get the signal to noise ratio of donut.
 
@@ -285,21 +271,21 @@ class Image(object):
         realcx, realcy, realR, imgBinary = self.getCenterAndR_ef()
 
         # Get the background binary img
-        bgBinary = 1-imgBinary
+        bgBinary = 1 - imgBinary
 
         # Get the donut image signal and calculate the intensity
-        signal = self.image*imgBinary
+        signal = self.image * imgBinary
         signal = np.mean(signal[signal != 0])
 
-        # Get the backgrond signal
-        bg = self.image*bgBinary
+        # Get the background signal
+        bg = self.image * bgBinary
         bg = bg[bg != 0]
 
         # Calculate the noise
-        noise = np.std(bg-np.mean(bg))
+        noise = np.std(bg - np.mean(bg))
 
         # Calculate SNR
-        snr = signal/noise
+        snr = signal / noise
 
         return snr
 

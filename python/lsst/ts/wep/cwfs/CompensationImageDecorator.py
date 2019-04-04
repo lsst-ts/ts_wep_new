@@ -6,67 +6,185 @@ from scipy.ndimage import generate_binary_structure, iterate_structure
 from scipy.ndimage.morphology import binary_dilation, binary_erosion
 from scipy.interpolate import RectBivariateSpline
 
+from lsst.ts.wep.ParamReader import ParamReader
 from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularGrad, \
     ZernikeAnnularJacobian
 from lsst.ts.wep.cwfs.lib.cyMath import poly10_2D, poly10Grad
 from lsst.ts.wep.cwfs.Image import Image
+from lsst.ts.wep.Utility import DefocalType
 
 
 class CompensationImageDecorator(object):
 
-    # Constant
-    INTRA = "intra"
-    EXTRA = "extra"
-
     def __init__(self):
         """Instantiate the class of CompensationImageDecorator."""
 
-        self.__image = None
+        self._image = Image()
+        self.defocalType = DefocalType.Intra
 
-        # Parameters used for transport of intensity equation (TIE)
-        self.sizeinPix = None
-        self.fieldX = None
-        self.fieldY = None
+        # Field coordinate in degree
+        self.fieldX = 0
+        self.fieldY = 0
+
+        # Initial image before doing the compensation
         self.image0 = None
-        self.fldr = None
-        self.atype = None
-        self.offAxis_coeff = None
-        self.offAxisOffset = None
+
+        # Coefficient to do the off-axis correction
+        self.offAxisCoeff = np.array([])
+
+        # Defocused offset in files of off-axis correction
+        self.offAxisOffset = 0.0
+
+        # Ture if the image gets the over-compensation
         self.caustic = False
 
-        self.pMask = None
-        self.cMask = None
+        # Padded mask for use at the offset planes
+        self.pMask = np.array([], dtype=int)
 
-    def __getattr__(self, attributeName):
-        """Use the functions and attributes hold by the object.
+        # Non-padded mask corresponding to aperture
+        self.cMask = np.array([], dtype=int)
 
-        Parameters
-        ----------
-        attributeName : str
-            Name of attribute or function.
+    def getDefocalType(self):
+        """Get the defocal type.
 
         Returns
         -------
-        object
-            Returned values.
+        enum 'DefocalType'
+            Defocal type.
         """
 
-        return getattr(self.__image, attributeName)
+        return self.defocalType
 
-    def setImg(self, fieldXY, image=None, imageFile=None, atype=None):
+    def getImgObj(self):
+        """Get the image object.
+
+        Returns
+        -------
+        Image
+            Imgae object.
+        """
+
+        return self._image
+
+    def getImg(self):
+        """Get the image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Image.
+        """
+
+        return self._image.getImg()
+
+    def getImgSizeInPix(self):
+        """Get the image size in pixel.
+
+        Returns
+        -------
+        int
+            Image size in pixel.
+        """
+
+        return self.getImg().shape[0]
+
+    def getOffAxisCoeff(self):
+        """Get the coefficients to do the off-axis correction.
+
+        Returns
+        -------
+        numpy.ndarray
+            Coefficients to do the off-axis correction.
+        float
+            Defocused offset in files of off-axis correction.
+        """
+
+        return self.offAxisCoeff, self.offAxisOffset
+
+    def getImgInit(self):
+        """Get the initial image before doing the compensation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial image before doing the compensation.
+        """
+
+        return self.image0
+
+    def isCaustic(self):
+        """The image is caustic or not.
+
+        The image might be caustic from the over-compensation.
+
+        Returns
+        -------
+        bool
+            True if the image is caustic.
+        """
+
+        return self.caustic
+
+    def getPaddedMask(self):
+        """Get the padded mask use at the offset planes.
+
+        Returns
+        -------
+        numpy.ndarray[int]
+            Padded mask.
+        """
+
+        return self.pMask
+
+    def getNonPaddedMask(self):
+        """Get the non-padded mask corresponding to aperture.
+
+        Returns
+        -------
+        numpy.ndarray[int]
+            Non-padded mask
+        """
+
+        return self.cMask
+
+    def getFieldXY(self):
+        """Get the field x, y in degree.
+
+        Returns
+        -------
+        float
+            Field x in degree.
+        float
+            Field y in degree.
+        """
+
+        return self.fieldX, self.fieldY
+
+    def setImg(self, fieldXY, defocalType, image=None, imageFile=None):
         """Set the wavefront image.
 
         Parameters
         ----------
         fieldXY : tuple or list
-            Position of donut on the focal plane in degree.
+            Position of donut on the focal plane in degree (field x, field y).
+        defocalType : enum 'DefocalType'
+            Defocal type of image.
         image : numpy.ndarray, optional
             Array of image. (the default is None.)
         imageFile : str, optional
             Path of image file. (the default is None.)
-        atype : str, optional
-            Type of image. It should be "intra" or "extra". (the default is
-            None.)
+        """
+
+        self._image.setImg(image=image, imageFile=imageFile)
+        self._checkImgShape()
+
+        self.fieldX, self.fieldY = fieldXY
+        self.defocalType = defocalType
+
+        self._resetInternalAttributes()
+
+    def _checkImgShape(self):
+        """Check the image shape.
 
         Raises
         ------
@@ -74,55 +192,40 @@ class CompensationImageDecorator(object):
             Only square image stamps are accepted.
         RuntimeError
             Number of pixels cannot be odd numbers.
-        TypeError
-            Image defocal type must be 'intra' or 'extra'.
         """
 
-        # Instantiate the image object
-        self.__image = Image()
-
-        # Read the file if there is no input image
-        self.__image.setImg(image=image, imageFile=imageFile)
-
-        # Make sure the image size is n by n
-        if (self.__image.image.shape[0] != self.__image.image.shape[1]):
+        img = self._image.getImg()
+        if (img.shape[0] != img.shape[1]):
             raise RuntimeError("Only square image stamps are accepted.")
-        elif (self.__image.image.shape[0] % 2 == 1):
+        elif (img.shape[0] % 2 == 1):
             raise RuntimeError("Number of pixels cannot be odd numbers.")
 
-        # Dimension of image
-        self.sizeinPix = self.__image.image.shape[0]
+    def _resetInternalAttributes(self):
+        """Reset the internal attributes."""
 
-        # Donut position in degree
-        self.fieldX, self.fieldY = fieldXY
-
-        # Save the initial image if we want the compensator always start from
-        # this
         self.image0 = None
 
-        # We will need self.fldr to be on denominator
-        self.fldr = np.max((np.hypot(self.fieldX, self.fieldY), 1e-8))
+        self.offAxisCoeff = np.array([])
+        self.offAxisOffset = 0.0
 
-        # Check the type of image
-        if atype.lower() not in (self.INTRA, self.EXTRA):
-            raise TypeError("Image defocal type must be 'intra' or 'extra'.")
-        self.atype = atype
-
-        # Coefficient to do the off-axis correction
-        self.offAxis_coeff = None
-
-        # Defocal distance (Baseline is 1.5mm. The configuration file now is
-        # 1mm.)
-        self.offAxisOffset = 0
-
-        # Check the image has the problem or not
         self.caustic = False
 
         # Reset all mask related parameters
-        self.pMask = None
-        self.cMask = None
+        self.pMask = np.array([], dtype=int)
+        self.cMask = np.array([], dtype=int)
 
-    def updateImage0(self):
+    def updateImage(self, image):
+        """Update the image of donut.
+
+        Parameters
+        ----------
+        image : numpy.ndarray
+            Donut image.
+        """
+
+        self._image.updateImage(image)
+
+    def updateImgInit(self):
         """Update the backup of initial image.
 
         This will be used in the outer loop iteration, which always uses the
@@ -130,7 +233,7 @@ class CompensationImageDecorator(object):
         """
 
         # Update the initial image for future use
-        self.image0 = self.__image.image.copy()
+        self.image0 = self._image.getImg().copy()
 
     def imageCoCenter(self, inst, fov=3.5, debugLevel=0):
         """Shift the weighting center of donut to the center of reference
@@ -149,7 +252,7 @@ class CompensationImageDecorator(object):
         """
 
         # Calculate the weighting center (x, y) and radius
-        x1, y1 = self.getCenterAndR_ef()[0:2]
+        x1, y1 = self._image.getCenterAndR_ef()[0:2]
 
         # Show the co-center information
         if (debugLevel >= 3):
@@ -157,38 +260,72 @@ class CompensationImageDecorator(object):
 
         # Calculate the center position on image
         # 0.5 is the half of 1 pixel
-        sensorSamples = inst.parameter["sensorSamples"]
-        stampCenterx1 = sensorSamples/2. + 0.5
-        stampCentery1 = sensorSamples/2. + 0.5
+        dimOfDonut = inst.getDimOfDonutOnSensor()
+        stampCenterx1 = dimOfDonut / 2 + 0.5
+        stampCentery1 = dimOfDonut / 2 + 0.5
 
         # Shift in the radial direction
         # The field of view (FOV) of LSST camera is 3.5 degree
-        offset = inst.parameter["offset"]
-        pixelSize = inst.parameter["pixelSize"]
+        offset = inst.getDefocalDisOffset()
+        pixelSize = inst.getCamPixelSize()
         radialShift = fov*(offset/1e-3)*(10e-6/pixelSize)
 
         # Calculate the projection of distance of donut to center
-        radialShift = radialShift*(self.fldr/(fov/2))
+        fieldDist = self._getFieldDistFromOrigin()
+        radialShift = radialShift * (fieldDist / (fov / 2))
 
         # Do not consider the condition out of FOV of lsst
-        if (self.fldr > (fov/2)):
+        if (fieldDist > (fov / 2)):
             radialShift = 0
 
         # Calculate the cos(theta) for projection
-        I1c = self.fieldX/self.fldr
+        I1c = self.fieldX / fieldDist
 
         # Calculate the sin(theta) for projection
-        I1s = self.fieldY/self.fldr
+        I1s = self.fieldY / fieldDist
 
         # Get the projected x, y-coordinate
         stampCenterx1 = stampCenterx1 + radialShift*I1c
         stampCentery1 = stampCentery1 + radialShift*I1s
 
         # Shift the image to the projected position
-        self.__image.updateImage(
-            np.roll(self.__image.image, int(np.round(stampCentery1 - y1)), axis=0))
-        self.__image.updateImage(
-            np.roll(self.__image.image, int(np.round(stampCenterx1 - x1)), axis=1))
+        self._image.updateImage(
+            np.roll(self._image.getImg(), int(np.round(stampCentery1 - y1)), axis=0))
+        self._image.updateImage(
+            np.roll(self._image.getImg(), int(np.round(stampCenterx1 - x1)), axis=1))
+
+    def _getFieldDistFromOrigin(self, fieldX=None, fieldY=None, minDist=1e-8):
+        """Get the field distance from the origin.
+
+        Parameters
+        ----------
+        fieldX : float, optional
+            Field x in degree. If the input is None, the value of self.fieldX
+            will be used. (the default is None.)
+        fieldY : float, optional
+            Field y in degree. If the input is None, the value of self.fieldY
+            will be used. (the default is None.)
+        minDist : float, optional
+            Minimum distace. In some cases, the field distance will be the
+            denominator in other functions. (the default is 1e-8.)
+
+        Returns
+        -------
+        float
+            Field distance from the origin.
+        """
+
+        if (fieldX is None):
+            fieldX = self.fieldX
+
+        if (fieldY is None):
+            fieldY = self.fieldY
+
+        fieldDist = np.hypot(fieldX, fieldY)
+        if (fieldDist == 0):
+            fieldDist = minDist
+
+        return fieldDist
 
     def compensate(self, inst, algo, zcCol, model):
         """Calculate the image compensated from the affection of wavefront.
@@ -213,13 +350,13 @@ class CompensationImageDecorator(object):
         """
 
         # Check the condition of inputs
-        numTerms = algo.parameter["numTerms"]
+        numTerms = algo.getNumOfZernikes()
         if ((zcCol.ndim == 1) and (len(zcCol) != numTerms)):
             raise RuntimeError("input:size",
                                "zcCol in compensate needs to be a %d row column vector. \n" % numTerms)
 
         # Dimension of image
-        sm, sn = self.__image.image.shape
+        sm, sn = self._image.getImg().shape
 
         # Dimenstion of projected image on focal plane
         projSamples = sm
@@ -228,7 +365,7 @@ class CompensationImageDecorator(object):
         luty, lutx = np.mgrid[-(projSamples/2 - 0.5):(projSamples/2 + 0.5),
                               -(projSamples/2 - 0.5):(projSamples/2 + 0.5)]
 
-        sensorFactor = inst.parameter["sensorFactor"]
+        sensorFactor = inst.getSensorFactor()
         lutx = lutx/(projSamples/2/sensorFactor)
         luty = luty/(projSamples/2/sensorFactor)
 
@@ -243,7 +380,7 @@ class CompensationImageDecorator(object):
             return
 
         # Calculate the weighting center (x, y) and radius
-        realcx, realcy = self.__image.getCenterAndR_ef()[0:2]
+        realcx, realcy = self._image.getCenterAndR_ef()[0:2]
 
         # Extend the dimension of image by 20 pixel in x and y direction
         show_lutxyp = padArray(show_lutxyp, projSamples+20)
@@ -259,7 +396,7 @@ class CompensationImageDecorator(object):
         show_lutxyp = extractArray(show_lutxyp, projSamples)
 
         # Calculate the weighting center (x, y) and radius
-        projcx, projcy = self.__image.getCenterAndR_ef(image=show_lutxyp.astype(float))[0:2]
+        projcx, projcy = self._image.getCenterAndR_ef(image=show_lutxyp.astype(float))[0:2]
 
         # Shift the image to center of projection on pupil
         # +(-) means we need to move image to the right (left)
@@ -267,8 +404,8 @@ class CompensationImageDecorator(object):
         # +(-) means we need to move image upward (downward)
         shifty = projcy - realcy
 
-        self.__image.image = np.roll(self.__image.image, int(np.round(shifty)), axis=0)
-        self.__image.image = np.roll(self.__image.image, int(np.round(shiftx)), axis=1)
+        self._image.updateImage(np.roll(self._image.getImg(), int(np.round(shifty)), axis=0))
+        self._image.updateImage(np.roll(self._image.getImg(), int(np.round(shiftx)), axis=1))
 
         # Construct the interpolant to get the intensity on (x', p') plane
         # that corresponds to the grid points on (x,y)
@@ -282,7 +419,7 @@ class CompensationImageDecorator(object):
         lutyp[np.isnan(lutyp)] = 0
 
         # Construct the function for interpolation
-        ip = RectBivariateSpline(yp[:, 0], xp[0, :], self.__image.image, kx=1, ky=1)
+        ip = RectBivariateSpline(yp[:, 0], xp[0, :], self._image.getImg(), kx=1, ky=1)
 
         # Construct the projected image by the interpolation
         lutIp = np.zeros(lutxp.shape[0]*lutxp.shape[1])
@@ -293,22 +430,26 @@ class CompensationImageDecorator(object):
         # Calaculate the image on focal plane with compensation based on flux
         # conservation
         # I(x, y)/I'(x', y') = J = (dx'/dx)*(dy'/dy) - (dx'/dy)*(dy'/dx)
-        self.__image.image = lutIp*J
+        self._image.updateImage(lutIp * J)
 
-        if (self.atype == "extra"):
-            self.__image.image = np.rot90(self.__image.image, k=2)
+        if (self.defocalType == DefocalType.Extra):
+            self._image.updateImage(np.rot90(self._image.getImg(), k=2))
 
         # Put NaN to be 0
-        self.__image.image[np.isnan(self.__image.image)] = 0
+        holdedImg = self._image.getImg()
+        holdedImg[np.isnan(holdedImg)] = 0
+        self._image.updateImage(holdedImg)
 
         # Check the compensated image has the problem or not.
         # The negative value means the over-compensation from wavefront error
-        if (np.any(self.__image.image < 0) and np.all(self.image0 >= 0)):
+        if (np.any(self._image.getImg() < 0) and np.all(self.image0 >= 0)):
             print("WARNING: negative scale parameter, image is within caustic, zcCol (in um)=\n")
             self.caustic = True
 
-        # Put the overcompensated part to be 0.
-        self.__image.image[self.__image.image < 0] = 0
+        # Put the overcompensated part to be 0
+        holdedImg = self._image.getImg()
+        holdedImg[holdedImg < 0] = 0
+        self._image.updateImage(holdedImg)
 
     def _aperture2image(self, inst, algo, zcCol, lutx, luty, projSamples,
                         model):
@@ -346,20 +487,22 @@ class CompensationImageDecorator(object):
         """
 
         # Get the radius: R = D/2
-        R = inst.parameter["apertureDiameter"]/2.0
+        R = inst.getApertureDiameter() / 2
 
         # Calculate C = -f(f-l)/l/R^2. This is for the calculation of reduced
         # coordinate.
-        if (self.atype == self.INTRA):
-            l = inst.parameter["offset"]
-        elif (self.atype == self.EXTRA):
-            l = -inst.parameter["offset"]
-        focalLength = inst.parameter["focalLength"]
+        defocalDisOffset = inst.getDefocalDisOffset()
+        if (self.defocalType == DefocalType.Intra):
+            l = defocalDisOffset
+        elif (self.defocalType == DefocalType.Extra):
+            l = -defocalDisOffset
+
+        focalLength = inst.getFocalLength()
         myC = -focalLength*(focalLength - l)/l/R**2
 
         # Get the functions to do the off-axis correction by numerical fitting
         # Order to do the off-axis correction. The order is 10 now.
-        offAxisPolyOrder = algo.parameter["offAxisPolyOrder"]
+        offAxisPolyOrder = algo.getOffAxisPolyOrder()
         polyFunc = self._getFunction("poly%d_2D" % offAxisPolyOrder)
         polyGradFunc = self._getFunction("poly%dGrad" % offAxisPolyOrder)
 
@@ -370,11 +513,11 @@ class CompensationImageDecorator(object):
         # the available pupil area.
         # 1 pixel larger than projected pupil. No need to be EF-like, anything
         # outside of this will be masked off by the computational mask
-        sensorFactor = inst.parameter["sensorFactor"]
+        sensorFactor = inst.getSensorFactor()
         onepixel = 1/(projSamples/2/sensorFactor)
 
         # Get the index that the point is out of the range of extended pupil
-        obscuration = inst.parameter["obscuration"]
+        obscuration = inst.getObscuration()
         idxout = (lutr > 1+onepixel) | (lutr < obscuration-onepixel)
 
         # Define the element to be NaN if it is out of range
@@ -416,7 +559,7 @@ class CompensationImageDecorator(object):
             myA[~idx] = np.sqrt(myA2[~idx])
 
             # Mask scaling factor (for fast beam)
-            maskScalingFactor = algo.parameter["maskScalingFactor"]
+            maskScalingFactor = algo.getMaskScalingFactor()
 
             # Calculate the x, y-coordinate on focal plane
             # x' = F(x,y)*x + C*(dW/dx), y' = F(x,y)*y + C*(dW/dy)
@@ -428,10 +571,10 @@ class CompensationImageDecorator(object):
             # Get the coefficient of polynomials for off-axis correction
             tt = self.offAxisOffset
 
-            cx = (self.offAxis_coeff[0, :] - self.offAxis_coeff[2, :]) * (tt+l)/(2*tt) + \
-                self.offAxis_coeff[2, :]
-            cy = (self.offAxis_coeff[1, :] - self.offAxis_coeff[3, :]) * (tt+l)/(2*tt) + \
-                self.offAxis_coeff[3, :]
+            cx = (self.offAxisCoeff[0, :] - self.offAxisCoeff[2, :]) * (tt+l)/(2*tt) + \
+                self.offAxisCoeff[2, :]
+            cy = (self.offAxisCoeff[1, :] - self.offAxisCoeff[3, :]) * (tt+l)/(2*tt) + \
+                self.offAxisCoeff[3, :]
 
             # This will be inverted back by typesign later on.
             # We do the inversion here to make the (x,y)->(x',y') equations has
@@ -441,7 +584,8 @@ class CompensationImageDecorator(object):
 
             # Do the orthogonalization: x'=1/sqrt(2)*(x+y), y'=1/sqrt(2)*(x-y)
             # Calculate the rotation angle for the orthogonalization
-            costheta = (self.fieldX + self.fieldY)/self.fldr/np.sqrt(2)
+            fieldDist = self._getFieldDistFromOrigin()
+            costheta = (self.fieldX + self.fieldY) / fieldDist / np.sqrt(2)
             if (costheta > 1):
                 costheta = 1
             elif (costheta < -1):
@@ -457,7 +601,7 @@ class CompensationImageDecorator(object):
 
             # Get the mask-related parameters
             maskCa, maskRa, maskCb, maskRb = self._interpMaskParam(
-                self.fieldX, self.fieldY, inst.maskParam)
+                self.fieldX, self.fieldY, inst.getMaskOffAxisCorr())
 
             lutx, luty = self._createPupilGrid(
                 lutx, luty, onepixel, maskCa, maskCb, maskRa, maskRb,
@@ -478,9 +622,9 @@ class CompensationImageDecorator(object):
             lutyp = lutxp0*sintheta + lutyp0*costheta
 
             # Zemax data are in mm, therefore 1000
-            sensorSamples = inst.parameter["sensorSamples"]
-            pixelSize = inst.parameter["pixelSize"]
-            reduced_coordi_factor = 1e-3/(sensorSamples/2*pixelSize/sensorFactor)
+            dimOfDonut = inst.getDimOfDonutOnSensor()
+            pixelSize = inst.getCamPixelSize()
+            reduced_coordi_factor = 1e-3/(dimOfDonut/2*pixelSize/sensorFactor)
 
             # Reduced coordinates, so that this can be added with the dW/dz
             lutxp = lutxp*reduced_coordi_factor
@@ -491,7 +635,7 @@ class CompensationImageDecorator(object):
             return
 
         # Obscuration of annular aperture
-        zobsR = algo.parameter["zobsR"]
+        zobsR = algo.getObsOfZernikes()
 
         # Calculate the x, y-coordinate on focal plane
         # x' = F(x,y)*x + C*(dW/dx), y' = F(x,y)*y + C*(dW/dy)
@@ -502,7 +646,7 @@ class CompensationImageDecorator(object):
             lutyp = lutyp + myC*ZernikeAnnularGrad(zcCol, lutx, luty, zobsR, "dy")
 
         # Make the sign to be consistent
-        if (self.atype == "extra"):
+        if (self.defocalType == DefocalType.Extra):
             lutxp = -lutxp
             lutyp = -lutyp
 
@@ -649,7 +793,7 @@ class CompensationImageDecorator(object):
         return poly10Grad(c, x.flatten(), y.flatten(), atype).reshape(x.shape)
 
     def _createPupilGrid(self, lutx, luty, onepixel, ca, cb, ra, rb, fieldX,
-                         fieldY=None):
+                         fieldY):
         """Create the pupil grid in off-axis model.
 
         This function gives the x,y-coordinate in the extended ring area
@@ -672,11 +816,9 @@ class CompensationImageDecorator(object):
         rb : float
             Radius of inner ring on the pupil plane.
         fieldX : float
-            X-coordinate of donut on the focal plane in degree. If only fieldX
-            is given, this will be fldr = sqrt(2)*fieldX actually.
-        fieldY : float, optional
-            Y-coordinate of donut on the focal plane in degree. (the default is
-            None.)
+            X-coordinate of donut on the focal plane in degree.
+        fieldY : float
+            Y-coordinate of donut on the focal plane in degree.
 
         Returns
         -------
@@ -685,16 +827,6 @@ class CompensationImageDecorator(object):
         numpy.ndarray
             Y-coordinate of extended ring area on pupil plane.
         """
-
-        # Calculate fieldX, fieldY if only input of
-        # fieldX (= fldr = sqrt(2)*fieldX actually)
-        # is provided
-        if (fieldY is None):
-            # Input of filedX is fldr actually
-            fldr = fieldX
-            # Divide fldr by sqrt(2) to get fieldX = fieldY
-            fieldX = fldr/np.sqrt(2)
-            fieldY = fieldX
 
         # Rotate the mask center after the off-axis correction based on the
         # position of fieldX and fieldY
@@ -803,28 +935,29 @@ class CompensationImageDecorator(object):
         """
 
         # Calculate the sin(theta) and cos(theta) for the rotation
-        fldr = np.sqrt(fieldX**2 + fieldY**2)
-        if (fldr == 0):
+        fieldDist = self._getFieldDistFromOrigin(fieldX=fieldX, fieldY=fieldY,
+                                                 minDist=0)
+        if (fieldDist == 0):
             c = 0
             s = 0
         else:
             # Calculate cos(theta)
-            c = fieldX/fldr
+            c = fieldX / fieldDist
 
             # Calculate sin(theta)
-            s = fieldY/fldr
+            s = fieldY / fieldDist
 
         # Projected x and y coordinate after the rotation
-        cax = c*ca
-        cay = s*ca
+        cax = c * ca
+        cay = s * ca
 
-        cbx = c*cb
-        cby = s*cb
+        cbx = c * cb
+        cby = s * cb
 
         return cax, cay, cbx, cby
 
-    def getOffAxisCorr(self, instDir, order):
-        """Map the coefficients of off-axis correction for x, y-projection of
+    def setOffAxisCorr(self, inst, order):
+        """Set the coefficients of off-axis correction for x, y-projection of
         intra- and extra-image.
 
         This is for the mapping of coordinate from the telescope apearature to
@@ -832,8 +965,8 @@ class CompensationImageDecorator(object):
 
         Parameters
         ----------
-        instDir : str
-            Path to specific instrument directory.
+        inst : Instrument
+            Instrument to use.
         order : int
             Up to order-th of off-axis correction.
         """
@@ -842,27 +975,27 @@ class CompensationImageDecorator(object):
         configList = ["cxin", "cyin", "cxex", "cyex"]
 
         # Get all files in the directory
-        fileList = [f for f in os.listdir(instDir) if os.path.isfile(os.path.join(instDir, f))]
+        instDir = inst.getInstFileDir()
+        fileList = [f for f in os.listdir(instDir)
+                    if os.path.isfile(os.path.join(instDir, f))]
 
         # Read files
-        temp = []
-
+        offAxisCoeff = []
         for config in configList:
 
             # Construct the configuration file name
             for fileName in fileList:
-                m = re.match(r"\S*%s\S*.txt" % config, fileName)
+                m = re.match(r"\S*%s\S*.yaml" % config, fileName)
                 if (m is not None):
                     matchFileName = m.group()
                     break
-            filePath = os.path.join(instDir, matchFileName)
 
-            # Read the file
-            corr_coeff, offset = self._getOffAxisCorrSingle(filePath)
-            temp.append(corr_coeff)
+            filePath = os.path.join(instDir, matchFileName)
+            corrCoeff, offset = self._getOffAxisCorrSingle(filePath)
+            offAxisCoeff.append(corrCoeff)
 
         # Give the values
-        self.offAxis_coeff = np.array(temp)
+        self.offAxisCoeff = np.array(offAxisCoeff)
         self.offAxisOffset = offset
 
     def _getOffAxisCorrSingle(self, confFile):
@@ -884,11 +1017,12 @@ class CompensationImageDecorator(object):
             Defocal distance in m.
         """
 
-        # Calculate the distance from donut to origin (aperature)
-        fldr = np.sqrt(self.fieldX**2 + self.fieldY**2)
+        fieldDist = self._getFieldDistFromOrigin(minDist=0.0)
 
         # Read the configuration file
-        cdata = np.loadtxt(confFile)
+        paramReader = ParamReader()
+        paramReader.setFilePath(confFile)
+        cdata = paramReader.getMatContent()
 
         # Record the offset (defocal distance)
         offset = cdata[0, 0]
@@ -902,7 +1036,7 @@ class CompensationImageDecorator(object):
 
         # Get the fitted parameters for off-axis correction by linear
         # approximation
-        corr_coeff = self._linearApprox(fldr, ruler, c[:, 2:])
+        corr_coeff = self._linearApprox(fieldDist, ruler, c[:, 2:])
 
         return corr_coeff, offset
 
@@ -917,8 +1051,8 @@ class CompensationImageDecorator(object):
             X-coordinate of donut on the focal plane in degree.
         fieldY : float
             Y-coordinate of donut on the focal plane in degree.
-        maskParam : str
-            Fitted coefficient file for the off-axis distortion and vignetting
+        maskParam : numpy.ndarray
+            Fitted coefficients for the off-axis distortion and vignetting
             correction.
 
         Returns
@@ -938,18 +1072,15 @@ class CompensationImageDecorator(object):
         """
 
         # Calculate the distance from donut to origin (aperature)
-        fldr = np.sqrt(fieldX**2 + fieldY**2)
-
-        # Load the mask parameter
-        c = np.loadtxt(maskParam)
+        filedDist = np.sqrt(fieldX**2 + fieldY**2)
 
         # Get the ruler, which is the distance to center
         # ruler is between 1.51 and 1.84 degree here
-        ruler = np.sqrt(2)*c[:, 0]
+        ruler = np.sqrt(2)*maskParam[:, 0]
 
         # Get the fitted parameters for off-axis correction by linear
         # approximation
-        param = self._linearApprox(fldr, ruler, c[:, 1:])
+        param = self._linearApprox(filedDist, ruler, maskParam[:, 1:])
 
         # Define related parameters
         ca = param[0]
@@ -959,14 +1090,14 @@ class CompensationImageDecorator(object):
 
         return ca, ra, cb, rb
 
-    def _linearApprox(self, fldr, ruler, parameters):
+    def _linearApprox(self, fieldDist, ruler, parameters):
         """Get the fitted parameters for off-axis correction by linear
         approximation.
 
         Parameters
         ----------
-        fldr : float
-            Distance from donut to origin (aperature).
+        fieldDist : float
+            Field distance from donut to origin (aperature).
         ruler : numpy.ndarray
             A series of distance with available parameters for the fitting.
         parameters : numpy.ndarray
@@ -984,32 +1115,32 @@ class CompensationImageDecorator(object):
         parameters = parameters[sortIndex, :]
 
         # Compare the distance to center (aperature) between donut and standard
-        compDis = (ruler >= fldr)
+        compDis = (ruler >= fieldDist)
 
-        # fldr is too big and out of range
-        if (fldr > ruler.max()):
+        # fieldDist is too big and out of range
+        if (fieldDist > ruler.max()):
             # Take the coefficients in the highest boundary
             p2 = parameters.shape[0] - 1
             p1 = 0
             w1 = 0
             w2 = 1
 
-        # fldr is too small to be in the range
-        elif (fldr < ruler.min()):
+        # fieldDist is too small to be in the range
+        elif (fieldDist < ruler.min()):
             # Take the coefficients in the lowest boundary
             p2 = 0
             p1 = 0
             w1 = 1
             w2 = 0
 
-        # fldr is in the range
+        # fieldDist is in the range
         else:
-            # Find the boundary of fldr in the known data
+            # Find the boundary of fieldDist in the known data
             p2 = compDis.argmax()
             p1 = p2 - 1
 
             # Calculate the weighting ratio
-            w1 = (ruler[p2]-fldr)/(ruler[p2]-ruler[p1])
+            w1 = (ruler[p2]-fieldDist)/(ruler[p2]-ruler[p1])
             w2 = 1-w1
 
         # Get the fitted parameters for off-axis correction by linear
@@ -1036,7 +1167,7 @@ class CompensationImageDecorator(object):
 
         # Masklist = [center_x, center_y, radius_of_boundary,
         #             1/ 0 for outer/ inner boundary]
-        obscuration = inst.parameter["obscuration"]
+        obscuration = inst.getObscuration()
         if (model in ("paraxial", "onAxis")):
 
             if (obscuration == 0):
@@ -1047,7 +1178,7 @@ class CompensationImageDecorator(object):
         else:
             # Get the mask-related parameters
             maskCa, maskRa, maskCb, maskRb = self._interpMaskParam(
-                self.fieldX, self.fieldY, inst.maskParam)
+                self.fieldX, self.fieldY, inst.getMaskOffAxisCorr())
 
             # Rotate the mask-related parameters of center
             cax, cay, cbx, cby = self._rotateMaskParam(
@@ -1139,23 +1270,24 @@ class CompensationImageDecorator(object):
             Mask scaling factor (for fast beam) for local correction.
         """
 
-        sensorSamples = inst.parameter["sensorSamples"]
-        self.pMask = np.ones(sensorSamples, dtype=int)
+        dimOfDonut = inst.getDimOfDonutOnSensor()
+        self.pMask = np.ones(dimOfDonut, dtype=int)
         self.cMask = self.pMask.copy()
 
-        apertureDiameter = inst.parameter["apertureDiameter"]
-        focalLength = inst.parameter["focalLength"]
-        offset = inst.parameter["offset"]
+        apertureDiameter = inst.getApertureDiameter()
+        focalLength = inst.getFocalLength()
+        offset = inst.getDefocalDisOffset()
         rMask = apertureDiameter/(2*focalLength/offset)*maskScalingFactorLocal
 
         # Get the mask list
+        pixelSize = inst.getCamPixelSize()
+        xSensor, ySensor = inst.getSensorCoor()
         masklist = self.makeMaskList(inst, model)
-
         for ii in range(masklist.shape[0]):
 
             # Distance to center on pupil
-            r = np.sqrt((inst.xSensor - masklist[ii, 0])**2 +
-                        (inst.ySensor - masklist[ii, 1])**2)
+            r = np.sqrt((xSensor - masklist[ii, 0])**2 +
+                        (ySensor - masklist[ii, 1])**2)
 
             # Find the indices that correspond to the mask element, set them to
             # the pass/ block boolean
@@ -1168,7 +1300,6 @@ class CompensationImageDecorator(object):
             # The extension level is dicided by boundaryT.
             # In fft, this is also the Neuman boundary where the derivative of
             # the wavefront is set to zero.
-            pixelSize = inst.parameter["pixelSize"]
             if (masklist[ii, 3] >= 1):
                 aidx = np.nonzero(r <= masklist[ii, 2]*(1+boundaryT*pixelSize/rMask))
             else:
@@ -1177,7 +1308,7 @@ class CompensationImageDecorator(object):
             # Initialize both mask elements to the opposite of the pass/ block
             # boolean
             pMaskii = (1 - masklist[ii, 3]) * \
-                np.ones([sensorSamples, sensorSamples], dtype=int)
+                np.ones([dimOfDonut, dimOfDonut], dtype=int)
             cMaskii = pMaskii.copy()
 
             pMaskii[idx] = masklist[ii, 3]
@@ -1188,9 +1319,9 @@ class CompensationImageDecorator(object):
             # This is try to find the common mask region.
 
             # padded mask for use at the offset planes
-            self.pMask = self.pMask*pMaskii
+            self.pMask = self.pMask * pMaskii
             # non-padded mask corresponding to aperture
-            self.cMask = self.cMask*cMaskii
+            self.cMask = self.cMask * cMaskii
 
 
 if __name__ == "__main__":

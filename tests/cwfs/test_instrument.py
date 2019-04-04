@@ -1,8 +1,9 @@
 import os
+import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.Utility import getConfigDir
 
 
 class TestInstrument(unittest.TestCase):
@@ -10,20 +11,103 @@ class TestInstrument(unittest.TestCase):
 
     def setUp(self):
 
-        # Get the path of module
-        modulePath = getModulePath()
+        self.instDir = os.path.join(getConfigDir(), "cwfs", "instData")
 
-        # Define the instrument folder
-        self.instruFolder = os.path.join(modulePath, "configData", "cwfs",
-                                         "instruData")
+        self.inst = Instrument(self.instDir)
+        self.instName = "lsst15"
+        self.dimOfDonutOnSensor = 120
 
-        # Define the instrument name
-        self.instruName = "lsst"
+        self.inst.config(self.instName, self.dimOfDonutOnSensor)
 
-    def testInstrument(self):
-        inst = Instrument(self.instruFolder)
-        inst.config(self.instruName, 120)
-        self.assertEqual(inst.parameter["sensorSamples"], 120)
+    def testGetInstFileDir(self):
+
+        instFileDir = self.inst.getInstFileDir()
+
+        ansInstFileDir = os.path.join(self.instDir, self.instName)
+        self.assertEqual(instFileDir, ansInstFileDir)
+
+    def testGetInstFilePath(self):
+
+        instFilePath = self.inst.getInstFilePath()
+        self.assertTrue(os.path.exists(instFilePath))
+        self.assertEqual(os.path.basename(instFilePath), "instParam.yaml")
+
+    def testGetMaskOffAxisCorr(self):
+
+        maskOffAxisCorr = self.inst.getMaskOffAxisCorr()
+        self.assertEqual(maskOffAxisCorr.shape, (9, 5))
+        self.assertEqual(maskOffAxisCorr[0, 0], 1.07)
+        self.assertEqual(maskOffAxisCorr[2, 3], -0.090100858)
+
+    def testGetDimOfDonutOnSensor(self):
+
+        dimOfDonutOnSensor = self.inst.getDimOfDonutOnSensor()
+        self.assertEqual(dimOfDonutOnSensor, self.dimOfDonutOnSensor)
+
+    def testGetObscuration(self):
+
+        obscuration = self.inst.getObscuration()
+        self.assertEqual(obscuration, 0.61)
+
+    def testGetFocalLength(self):
+
+        focalLength = self.inst.getFocalLength()
+        self.assertEqual(focalLength, 10.312)
+
+    def testGetApertureDiameter(self):
+
+        apertureDiameter = self.inst.getApertureDiameter()
+        self.assertEqual(apertureDiameter, 8.36)
+
+    def testGetDefocalDisOffset(self):
+
+        defocalDisInM = self.inst.getDefocalDisOffset()
+
+        # The answer is 1.5 mm
+        self.assertEqual(defocalDisInM * 1e3, 1.5)
+
+    def testGetCamPixelSize(self):
+
+        camPixelSizeInM = self.inst.getCamPixelSize()
+
+        # The answer is 10 um
+        self.assertEqual(camPixelSizeInM * 1e6, 10)
+
+    def testGetMarginalFocalLength(self):
+
+        marginalFL = self.inst.getMarginalFocalLength()
+        self.assertAlmostEqual(marginalFL, 9.4268, places=4)
+
+    def testGetSensorFactor(self):
+
+        sensorFactor = self.inst.getSensorFactor()
+        self.assertAlmostEqual(sensorFactor, 0.98679, places=5)
+
+    def testGetSensorCoor(self):
+
+        xSensor, ySensor = self.inst.getSensorCoor()
+        self.assertEqual(xSensor.shape,
+                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertAlmostEqual(xSensor[0, 0], -0.97857, places=5)
+        self.assertAlmostEqual(xSensor[0, 1], -0.96212, places=5)
+
+        self.assertEqual(ySensor.shape,
+                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertAlmostEqual(ySensor[0, 0], -0.97857, places=5)
+        self.assertAlmostEqual(ySensor[1, 0], -0.96212, places=5)
+
+    def testGetSensorCoorAnnular(self):
+
+        xoSensor, yoSensor = self.inst.getSensorCoorAnnular()
+        self.assertEqual(xoSensor.shape,
+                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertTrue(np.isnan(xoSensor[0, 0]))
+        self.assertTrue(np.isnan(xoSensor[60, 60]))
+
+        self.assertEqual(yoSensor.shape,
+                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertTrue(np.isnan(yoSensor[0, 0]))
+        self.assertTrue(np.isnan(yoSensor[60, 60]))
 
 
 if __name__ == "__main__":

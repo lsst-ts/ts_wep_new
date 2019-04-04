@@ -1,7 +1,8 @@
+import os
 import unittest
 
 from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
-    mapFilterRefToG, FilterType
+    mapFilterRefToG, FilterType, getModulePath, getConfigDir
 
 
 class TestUtility(unittest.TestCase):
@@ -43,6 +44,16 @@ class TestUtility(unittest.TestCase):
 
         mappedFilterType = mapFilterRefToG(FilterType.U)
         self.assertEqual(mappedFilterType, FilterType.U)
+
+    def testGetModulePath(self):
+
+        moduleName = os.path.basename(getModulePath())
+        self.assertEqual(moduleName, "ts_wep")
+
+    def testGetConfigDir(self):
+
+        ansConfigDir = os.path.join(getModulePath(), "policy")
+        self.assertEqual(getConfigDir(), ansConfigDir)
 
 
 if __name__ == "__main__":

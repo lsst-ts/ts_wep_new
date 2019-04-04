@@ -74,13 +74,15 @@ class AdapThresImage(Image):
         # Generate image of multiple donuts
         imageMain = np.zeros([length, length])
         imageNeighbor = np.zeros([length, length])
-        m, n = self.image.shape
+
+        img = self.getImg()
+        m, n = img.shape
 
         # Get the shifted main donut image
-        imageMain[int(selfY-m/2):int(selfY+m/2), int(selfX-n/2):int(selfX+n/2)] += self.image
+        imageMain[int(selfY-m/2):int(selfY+m/2), int(selfX-n/2):int(selfX+n/2)] += img
 
         # Get the shifted neighboring donut image
-        imageNeighbor[int(newY-m/2):int(newY+m/2), int(newX-n/2):int(newX+n/2)] += magRatio*self.image
+        imageNeighbor[int(newY-m/2):int(newY+m/2), int(newX-n/2):int(newX+n/2)] += magRatio * img
 
         # Get the synthesized multi-donut image
         image = imageMain + imageNeighbor
@@ -113,7 +115,7 @@ class AdapThresImage(Image):
         delta = 1
         times = 0
         while (delta > 1e-2) and (times < 10):
-            img = self.image.copy()
+            img = self.getImg().copy()
             imgBinary = (img > threshold_local(img, blockSize)).astype(float)
 
             # Calculate the weighting radius

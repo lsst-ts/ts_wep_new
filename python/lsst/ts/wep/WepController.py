@@ -715,13 +715,10 @@ class WepController(object):
 
         # Get the distortion correction (offaxis)
         algo = self.wfEsti.getAlgo()
-        parameter = algo.getParam()
-        offAxisCorrOrder = parameter["offAxisPolyOrder"]
+        offAxisCorrOrder = algo.getOffAxisPolyOrder()
 
         inst = self.wfEsti.getInst()
-        instDir = os.path.dirname(inst.getInstFileName())
-
-        img.getOffAxisCorr(instDir, offAxisCorrOrder)
+        img.setOffAxisCorr(inst, offAxisCorrOrder)
 
         # Do the image cocenter
         img.imageCoCenter(inst)

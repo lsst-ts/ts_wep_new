@@ -71,14 +71,14 @@ class BlendedImageDecorator(object):
         adapcx, adapcy, adapR, adapImgBinary = self.getCenterAndR_adap()
 
         # Calculate the system error by only taking the background signal
-        bg1D = self.image.flatten()
+        bg1D = self.getImg().flatten()
         bgImgBinary1D = adapImgBinary.flatten()
         background = bg1D[bgImgBinary1D == 0]
         bgPhist, binEdges = np.histogram(background, bins=256)
         sysError = np.mean(binEdges[0:2])
 
         # Remove the system error
-        noSysErrImage = self.image - sysError
+        noSysErrImage = self.getImg() - sysError
         noSysErrImage[noSysErrImage < 0] = 0
 
         # Get the residure map

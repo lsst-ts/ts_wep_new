@@ -5,7 +5,7 @@ import unittest
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.Utility import getModulePath
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType
 
 
 class TestAlgorithm(unittest.TestCase):
@@ -15,17 +15,6 @@ class TestAlgorithm(unittest.TestCase):
 
         # Get the path of module
         self.modulePath = getModulePath()
-
-        # Define the instrument folder
-        instruFolder = os.path.join(self.modulePath, "configData", "cwfs",
-                                    "instruData")
-
-        # Define the algorithm folder
-        self.algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
-                                           "algo")
-
-        # Define the instrument name
-        instruName = "lsst"
 
         # Define the image folder and image names
         # Image data -- Don't know the final image format.
@@ -48,70 +37,170 @@ class TestAlgorithm(unittest.TestCase):
 
         # Theree is the difference between intra and extra images
         # I1: intra_focal images, I2: extra_focal Images
-        # self.I1 = Image.Image()
-        # self.I2 = Image.Image()
-
         self.I1 = CompensationImageDecorator()
         self.I2 = CompensationImageDecorator()
 
-        self.I1.setImg(fieldXY, imageFile=intra_image_file, atype="intra")
-        self.I2.setImg(fieldXY, imageFile=extra_image_file, atype="extra")
+        self.I1.setImg(fieldXY, DefocalType.Intra, imageFile=intra_image_file)
+        self.I2.setImg(fieldXY, DefocalType.Extra, imageFile=extra_image_file)
 
-        self.inst = Instrument(instruFolder)
-        self.inst.config(instruName, self.I1.sizeinPix)
+        # Set up the instrument
+        cwfsConfigDir = os.path.join(getConfigDir(), "cwfs")
 
-    def testExp(self):
+        instDir = os.path.join(cwfsConfigDir, "instData")
+        self.inst = Instrument(instDir)
 
-        # Define the algorithm being used: "exp" or "fft"
-        useAlgorithm = "exp"
+        instName = "lsst10"
+        self.inst.config(instName, self.I1.getImgSizeInPix())
 
-        # Define the algorithm to be used.
-        algo = Algorithm(self.algoFolderPath)
-        algo.config(useAlgorithm, self.inst, debugLevel=3)
-        algo.setDebugLevel(0)
-        self.assertEqual(algo.debugLevel, 0)
+        # Set up the algorithm
+        algoDir = os.path.join(cwfsConfigDir, "algo")
+
+        self.algoExp = Algorithm(algoDir)
+        self.algoExp.config("exp", self.inst)
+
+        self.algoFft = Algorithm(algoDir)
+        self.algoFft.config("fft", self.inst)
+
+    def testGetDebugLevel(self):
+
+        self.assertEqual(self.algoExp.getDebugLevel(), 0)
+
+    def testSetDebugLevel(self):
+
+        self.algoExp.config("exp", self.inst, debugLevel=3)
+        self.assertEqual(self.algoExp.getDebugLevel(), 3)
+
+        self.algoExp.setDebugLevel(0)
+        self.assertEqual(self.algoExp.getDebugLevel(), 0)
+
+    def testGetZer4UpInNm(self):
+
+        zer4UpNm = self.algoExp.getZer4UpInNm()
+        self.assertTrue(isinstance(zer4UpNm, np.ndarray))
+
+    def testGetPoissonSolverName(self):
+
+        self.assertEqual(self.algoExp.getPoissonSolverName(), "exp")
+        self.assertEqual(self.algoFft.getPoissonSolverName(), "fft")
+
+    def testGetNumOfZernikes(self):
+
+        self.assertEqual(self.algoExp.getNumOfZernikes(), 22)
+        self.assertEqual(self.algoFft.getNumOfZernikes(), 22)
+
+    def testGetZernikeTerms(self):
+
+        zTerms = self.algoExp.getZernikeTerms()
+        self.assertTrue(zTerms.dtype, int)
+        self.assertEqual(len(zTerms), self.algoExp.getNumOfZernikes())
+        self.assertEqual(zTerms[0], 1)
+        self.assertEqual(zTerms[-1], self.algoExp.getNumOfZernikes())
+
+        zTerms = self.algoFft.getZernikeTerms()
+        self.assertTrue(zTerms.dtype, int)
+        self.assertEqual(len(zTerms), self.algoExp.getNumOfZernikes())
+
+    def testGetObsOfZernikes(self):
+
+        self.assertEqual(self.algoExp.getObsOfZernikes(),
+                         self.inst.getObscuration())
+        self.assertEqual(self.algoFft.getObsOfZernikes(),
+                         self.inst.getObscuration())
+
+    def testGetNumOfOuterItr(self):
+
+        self.assertEqual(self.algoExp.getNumOfOuterItr(), 14)
+        self.assertEqual(self.algoFft.getNumOfOuterItr(), 14)
+
+    def testGetNumOfInnerItr(self):
+
+        self.assertEqual(self.algoFft.getNumOfInnerItr(), 6)
+
+    def testGetFeedbackGain(self):
+
+        self.assertEqual(self.algoExp.getFeedbackGain(), 0.6)
+        self.assertEqual(self.algoFft.getFeedbackGain(), 0.6)
+
+    def testGetOffAxisPolyOrder(self):
+
+        self.assertEqual(self.algoExp.getOffAxisPolyOrder(), 10)
+        self.assertEqual(self.algoFft.getOffAxisPolyOrder(), 10)
+
+    def testGetCompensatorMode(self):
+
+        self.assertEqual(self.algoExp.getCompensatorMode(), "zer")
+        self.assertEqual(self.algoFft.getCompensatorMode(), "zer")
+
+    def testGetCompSequence(self):
+
+        compSequence = self.algoExp.getCompSequence()
+        self.assertTrue(isinstance(compSequence, np.ndarray))
+        self.assertEqual(compSequence.dtype, int)
+        self.assertEqual(len(compSequence), self.algoExp.getNumOfOuterItr())
+        self.assertEqual(compSequence[0], 4)
+        self.assertEqual(compSequence[-1], 22)
+
+        compSequence = self.algoFft.getCompSequence()
+        self.assertEqual(len(compSequence), self.algoFft.getNumOfOuterItr())
+
+    def testGetBoundaryThickness(self):
+
+        self.assertEqual(self.algoExp.getBoundaryThickness(), 8)
+        self.assertEqual(self.algoFft.getBoundaryThickness(), 1)
+
+    def testGetFftDimension(self):
+
+        self.assertEqual(self.algoFft.getFftDimension(), 128)
+
+    def testGetSignalClipSequence(self):
+
+        sumclipSequence = self.algoFft.getSignalClipSequence()
+        self.assertTrue(isinstance(sumclipSequence, np.ndarray))
+        self.assertEqual(len(sumclipSequence), self.algoExp.getNumOfOuterItr()+1)
+        self.assertEqual(sumclipSequence[0], 0.33)
+        self.assertEqual(sumclipSequence[-1], 0.51)
+
+    def testGetMaskScalingFactor(self):
+
+        self.assertAlmostEqual(self.algoExp.getMaskScalingFactor(), 1.0939,
+                               places=4)
+        self.assertAlmostEqual(self.algoFft.getMaskScalingFactor(), 1.0939,
+                               places=4)
+
+    def testRunItOfExp(self):
 
         # Test functions: itr0() and nextItr()
-        algo.itr0(self.inst, self.I1, self.I2, self.opticalModel)
-        tmp1 = algo.zer4UpNm
-        algo.nextItr(self.inst, self.I1, self.I2, self.opticalModel, nItr=2)
-        algo.itr0(self.inst, self.I1, self.I2, self.opticalModel)
-        tmp2 = algo.zer4UpNm
+        self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
+        tmp1 = self.algoExp.getZer4UpInNm()
+        self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=2)
+        self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
+        tmp2 = self.algoExp.getZer4UpInNm()
 
         difference = np.sum(np.abs(tmp1-tmp2))
         self.assertEqual(difference, 0)
 
         # Run it
-        algo.runIt(self.inst, self.I1, self.I2, self.opticalModel, tol=1e-3)
+        self.algoExp.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
 
         # Check the value
-        Zk = algo.zer4UpNm
+        Zk = self.algoExp.getZer4UpInNm()
         self.assertEqual(int(Zk[7]), -192)
 
         # Reset and check the calculation again
         fieldXY = [self.I1.fieldX, self.I1.fieldY]
-        self.I1.setImg(fieldXY, image=self.I1.image0, atype=self.I1.atype)
-        self.I2.setImg(fieldXY, image=self.I2.image0, atype=self.I2.atype)
-        algo.reset()
-        algo.runIt(self.inst, self.I1, self.I2, self.opticalModel, tol=1e-3)
-        Zk = algo.zer4UpNm
+        self.I1.setImg(fieldXY, self.I1.getDefocalType(), image=self.I1.getImgInit())
+        self.I2.setImg(fieldXY, self.I2.getDefocalType(), image=self.I2.getImgInit())
+        self.algoExp.reset()
+        self.algoExp.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
+        Zk = self.algoExp.getZer4UpInNm()
         self.assertEqual(int(Zk[7]), -192)
 
-    def testFFT(self):
+    def testRunItOfFft(self):
 
-        # Define the algorithm being used: "exp" or "fft"
-        useAlgorithm = "fft"
+        self.algoFft.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
 
-        # Define the algorithm to be used.
-        algo = Algorithm(self.algoFolderPath)
-        algo.config(useAlgorithm, self.inst, debugLevel=0)
-
-        # Run it
-        algo.runIt(self.inst, self.I1, self.I2, self.opticalModel, tol=1e-3)
-
-        # Check the value
-        Zk = algo.zer4UpNm
-        self.assertEqual(int(Zk[7]), -192)
+        zk = self.algoFft.getZer4UpInNm()
+        self.assertEqual(int(zk[7]), -192)
 
 
 if __name__ == "__main__":

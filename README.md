@@ -27,7 +27,7 @@ Author: Te-Wei Tsai
 *2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2019_12`.* \
 *3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2019_12`.* \
 *4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion of this.* \
-*5. Clone the repository of [phosim_utils](https://github.com/lsst-dm/phosim_utils.git) to some other directory. Under the phosim_utils directory, use `setup -k -r .` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.* \
+*5. Clone the repository of [phosim_utils](https://github.com/lsst-dm/phosim_utils.git) to some other directory. Under the phosim_utils directory, use `setup -k -r . -t sims_w_2019_12` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.* \
 *6. Undet the directory of ts_wep, do:*
 
 ```bash
@@ -88,9 +88,8 @@ runIsr.py input --id --rerun=run1 --configfile isr_config.py
 
 ```bash
 source $path_of_lsst_scientific_pipeline/loadLSST.bash
-setup sims_catUtils -t sims_w_2019_12
 cd $path_of_phosim_utils
-setup -k -r .
+setup -k -r . -t sims_w_2019_12
 ```
 
 *2. Setup the WEP environment.*

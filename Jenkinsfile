@@ -36,15 +36,15 @@ pipeline {
                     sh """
                         source /opt/rh/devtoolset-6/enable
                         source ${env.LSST_STACK}/loadLSST.bash
-                        setup sims_catUtils -t sims_w_2019_12
                         conda install scikit-image
-                        setup -k -r .
-                        python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
                         git checkout 7b02084
-                        setup -k -r .
+                        setup -k -r . -t sims_w_2019_12
                         scons
+                        cd ..
+                        setup -k -r .
+                        python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
                     """
                 }
             }
@@ -61,9 +61,8 @@ pipeline {
                     sh """
                         source /opt/rh/devtoolset-6/enable
                         source ${env.LSST_STACK}/loadLSST.bash
-                        setup sims_catUtils -t sims_w_2019_12
                         cd phosim_utils/
-                        setup -k -r .
+                        setup -k -r . -t sims_w_2019_12
                         cd ..
                         setup -k -r .
                         pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.XML_REPORT} tests/

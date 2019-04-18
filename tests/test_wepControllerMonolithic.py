@@ -13,7 +13,7 @@ from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.WepController import WepController
 
 from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType,\
-    runProgram
+    runProgram, getConfigDir
 
 
 class TestWepControllerMonolithic(unittest.TestCase):
@@ -84,11 +84,10 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
     def _configWfEstimator(self):
 
-        instruFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
-                                        "instruData")
-        algoFolderPath = os.path.join(self.modulePath, "configData", "cwfs",
-                                      "algo")
-        wfEsti = WfEstimator(instruFolderPath, algoFolderPath)
+        cwfsConfigDir = os.path.join(getConfigDir(), "cwfs")
+        instDir = os.path.join(cwfsConfigDir, "instData")
+        algoDir = os.path.join(cwfsConfigDir, "algo")
+        wfEsti = WfEstimator(instDir, algoDir)
 
         # Use the comcam to calculate the LSST central raft image
         # with 1.5 mm defocal distance

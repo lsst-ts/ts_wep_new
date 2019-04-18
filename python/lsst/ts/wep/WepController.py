@@ -1,11 +1,10 @@
-import os
 import re
 import numpy as np
 
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
-from lsst.ts.wep.Utility import abbrevDectectorName, searchDonutPos
+from lsst.ts.wep.Utility import abbrevDectectorName, searchDonutPos, DefocalType
 
 
 class WepController(object):
@@ -511,10 +510,8 @@ class WepController(object):
         """
 
         # Set the images
-        self.wfEsti.setImg(intraFieldXY, image=intraImg,
-                           defocalType=self.wfEsti.getIntraImg().INTRA)
-        self.wfEsti.setImg(extraFieldXY, image=extraImg,
-                           defocalType=self.wfEsti.getExtraImg().EXTRA)
+        self.wfEsti.setImg(intraFieldXY, DefocalType.Intra, image=intraImg)
+        self.wfEsti.setImg(extraFieldXY, DefocalType.Extra, image=extraImg)
 
         # Reset the wavefront estimator
         self.wfEsti.reset()
@@ -654,9 +651,8 @@ class WepController(object):
             if (intraImg is not None):
 
                 # Get the projected image
-                projImg = self._getProjImg(fieldXY, intraImg,
-                                           self.wfEsti.getIntraImg().INTRA,
-                                           zcCol)
+                projImg = self._getProjImg(fieldXY, DefocalType.Intra,
+                                           intraImg, zcCol)
 
                 # Collect the projected donut
                 intraProjImgList.append(projImg)
@@ -665,9 +661,8 @@ class WepController(object):
             if (extraImg is not None):
 
                 # Get the projected image
-                projImg = self._getProjImg(fieldXY, extraImg,
-                                           self.wfEsti.getExtraImg().EXTRA,
-                                           zcCol)
+                projImg = self._getProjImg(fieldXY, DefocalType.Extra,
+                                           extraImg, zcCol)
 
                 # Collect the projected donut
                 extraProjImgList.append(projImg)
@@ -683,7 +678,7 @@ class WepController(object):
 
         return masterDonut
 
-    def _getProjImg(self, fieldXY, defocalImg, aType, zcCol):
+    def _getProjImg(self, fieldXY, defocalType, defocalImg, zcCol):
         """Get the projected image on the pupil.
 
         Parameters
@@ -691,10 +686,10 @@ class WepController(object):
         fieldXY : tuple
             Position of donut on the focal plane in the degree for intra- and
             extra-focal images (field X, field Y).
+        defocalType : enum 'DefocalType'
+            Defocal type of image.
         defocalImg : numpy.ndarray
             Donut defocal image.
-        aType : str
-            Defocal type.
         zcCol : numpy.ndarray
             Coefficients of wavefront (z1-z22).
 
@@ -705,12 +700,12 @@ class WepController(object):
         """
 
         # Set the image
-        self.wfEsti.setImg(fieldXY, image=defocalImg, defocalType=aType)
+        self.wfEsti.setImg(fieldXY, defocalType, image=defocalImg)
 
         # Get the image in the type of CompensationImageDecorator
-        if (aType == self.wfEsti.getIntraImg().INTRA):
+        if (defocalType == DefocalType.Intra):
             img = self.wfEsti.getIntraImg()
-        elif (aType == self.wfEsti.getExtraImg().EXTRA):
+        elif (defocalType == DefocalType.Extra):
             img = self.wfEsti.getExtraImg()
 
         # Get the distortion correction (offaxis)

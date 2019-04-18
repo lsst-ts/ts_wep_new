@@ -52,8 +52,9 @@ class TestWfEsitmator(unittest.TestCase):
             print("Catch the wrong instrument.")
 
         # If the configuration is reset, the images are needed to be set again.
-        self.wfsEst.config(solver="exp", instName="lsst10", sizeInPix=120,
-                           opticalModel="offAxis", debugLevel=0)
+        self.wfsEst.config(solver="exp", instName="lsst",
+                           opticalModel="offAxis", defocalDisInMm=1.0,
+                           sizeInPix=120, debugLevel=0)
 
         # Evaluate the wavefront error
         wfsError = [2.593, 14.102, -8.470, 3.676, 1.467, -9.724, 8.207,
@@ -72,8 +73,9 @@ class TestWfEsitmator(unittest.TestCase):
                            imageFile=self.extraImgFile)
 
         # Change the algorithm to fft
-        self.wfsEst.config(solver="fft", instName="lsst10", sizeInPix=120,
-                           opticalModel="offAxis", debugLevel=0)
+        self.wfsEst.config(solver="fft", instName="lsst",
+                           opticalModel="offAxis", defocalDisInMm=1.0,
+                           sizeInPix=120, debugLevel=0)
 
         # Evaluate the wavefront error
         wfsError = [12.484, 10.358, -6.674, -0.043, -1.768, -15.593, 12.511,

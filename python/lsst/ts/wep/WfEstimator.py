@@ -1,5 +1,3 @@
-import sys
-
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
@@ -103,7 +101,7 @@ class WfEstimator(object):
 
         self.algo.reset()
 
-    def config(self, solver="exp", instName="lsst15", opticalModel="offAxis",
+    def config(self, solver="exp", instName="lsst", opticalModel="offAxis",
                defocalDisInMm=None, sizeInPix=120, debugLevel=0):
         """Configure the TIE solver.
 
@@ -114,8 +112,7 @@ class WfEstimator(object):
             intensity equation (TIE). It can be "fft" or "exp" here. (the
             default is "exp".)
         instName : str, optional
-            Instrument name. It is "lsst" in the baseline. (the default is
-            "lsst15".)
+            Instrument name ("lsst" or "comcam"). (the default is "lsst".)
         opticalModel : str, optional
             Optical model. It can be "paraxial", "onAxis", or "offAxis". (the
             default is "offAxis".)
@@ -145,8 +142,9 @@ class WfEstimator(object):
         # Algorithm
 
         # Update the isnstrument name
-        if (defocalDisInMm is not None):
-            instName = instName + str(int(10*defocalDisInMm))
+        if (defocalDisInMm is None):
+            defocalDisInMm = 1.5
+        instName = instName + str(int(10*defocalDisInMm))
 
         if instName not in ("lsst05", "lsst10", "lsst15", "lsst20", "lsst25",
                             "comcam10", "comcam15", "comcam20"):

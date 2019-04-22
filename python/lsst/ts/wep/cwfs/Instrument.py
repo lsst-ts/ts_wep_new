@@ -2,6 +2,7 @@ import os
 import numpy as np
 
 from lsst.ts.wep.ParamReader import ParamReader
+from lsst.ts.wep.Utility import CamType
 
 
 class Instrument(object):
@@ -18,6 +19,7 @@ class Instrument(object):
         self.instDir = instDir
         self.instName = ""
         self.sensorSamples = 0
+        self.announcedDefocalDisInMm = 0.0
 
         self.instParamFile = ParamReader()
         self.maskParamFile = ParamReader()
@@ -28,18 +30,22 @@ class Instrument(object):
         self.xoSensor = np.array([])
         self.yoSensor = np.array([])
 
-    def config(self, instName, dimOfDonutOnSensor,
+    def config(self, camType, dimOfDonutOnSensor,
+               announcedDefocalDisInMm=1.5,
                instParamFileName="instParam.yaml",
                maskMigrateFileName="maskMigrate.yaml"):
         """Do the configuration of Instrument.
 
         Parameters
         ----------
-        instName : str
-            Instrument name. It is "lsst15" in the baseline, which means use
-            "lsst" with "1.5" mm defocus.
+        camType : enum 'CamType'
+            Camera type.
         dimOfDonutOnSensor : int
             Dimension of image on sensor in pixel.
+        announcedDefocalDisInMm : float
+            Announced defocal distance in mm. It is noted that the defocal
+            distance offset used in calculation might be different from this
+            value. (the default is 1.5.)
         instParamFileName : str, optional
             Instrument parameter file name. (the default is "instParam.yaml".)
         maskMigrateFileName : str, optional
@@ -47,8 +53,9 @@ class Instrument(object):
             "maskMigrate.yaml".)
         """
 
-        self.instName = instName
+        self.instName = self._getInstName(camType)
         self.sensorSamples = int(dimOfDonutOnSensor)
+        self.announcedDefocalDisInMm = announcedDefocalDisInMm
 
         # Path of instrument param file
         instFileDir = self.getInstFileDir()
@@ -61,6 +68,32 @@ class Instrument(object):
 
         self._setSensorCoor()
         self._setSensorCoorAnnular()
+
+    def _getInstName(self, camType):
+        """Get the instrument name.
+
+        Parameters
+        ----------
+        camType : enum 'CamType'
+            Camera type.
+
+        Returns
+        -------
+        str
+            Instrument name.
+
+        Raises
+        ------
+        ValueError
+            Camera type is not supported.
+        """
+
+        if (camType == CamType.LsstCam):
+            return "lsst"
+        elif (camType == CamType.ComCam):
+            return "comcam"
+        else:
+            raise ValueError("Camera type (%s) is not supported." % camType)
 
     def getInstFileDir(self):
         """Get the instrument parameter file directory.
@@ -176,7 +209,10 @@ class Instrument(object):
             Defocal distance offset in meter.
         """
 
-        return self.instParamFile.getSetting("offset")
+        offset = self.instParamFile.getSetting("offset")
+        defocalDisInMm = "%.1fmm" % self.announcedDefocalDisInMm
+
+        return offset[defocalDisInMm]
 
     def getCamPixelSize(self):
         """Get the camera pixel size in meter.

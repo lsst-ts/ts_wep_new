@@ -91,7 +91,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         # Use the comcam to calculate the LSST central raft image
         # with 1.5 mm defocal distance
-        wfEsti.config(solver="exp", instName="comcam",
+        wfEsti.config(solver="exp", camType=CamType.ComCam,
                       opticalModel="offAxis", defocalDisInMm=1.5,
                       sizeInPix=160, debugLevel=0)
 

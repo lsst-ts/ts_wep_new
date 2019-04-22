@@ -3,7 +3,7 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.Utility import getConfigDir
+from lsst.ts.wep.Utility import getConfigDir, CamType
 
 
 class TestInstrument(unittest.TestCase):
@@ -14,16 +14,20 @@ class TestInstrument(unittest.TestCase):
         self.instDir = os.path.join(getConfigDir(), "cwfs", "instData")
 
         self.inst = Instrument(self.instDir)
-        self.instName = "lsst15"
         self.dimOfDonutOnSensor = 120
 
-        self.inst.config(self.instName, self.dimOfDonutOnSensor)
+        self.inst.config(CamType.LsstCam, self.dimOfDonutOnSensor,
+                         announcedDefocalDisInMm=1.5)
+
+    def testConfigWithUnsupportedCamType(self):
+
+        self.assertRaises(ValueError, self.inst.config, CamType.LsstFamCam, 120)
 
     def testGetInstFileDir(self):
 
         instFileDir = self.inst.getInstFileDir()
 
-        ansInstFileDir = os.path.join(self.instDir, self.instName)
+        ansInstFileDir = os.path.join(self.instDir, "lsst")
         self.assertEqual(instFileDir, ansInstFileDir)
 
     def testGetInstFilePath(self):

@@ -5,7 +5,7 @@ import unittest
 from lsst.ts.wep.cwfs.Image import Image
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
-from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
 class TempAlgo(object):
@@ -42,11 +42,11 @@ class CompensationImageDecoratorTest(unittest.TestCase):
         instDir = os.path.join(getConfigDir(), "cwfs", "instData")
 
         # Define the instrument name
-        instName = "lsst10"
         dimOfDonutOnSensor = 120
 
         self.inst = Instrument(instDir)
-        self.inst.config(instName, dimOfDonutOnSensor)
+        self.inst.config(CamType.LsstCam, dimOfDonutOnSensor,
+                         announcedDefocalDisInMm=1.0)
 
         # Define the image folder and image names
         # Image data -- Don't know the final image format.

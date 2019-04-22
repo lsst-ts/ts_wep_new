@@ -5,7 +5,7 @@ import unittest
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
 class TestAlgorithm(unittest.TestCase):
@@ -49,8 +49,8 @@ class TestAlgorithm(unittest.TestCase):
         instDir = os.path.join(cwfsConfigDir, "instData")
         self.inst = Instrument(instDir)
 
-        instName = "lsst10"
-        self.inst.config(instName, self.I1.getImgSizeInPix())
+        self.inst.config(CamType.LsstCam, self.I1.getImgSizeInPix(),
+                         announcedDefocalDisInMm=1.0)
 
         # Set up the algorithm
         algoDir = os.path.join(cwfsConfigDir, "algo")

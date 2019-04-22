@@ -7,12 +7,12 @@ from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
 from lsst.ts.wep.cwfs.Tool import plotImage
-from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
-def runWEP(instDir, algoFolderPath, instName, useAlgorithm,
-           imageFolderPath, intra_image_name, extra_image_name,
-           fieldXY, opticalModel, showFig=False):
+def runWEP(instDir, algoFolderPath, useAlgorithm, imageFolderPath,
+           intra_image_name, extra_image_name, fieldXY, opticalModel,
+           showFig=False):
     """Calculate the coefficients of normal/ annular Zernike polynomials based
     on the provided instrument, algorithm, and optical model.
 
@@ -22,8 +22,6 @@ def runWEP(instDir, algoFolderPath, instName, useAlgorithm,
         Path to instrument folder.
     algoFolderPath : str
         Path to algorithm folder.
-    instName : str
-        Instrument name. It is "lsst" in the baseline.
     useAlgorithm : str
         Algorithm to solve the Poisson's equation in the transport of intensity
         equation (TIE). It can be "fft" or "exp" here.
@@ -62,7 +60,8 @@ def runWEP(instDir, algoFolderPath, instName, useAlgorithm,
 
     # Set the instrument
     inst = Instrument(instDir)
-    inst.config(instName, I1.getImgSizeInPix())
+    inst.config(CamType.LsstCam, I1.getImgSizeInPix(),
+                announcedDefocalDisInMm=1.0)
 
     # Define the algorithm to be used.
     algo = Algorithm(algoFolderPath)
@@ -111,12 +110,10 @@ class WepFile(object):
 
 class DataWep(object):
 
-    def __init__(self, instFolder, algoFolderPath, instName, imageFolder,
-                 wepFile):
+    def __init__(self, instFolder, algoFolderPath, imageFolder, wepFile):
 
-        self.instruFolder = instFolder
+        self.instFolder = instFolder
         self.algoFolderPath = algoFolderPath
-        self.instruName = instName
         self.useAlgorithm = wepFile.useAlgorithm
         self.imageFolderPath = os.path.join(imageFolder,
                                             wepFile.imageFolderName)
@@ -139,7 +136,6 @@ class TestWepWithMultiImgs(unittest.TestCase):
         self.algoFolderPath = os.path.join(cwfsConfigDir, "algo")
         self.imageFolderPath = os.path.join(modulePath, "tests", "testData",
                                             "testImages")
-        self.instName = "lsst10"
 
         # Set the tolerance
         self.tor = 3
@@ -162,7 +158,7 @@ class TestWepWithMultiImgs(unittest.TestCase):
 
         caseTest = WepFile(imageFolderName, imageName, fieldXY, useAlgorithm,
                            orientation, validationPath)
-        case = DataWep(self.instFolder, self.algoFolderPath, self.instName,
+        case = DataWep(self.instFolder, self.algoFolderPath,
                        self.imageFolderPath, caseTest)
 
         return case
@@ -170,11 +166,10 @@ class TestWepWithMultiImgs(unittest.TestCase):
     def _compareCalculation(self, dataWEP, tor):
 
         # Run WEP to get Zk
-        zer4UpNm = runWEP(dataWEP.instruFolder, dataWEP.algoFolderPath,
-                          dataWEP.instruName, dataWEP.useAlgorithm,
-                          dataWEP.imageFolderPath, dataWEP.intra_image_name,
-                          dataWEP.extra_image_name, dataWEP.fieldXY,
-                          dataWEP.orientation)
+        zer4UpNm = runWEP(dataWEP.instFolder, dataWEP.algoFolderPath,
+                          dataWEP.useAlgorithm, dataWEP.imageFolderPath,
+                          dataWEP.intra_image_name, dataWEP.extra_image_name,
+                          dataWEP.fieldXY, dataWEP.orientation)
 
         # Load the reference data
         refZer4UpNm = np.loadtxt(dataWEP.refFilePath)

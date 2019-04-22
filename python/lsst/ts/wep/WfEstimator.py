@@ -1,7 +1,7 @@
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
-from lsst.ts.wep.Utility import DefocalType
+from lsst.ts.wep.Utility import DefocalType, CamType
 
 
 class WfEstimator(object):
@@ -101,8 +101,9 @@ class WfEstimator(object):
 
         self.algo.reset()
 
-    def config(self, solver="exp", instName="lsst", opticalModel="offAxis",
-               defocalDisInMm=None, sizeInPix=120, debugLevel=0):
+    def config(self, solver="exp", camType=CamType.LsstCam,
+               opticalModel="offAxis", defocalDisInMm=None, sizeInPix=120,
+               debugLevel=0):
         """Configure the TIE solver.
 
         Parameters
@@ -111,8 +112,8 @@ class WfEstimator(object):
             Algorithm to solve the Poisson's equation in the transport of
             intensity equation (TIE). It can be "fft" or "exp" here. (the
             default is "exp".)
-        instName : str, optional
-            Instrument name ("lsst" or "comcam"). (the default is "lsst".)
+        camType : enum 'CamType'
+            Camera type. (the default is CamType.LsstCam.)
         opticalModel : str, optional
             Optical model. It can be "paraxial", "onAxis", or "offAxis". (the
             default is "offAxis".)
@@ -128,43 +129,28 @@ class WfEstimator(object):
         Raises
         ------
         ValueError
-            Wrong instrument name.
-        ValueError
-            No intra-focal image.
-        ValueError
             Wrong Poisson solver name.
         ValueError
             Wrong optical model.
         """
 
-        # Check the inputs and assign the parameters used in the TIE
-        # Need to change the way to hold the instance of Instrument and
-        # Algorithm
-
-        # Update the isnstrument name
-        if (defocalDisInMm is None):
-            defocalDisInMm = 1.5
-        instName = instName + str(int(10*defocalDisInMm))
-
-        if instName not in ("lsst05", "lsst10", "lsst15", "lsst20", "lsst25",
-                            "comcam10", "comcam15", "comcam20"):
-            raise ValueError("Instrument can not be '%s'." % instName)
-
-        # Set the available wavefront image size (n x n)
-        self.sizeInPix = int(sizeInPix)
-
-        # Configurate the instrument
-        self.inst.config(instName, self.sizeInPix)
-
         if solver not in ("exp", "fft"):
             raise ValueError("Poisson solver can not be '%s'." % solver)
-        else:
-            self.algo.config(solver, self.inst, debugLevel=debugLevel)
 
         if opticalModel not in ("paraxial", "onAxis", "offAxis"):
             raise ValueError("Optical model can not be '%s'." % opticalModel)
         else:
             self.opticalModel = opticalModel
+
+        # Update the isnstrument name
+        if (defocalDisInMm is None):
+            defocalDisInMm = 1.5
+
+        self.sizeInPix = int(sizeInPix)
+        self.inst.config(camType, self.sizeInPix,
+                         announcedDefocalDisInMm=defocalDisInMm)
+
+        self.algo.config(solver, self.inst, debugLevel=debugLevel)
 
     def setImg(self, fieldXY, defocalType, image=None, imageFile=None):
         """Set the wavefront image.

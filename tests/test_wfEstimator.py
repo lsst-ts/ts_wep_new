@@ -3,7 +3,7 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.WfEstimator import WfEstimator
-from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
 class TestWfEsitmator(unittest.TestCase):
@@ -44,15 +44,8 @@ class TestWfEsitmator(unittest.TestCase):
         self.assertEqual(self.wfsEst.ImgExtra.defocalType, DefocalType.Extra)
 
         # Setup the configuration
-
-        # Try to catch the error
-        try:
-            self.wfsEst.config(solver="exp", defocalDisInMm=3, debugLevel=0)
-        except ValueError:
-            print("Catch the wrong instrument.")
-
         # If the configuration is reset, the images are needed to be set again.
-        self.wfsEst.config(solver="exp", instName="lsst",
+        self.wfsEst.config(solver="exp", camType=CamType.LsstCam,
                            opticalModel="offAxis", defocalDisInMm=1.0,
                            sizeInPix=120, debugLevel=0)
 
@@ -73,7 +66,7 @@ class TestWfEsitmator(unittest.TestCase):
                            imageFile=self.extraImgFile)
 
         # Change the algorithm to fft
-        self.wfsEst.config(solver="fft", instName="lsst",
+        self.wfsEst.config(solver="fft", camType=CamType.LsstCam,
                            opticalModel="offAxis", defocalDisInMm=1.0,
                            sizeInPix=120, debugLevel=0)
 

@@ -13,6 +13,7 @@
 - **WepController**: High level class to use the WEP package.
 - **Utility**: Utility functions used in WEP.
 - **PlotUtil**: Plot utility functions used in WEP.
+- **ParamReader**: Parameter reader class to read the yaml configuration files used in the calculation.
 
 *There are the following modules in WEP:*
 
@@ -39,7 +40,7 @@
 
 - **Curvature Wavefront Sensor (cwfs)**: This module calculates the wavefront error by solving the TIE. The class diagram is [here](./cwfsClassDiag.png).
   - **Algorithm**: Algorithm class to solve the TIE to get the wavefront error.
-  - **CompensationImageDecorator**: Compensation image decorator class to project the donut image from the image plane to the pupil plane.
+  - **CompensableImage**: Compensable image class to project the donut image from the image plane to the pupil plane.
   - **Image**: Image class to have the function to get the donut center.
   - **Instrument**: Instrument class to have the instrument information used in the Algorithm class to solve the TIE.
   - **Tool**: Annular Zernike polynomials related functions.

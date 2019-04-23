@@ -14,10 +14,10 @@ from lsst.ts.wep.cwfs.Image import Image
 from lsst.ts.wep.Utility import DefocalType
 
 
-class CompensationImageDecorator(object):
+class CompensableImage(object):
 
     def __init__(self):
-        """Instantiate the class of CompensationImageDecorator."""
+        """Instantiate the class of CompensableImage."""
 
         self._image = Image()
         self.defocalType = DefocalType.Intra

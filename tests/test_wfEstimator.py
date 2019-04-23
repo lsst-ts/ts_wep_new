@@ -40,8 +40,10 @@ class TestWfEsitmator(unittest.TestCase):
                            imageFile=self.extraImgFile)
 
         # Test the images are set.
-        self.assertEqual(self.wfsEst.ImgIntra.defocalType, DefocalType.Intra)
-        self.assertEqual(self.wfsEst.ImgExtra.defocalType, DefocalType.Extra)
+        self.assertEqual(self.wfsEst.getIntraImg().getDefocalType(),
+                         DefocalType.Intra)
+        self.assertEqual(self.wfsEst.getExtraImg().getDefocalType(),
+                         DefocalType.Extra)
 
         # Setup the configuration
         # If the configuration is reset, the images are needed to be set again.

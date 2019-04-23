@@ -391,27 +391,27 @@ class StarData(object):
                 # brighter than itself
                 if (filterType == FilterType.U):
                     magSelf = self.lsstMagU[idxCand[ii]]
-                    magNbrStar = self.lsstMagU[[idxNbrStar]]
+                    magNbrStar = self.lsstMagU[idxNbrStar]
 
                 elif (filterType == FilterType.G):
                     magSelf = self.lsstMagG[idxCand[ii]]
-                    magNbrStar = self.lsstMagG[[idxNbrStar]]
+                    magNbrStar = self.lsstMagG[idxNbrStar]
 
                 elif (filterType == FilterType.R):
                     magSelf = self.lsstMagR[idxCand[ii]]
-                    magNbrStar = self.lsstMagR[[idxNbrStar]]
+                    magNbrStar = self.lsstMagR[idxNbrStar]
 
                 elif (filterType == FilterType.I):
                     magSelf = self.lsstMagI[idxCand[ii]]
-                    magNbrStar = self.lsstMagI[[idxNbrStar]]
+                    magNbrStar = self.lsstMagI[idxNbrStar]
 
                 elif (filterType == FilterType.Z):
                     magSelf = self.lsstMagZ[idxCand[ii]]
-                    magNbrStar = self.lsstMagZ[[idxNbrStar]]
+                    magNbrStar = self.lsstMagZ[idxNbrStar]
 
                 elif (filterType == FilterType.Y):
                     magSelf = self.lsstMagY[idxCand[ii]]
-                    magNbrStar = self.lsstMagY[[idxNbrStar]]
+                    magNbrStar = self.lsstMagY[idxNbrStar]
 
                 if ((np.where(magNbrStar < magSelf)[0]).size != 0):
                     brighterNeighbor = True

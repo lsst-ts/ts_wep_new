@@ -1,5 +1,8 @@
 # Version History
 
+*Version 1.2.4* \
+*Use the yaml format for configuration files of cwfs module. Use sims_w_2019_15.*
+
 *Version 1.2.3* \
 *Add the eups as the package manager. Use sims_w_2019_12.*
 

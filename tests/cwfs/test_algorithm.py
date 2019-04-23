@@ -3,7 +3,7 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
@@ -37,8 +37,8 @@ class TestAlgorithm(unittest.TestCase):
 
         # Theree is the difference between intra and extra images
         # I1: intra_focal images, I2: extra_focal Images
-        self.I1 = CompensationImageDecorator()
-        self.I2 = CompensationImageDecorator()
+        self.I1 = CompensableImage()
+        self.I2 = CompensableImage()
 
         self.I1.setImg(fieldXY, DefocalType.Intra, imageFile=intra_image_file)
         self.I2.setImg(fieldXY, DefocalType.Extra, imageFile=extra_image_file)

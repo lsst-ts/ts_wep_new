@@ -1,6 +1,6 @@
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 from lsst.ts.wep.Utility import DefocalType, CamType
 
 
@@ -20,8 +20,8 @@ class WfEstimator(object):
         self.inst = Instrument(instDir)
         self.algo = Algorithm(algoDir)
 
-        self.ImgIntra = CompensationImageDecorator()
-        self.ImgExtra = CompensationImageDecorator()
+        self.imgIntra = CompensableImage()
+        self.imgExtra = CompensableImage()
 
         self.opticalModel = ""
         self.sizeInPix = 0
@@ -57,7 +57,7 @@ class WfEstimator(object):
             Intra-focal donut image.
         """
 
-        return self.ImgIntra
+        return self.imgIntra
 
     def getExtraImg(self):
         """Get the extra-focal donut image.
@@ -68,7 +68,7 @@ class WfEstimator(object):
             Extra-focal donut image.
         """
 
-        return self.ImgExtra
+        return self.imgExtra
 
     def getOptModel(self):
         """Get the optical model.
@@ -174,9 +174,9 @@ class WfEstimator(object):
         """
 
         if (defocalType == DefocalType.Intra):
-            img = self.ImgIntra
+            img = self.imgIntra
         elif (defocalType == DefocalType.Extra):
-            img = self.ImgExtra
+            img = self.imgExtra
 
         img.setImg(fieldXY, defocalType, image=image, imageFile=imageFile)
 
@@ -205,7 +205,7 @@ class WfEstimator(object):
         """
 
         # Check the image size
-        for img in (self.ImgIntra, self.ImgExtra):
+        for img in (self.imgIntra, self.imgExtra):
             d1, d2 = img.getImg().shape
             if (d1 != self.sizeInPix) or (d2 != self.sizeInPix):
                 raise RuntimeError("Input image shape is (%d, %d), not required (%d, %d)" % (
@@ -213,7 +213,7 @@ class WfEstimator(object):
 
         # Calculate the wavefront error.
         # Run cwfs
-        self.algo.runIt(self.ImgIntra, self.ImgExtra, self.opticalModel, tol=tol)
+        self.algo.runIt(self.imgIntra, self.imgExtra, self.opticalModel, tol=tol)
 
         # Show the Zernikes Zn (n>=4)
         if (showZer):

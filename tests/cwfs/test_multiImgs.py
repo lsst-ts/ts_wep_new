@@ -5,7 +5,7 @@ import unittest
 
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 from lsst.ts.wep.cwfs.Tool import plotImage
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
@@ -52,8 +52,8 @@ def runWEP(instDir, algoFolderPath, useAlgorithm, imageFolderPath,
 
     # There is the difference between intra and extra images
     # I1: intra_focal images, I2: extra_focal Images
-    I1 = CompensationImageDecorator()
-    I2 = CompensationImageDecorator()
+    I1 = CompensableImage()
+    I2 = CompensableImage()
 
     I1.setImg(fieldXY, DefocalType.Intra, imageFile=intra_image_file)
     I2.setImg(fieldXY, DefocalType.Extra, imageFile=extra_image_file)

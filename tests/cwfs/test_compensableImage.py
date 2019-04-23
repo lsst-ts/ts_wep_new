@@ -4,7 +4,7 @@ import unittest
 
 from lsst.ts.wep.cwfs.Image import Image
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.CompensationImageDecorator import CompensationImageDecorator
+from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
@@ -30,8 +30,8 @@ class TempAlgo(object):
         return self.zobsR
 
 
-class CompensationImageDecoratorTest(unittest.TestCase):
-    """Test the CompensationImageDecorator class."""
+class TestCompensableImage(unittest.TestCase):
+    """Test the CompensableImage class."""
 
     def setUp(self):
 
@@ -70,7 +70,7 @@ class CompensationImageDecoratorTest(unittest.TestCase):
                                      "LSST_NE_SN25_z11_0.25_exp.txt")
         self.zcCol = np.loadtxt(zcAnsFilePath)
 
-        self.wfsImg = CompensationImageDecorator()
+        self.wfsImg = CompensableImage()
 
     def testGetDefocalType(self):
 
@@ -176,8 +176,8 @@ class CompensationImageDecoratorTest(unittest.TestCase):
         zcCol = np.zeros(22)
         zcCol[3:] = self.zcCol*1e-9
 
-        wfsImgIntra = CompensationImageDecorator()
-        wfsImgExtra = CompensationImageDecorator()
+        wfsImgIntra = CompensableImage()
+        wfsImgExtra = CompensableImage()
         wfsImgIntra.setImg(self.fieldXY, DefocalType.Intra,
                            imageFile=self.imgFilePathIntra,)
         wfsImgExtra.setImg(self.fieldXY, DefocalType.Extra,

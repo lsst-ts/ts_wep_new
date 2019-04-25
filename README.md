@@ -1,10 +1,10 @@
 # Wavefront Estimation Pipeline (WEP)
 
-*This module calculates the wavefront error in annular Zernike polynomials up to 22 terms based on the intra- and extra-focal donut images in the large synoptic survey telescope (LSST). The image quality is decided by z4-z22. The wavefront error is determined by solving the transport of intensity equation (TIE) that approximates the change of intensity mainly comes from the wavefront error.*
+*This module calculates the wavefront error in annular Zernike polynomials up to 22 terms based on the intra- and extra-focal donut images in the large synoptic survey telescope (LSST).*
 
 ## 1. Version History
 
-The version history is [here](./doc/VersionHistory.md).
+The version history is [here](./doc/devUse/VersionHistory.md).
 
 Author: Te-Wei Tsai
 
@@ -20,6 +20,7 @@ Author: Te-Wei Tsai
 - *lsst_distrib (tag: w_2019_15)*
 - *phosim_utils - master branch (commit: 7b02084)*
 - *scikit-image*
+- *[documenteer](https://github.com/lsst-sqre/documenteer) (optional)*
 
 ## 4. Install the LSST Packages, phosim_utils, and ts_wep
 
@@ -28,7 +29,7 @@ Author: Te-Wei Tsai
 *3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2019_15`.* \
 *4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion of this.* \
 *5. Clone the repository of [phosim_utils](https://github.com/lsst-dm/phosim_utils.git) to some other directory. Under the phosim_utils directory, use `setup -k -r . -t sims_w_2019_15` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.* \
-*6. Undet the directory of ts_wep, do:*
+*6. Under the directory of ts_wep, do:*
 
 ```bash
 setup -k -r .
@@ -101,9 +102,13 @@ setup -k -r .
 
 ## 8. Content
 
-*The details of cotent is [here](./doc/Content.md).*
+*The details of cotent is [here](./doc/devUse/Content.md).*
 
 ## 9. Example Script
 
 - **mapSensorAndFieldIdx.py**: Map the sensor name to the field point index based on the sensor's position on the ideal focal plane.
 - **deblendEimg.py**: Do the deblending of eimage. The deblending algorithm now can only work on the eimage.
+
+## 10. Build the Document
+
+*The user can use `package-docs build` to build the documentation. The documenteer is needed for this. To clean the built documents, use `package-docs clean`. See [Building single-package documentation locally](https://developer.lsst.io/stack/building-single-package-docs.html) for further details.*

@@ -14,7 +14,8 @@ class WEPCalculationFactory(object):
         """Construct an WEP calculation factory object."""
         super().__init__()
 
-    def getCalculator(self, camType):
+    @staticmethod
+    def getCalculator(camType):
         """Get a calculator to process wavefront image.
 
         Parameters

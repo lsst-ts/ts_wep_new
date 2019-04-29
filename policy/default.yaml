@@ -2,12 +2,20 @@
 
 # Default setting
 
+# Camera related constants
+# 1 pixel = 0.2 arcsec
+pixelToArcsec: 0.2
+
+# 1 pixel = 10 um
+pixelToUm: 10
+
 # The followings are the setting of source selector
 
 # Camera MJD
 cameraMJD: 59580.0
 
 # Star (donut) radious in pixel
+# Donut radius is 63 pixel if the defocal distance is 1.5 mm
 starRadiuxInPixel: 63
 
 # Spacing coefficient
@@ -15,6 +23,11 @@ spacingCoef: 2.5
 
 # Max number of neighboring star
 maxNumOfNbrStar: 0
+
+# The followings are the setting of source processor
+
+# Distance to be vignette
+distVignette: 1.75
 
 # with 1.5 mm defocal distance
 # DEFOCAL_DIS_IN_MM = 1.5

@@ -2,47 +2,39 @@ import os
 import numpy as np
 
 from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
-from lsst.ts.wep.Utility import readPhoSimSettingData, mapFilterRefToG
+from lsst.ts.wep.Utility import readPhoSimSettingData, mapFilterRefToG, \
+    getConfigDir
+from lsst.ts.wep.ParamReader import ParamReader
 
 
 class SourceProcessor(object):
 
-    # Donut radius is 63 pixel if the defocal distance is 1.5 mm
-    STAR_RADIUS_IN_PIXEL = 63
-
-    # 1 pixel = 0.2 arcsec
-    PIXEL_TO_ARCSEC = 0.2
-
-    # 1 pixel = 10 um
-    PIXEL_TO_UM = 10
-
-    # Focal plane file name in PhoSim instrument directory
-    PHOSIM_FOCALPLANE = "focalplanelayout.txt"
-
-    # Distance to be vignette
-    DIST_VIGNETTE = 1.75
-
-    def __init__(self, folderPath2FocalPlane=None):
+    def __init__(self, settingFileName="default.yaml",
+                 focalPlaneFileName="focalplanelayout.txt"):
         """Initialize the SourceProcessor class.
 
         Parameters
         ----------
-        folderPath2FocalPlane : str, optional
-            Directory of focal plane file. (the default is None.)
+        settingFileName : str, optional
+            Setting file name (the default is "default.yaml".)
+        focalPlaneFileName : str, optional
+            Focal plane file name used in the PhoSim instrument directory.
         """
 
         self.sensorName = ""
         self.blendedImageDecorator = BlendedImageDecorator()
 
+        configDir = getConfigDir()
+        settingFilePath = os.path.join(configDir, settingFileName)
+        self.settingFile = ParamReader(settingFilePath)
+
         self.sensorFocaPlaneInDeg = dict()
         self.sensorFocaPlaneInUm = dict()
         self.sensorDimList = dict()
         self.sensorEulerRot = dict()
+        self._readFocalPlane(configDir, focalPlaneFileName)
 
-        if (folderPath2FocalPlane is not None):
-            self._readFocalPlane(folderPath2FocalPlane)
-
-    def _readFocalPlane(self, folderPath):
+    def _readFocalPlane(self, folderPath, focalPlaneFileName):
         """Read the focal plane data used in PhoSim to get the ccd dimension
         and fieldXY in chip center.
 
@@ -50,10 +42,12 @@ class SourceProcessor(object):
         ----------
         folderPath : str
             Directory of focal plane file.
+        focalPlaneFileName : str
+            Focal plane file name used in the PhoSim instrument directory.
         """
 
         # Read the focal plane data by the delegation
-        ccdData = readPhoSimSettingData(folderPath, self.PHOSIM_FOCALPLANE,
+        ccdData = readPhoSimSettingData(folderPath, focalPlaneFileName,
                                         "fieldCenter")
 
         # Collect the focal plane data
@@ -73,8 +67,9 @@ class SourceProcessor(object):
             sizeYinPixel = int(data[4])
 
             # 1 degree = 3600 arcsec
-            fieldX = xInUm / pixelSizeInUm * self.PIXEL_TO_ARCSEC / 3600
-            fieldY = yInUm / pixelSizeInUm * self.PIXEL_TO_ARCSEC / 3600
+            pixelToArcsec = self.settingFile.getSetting("pixelToArcsec")
+            fieldX = xInUm / pixelSizeInUm * pixelToArcsec / 3600
+            fieldY = yInUm / pixelSizeInUm * pixelToArcsec / 3600
 
             # Get the data
             sensorFocaPlaneInDeg[sensorName] = (fieldX, fieldY)
@@ -86,7 +81,7 @@ class SourceProcessor(object):
         self.sensorFocaPlaneInDeg = sensorFocaPlaneInDeg
         self.sensorFocaPlaneInUm = sensorFocaPlaneInUm
         self.sensorEulerRot = readPhoSimSettingData(
-            folderPath, self.PHOSIM_FOCALPLANE, "eulerRot")
+            folderPath, focalPlaneFileName, "eulerRot")
 
     def _shiftCenterWfs(self, sensorName, focalPlaneData):
         """Shift the fieldXY of center of wavefront sensors.
@@ -147,24 +142,17 @@ class SourceProcessor(object):
         elif (tempY is not None):
             focalPlaneData[1] = str(tempY)
 
-    def config(self, sensorName=None, folderPath2FocalPlane=None):
+    def config(self, sensorName=None):
         """Do the configuration.
 
         Parameters
         ----------
         sensorName : str, optional
             Abbreviated sensor name. (the default is None.)
-        folderPath2FocalPlane : str, optional
-            Directory of focal plane file. (the default is None.)
         """
 
-        # Give the sensor name
         if (sensorName is not None):
             self.sensorName = sensorName
-
-        # Read the focal plane data
-        if (folderPath2FocalPlane is not None):
-            self._readFocalPlane(folderPath2FocalPlane)
 
     def getEulerZinDeg(self, sensorName):
         """Get the Euler Z angle of sensor in degree.
@@ -227,8 +215,9 @@ class SourceProcessor(object):
 
         # Calculate the delta x and y in degree
         # 1 degree = 3600 arcsec
-        deltaX = (pixelX - pixelXc) * self.PIXEL_TO_ARCSEC / 3600.0
-        deltaY = (pixelY - pixelYc) * self.PIXEL_TO_ARCSEC / 3600.0
+        pixelToArcsec = self.settingFile.getSetting("pixelToArcsec")
+        deltaX = (pixelX - pixelXc) * pixelToArcsec / 3600.0
+        deltaY = (pixelY - pixelYc) * pixelToArcsec / 3600.0
 
         # Calculate the transformed coordinate in degree.
         fieldX, fieldY = self._rotCam2FocalPlane(
@@ -377,7 +366,8 @@ class SourceProcessor(object):
         # Calculate the distance to center in degree to judge the donut is
         # vignetted or not.
         fldr = np.sqrt(fieldX**2 + fieldY**2)
-        if (fldr >= self.DIST_VIGNETTE):
+        distVignette = self.settingFile.getSetting("distVignette")
+        if (fldr >= distVignette):
             return True
         else:
             return False
@@ -636,8 +626,9 @@ class SourceProcessor(object):
         cenY = int(np.mean([minY, maxY]))
 
         # Get the image dimension
-        d1 = (maxY - minY) + 4 * self.STAR_RADIUS_IN_PIXEL
-        d2 = (maxX - minX) + 4 * self.STAR_RADIUS_IN_PIXEL
+        starRadiuxInPixel = self.settingFile.getSetting("starRadiuxInPixel")
+        d1 = (maxY - minY) + 4 * starRadiuxInPixel
+        d2 = (maxX - minX) + 4 * starRadiuxInPixel
 
         # Make d1 and d2 to be symmetric and even
         d = max(d1, d2)

@@ -12,25 +12,25 @@ class TestWEPCalculationFactory(unittest.TestCase):
 
     def testGetCalculatorOfLsstCam(self):
 
-        calculator = WEPCalculationFactory.getCalculator(CamType.LsstCam)
+        calculator = WEPCalculationFactory.getCalculator(CamType.LsstCam, "")
 
         self.assertTrue(isinstance(calculator, WEPCalculationOfLsstCam))
 
     def testGetCalculatorOfLsstFamCam(self):
 
-        calculator = WEPCalculationFactory.getCalculator(CamType.LsstFamCam)
+        calculator = WEPCalculationFactory.getCalculator(CamType.LsstFamCam, "")
 
         self.assertTrue(isinstance(calculator, WEPCalculationOfLsstFamCam))
 
     def testGetCalculatorOfComCam(self):
 
-        calculator = WEPCalculationFactory.getCalculator(CamType.ComCam)
+        calculator = WEPCalculationFactory.getCalculator(CamType.ComCam, "")
 
         self.assertTrue(isinstance(calculator, WEPCalculationOfComCam))
 
     def testGetCalculatorOfWrongCamType(self):
 
-        self.assertRaises(ValueError, WEPCalculationFactory.getCalculator,
+        self.assertRaises(ValueError, WEPCalculationFactory.getCalculator, "",
                           "wrongInst")
 
 

@@ -10,19 +10,50 @@ class WEPCalculation(object):
     types of CCDs (normal, full array mode, comcam, cmos, shwfs).
     """
 
-    def __init__(self, astWcsSol):
-        """Construct an WEP calculation object."""
+    def __init__(self, astWcsSol, isrDir):
+        """Construct an WEP calculation object.
+
+        Parameters
+        ----------
+        astWcsSol : AstWcsSol
+            AST world coordinate system (WCS) solution.
+        isrDir : str
+            Instrument signature remocal (ISR) directory. This directory will
+            have the input and output that the data butler needs.
+        """
+
         super().__init__()
 
+        # This attribute is just a stakeholder here since there is no detail of
+        # AST WCS solution yet
         self.astWcsSol = astWcsSol
-        self.currentFilter = FilterType.REF
 
+        # ISR directory that the data butler uses
+        self.isrDir = isrDir
+
+        # Number of processors for WEP to use
+        self.numOfProc = 1
+
+        self.currentFilter = FilterType.REF
         self.raInDeg = 0.0
         self.decInDeg = 0.0
         self.rotAngInDeg = 0.0
 
-        self.numOfProc = 1
         self.calibsDir = ""
+
+    def getIsrDir(self):
+        """Get the instrument signature removal (ISR) directory.
+
+        This directory will have the input and output that the data butler
+        needs.
+
+        Returns
+        -------
+        str
+            ISR directory.
+        """
+
+        return self.isrDir
 
     def setWcsData(self, wcsData):
         """Set the WCS data.

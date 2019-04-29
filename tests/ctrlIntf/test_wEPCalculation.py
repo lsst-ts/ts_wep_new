@@ -13,7 +13,13 @@ class TestWEPCalculation(unittest.TestCase):
 
     def setUp(self):
 
-        self.wepCalculation = WEPCalculation(AstWcsSol())
+        self.isrDir = ""
+        self.wepCalculation = WEPCalculation(AstWcsSol(), self.isrDir)
+
+    def testGetIsrDir(self):
+
+        isrDir = self.wepCalculation.getIsrDir()
+        self.assertEqual(isrDir, self.isrDir)
 
     def testGetFilter(self):
 

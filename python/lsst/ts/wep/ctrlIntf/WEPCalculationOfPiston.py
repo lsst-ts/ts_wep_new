@@ -7,9 +7,18 @@ class WEPCalculationOfPiston(WEPCalculation):
 
     DEFOCAL_DIS_IN_MM = 1.5
 
-    def __init__(self, astWcsSol):
-        """Construct an WEP calculation of piston object."""
-        super(WEPCalculationOfPiston, self).__init__(astWcsSol)
+    def __init__(self, astWcsSol, isrDir):
+        """Construct an WEP calculation of piston object.
+
+        Parameters
+        ----------
+        astWcsSol : AstWcsSol
+            AST world coordinate system (WCS) solution.
+        isrDir : str
+            Instrument signature remocal (ISR) directory. This directory will
+            have the input and output that the data butler needs.
+        """
+        super(WEPCalculationOfPiston, self).__init__(astWcsSol, isrDir)
 
         self.defocalDisInMm = self.DEFOCAL_DIS_IN_MM
 

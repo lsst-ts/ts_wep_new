@@ -9,7 +9,7 @@ class TestWEPCalculationOfPiston(unittest.TestCase):
 
     def setUp(self):
 
-        self.wepCalculationOfPiston = WEPCalculationOfPiston(AstWcsSol())
+        self.wepCalculationOfPiston = WEPCalculationOfPiston(AstWcsSol(), "")
 
     def testGetDefocalDisInMm(self):
 

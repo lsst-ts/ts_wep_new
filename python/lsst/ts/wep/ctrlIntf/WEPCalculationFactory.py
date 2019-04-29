@@ -15,13 +15,16 @@ class WEPCalculationFactory(object):
         super().__init__()
 
     @staticmethod
-    def getCalculator(camType):
+    def getCalculator(camType, isrDir):
         """Get a calculator to process wavefront image.
 
         Parameters
         ----------
         camType : CamType
             The camera type to get the wavefront calculator for.
+        isrDir : str
+            Instrument signature remocal (ISR) directory. This directory will
+            have the input and output that the data butler needs.
 
         Returns
         -------
@@ -36,11 +39,11 @@ class WEPCalculationFactory(object):
         """
 
         if (camType == CamType.LsstCam):
-            return WEPCalculationOfLsstCam()
+            return WEPCalculationOfLsstCam(isrDir)
         elif (camType == CamType.LsstFamCam):
-            return WEPCalculationOfLsstFamCam()
+            return WEPCalculationOfLsstFamCam(isrDir)
         elif (camType == CamType.ComCam):
-            return WEPCalculationOfComCam()
+            return WEPCalculationOfComCam(isrDir)
         else:
             raise ValueError("This camera type is not supported.")
 

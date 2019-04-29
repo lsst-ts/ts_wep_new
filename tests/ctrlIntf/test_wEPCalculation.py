@@ -21,6 +21,18 @@ class TestWEPCalculation(unittest.TestCase):
         isrDir = self.wepCalculation.getIsrDir()
         self.assertEqual(isrDir, self.isrDir)
 
+    def testGetSkyFile(self):
+
+        skyFile = self.wepCalculation.getSkyFile()
+        self.assertEqual(skyFile, "")
+
+    def testSetSkyFile(self):
+
+        skyFile = "test.txt"
+        self.wepCalculation.setSkyFile(skyFile)
+
+        self.assertEqual(self.wepCalculation.getSkyFile(), skyFile)
+
     def testGetFilter(self):
 
         filterType = self.wepCalculation.getFilter()

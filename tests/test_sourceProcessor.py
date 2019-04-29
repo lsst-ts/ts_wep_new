@@ -15,15 +15,11 @@ class TestSourceProcessor(unittest.TestCase):
         # Get the path of module
         self.modulePath = getModulePath()
 
-        # CCD focal plane file
-        focalPlaneFolder = os.path.join(self.modulePath, "tests", "testData")
-
         # Set the source processor
         self.sourProc = SourceProcessor()
 
         # Set the configuration
-        self.sourProc.config(sensorName="R00_S22_C0",
-                             folderPath2FocalPlane=focalPlaneFolder)
+        self.sourProc.config(sensorName="R00_S22_C0")
 
     def testInit(self):
 

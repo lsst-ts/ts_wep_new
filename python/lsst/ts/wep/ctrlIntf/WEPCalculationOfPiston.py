@@ -5,8 +5,6 @@ class WEPCalculationOfPiston(WEPCalculation):
     """The child class of WEPCalculation that gets the defocal images by the
     camera piston."""
 
-    DEFOCAL_DIS_IN_MM = 1.5
-
     def __init__(self, astWcsSol, camType, isrDir):
         """Construct an WEP calculation of piston object.
 
@@ -14,15 +12,13 @@ class WEPCalculationOfPiston(WEPCalculation):
         ----------
         astWcsSol : AstWcsSol
             AST world coordinate system (WCS) solution.
-        camType : CamType
+        camType : enum 'CamType'
             Camera type.
         isrDir : str
             Instrument signature remocal (ISR) directory. This directory will
             have the input and output that the data butler needs.
         """
         super(WEPCalculationOfPiston, self).__init__(astWcsSol, camType, isrDir)
-
-        self.defocalDisInMm = self.DEFOCAL_DIS_IN_MM
 
     def setDefocalDisInMm(self, defocalDisInMm):
         """Set the defocal distance in mm.
@@ -33,18 +29,28 @@ class WEPCalculationOfPiston(WEPCalculation):
             Defocal distance in mm.
         """
 
-        self.defocalDisInMm = defocalDisInMm
+        wfEsti = self.wepCntlr.getWfEsti()
+
+        inst = wfEsti.getInst()
+        inst.setAnnDefocalDisInMm(defocalDisInMm)
 
     def getDefocalDisInMm(self):
         """Set the defocal distance in mm.
 
+        CWFS: Curvature wavefront sensor.
+
         Returns
         -------
         float
-            Defocal distance in mm.
+            Defocal distance in mm used in the cwfs algorithm.
         """
 
-        return self.defocalDisInMm
+        wfEsti = self.wepCntlr.getWfEsti()
+
+        inst = wfEsti.getInst()
+        defocalDisInM = inst.getDefocalDisOffset()
+
+        return defocalDisInM * 1e3
 
 
 if __name__ == "__main__":

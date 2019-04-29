@@ -33,7 +33,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         dataCollector = CamDataCollector(self.isrDir)
         isrWrapper = CamIsrWrapper(self.isrDir)
         sourSelc = self._configSourceSelector()
-        sourProc = self._configSourceProcessor()
+        sourProc = SourceProcessor()
         wfEsti = self._configWfEstimator()
 
         # Instantiate the WEP controller
@@ -73,14 +73,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
         sourSelc.connect(dbAdress)
 
         return sourSelc
-
-    def _configSourceProcessor(self):
-
-        folderPath2FocalPlane = os.path.join(self.modulePath, "tests",
-                                             "testData")
-        sourProc = SourceProcessor(folderPath2FocalPlane=folderPath2FocalPlane)
-
-        return sourProc
 
     def _configWfEstimator(self):
 

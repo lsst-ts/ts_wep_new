@@ -16,9 +16,10 @@ class SourceProcessor(object):
         Parameters
         ----------
         settingFileName : str, optional
-            Setting file name (the default is "default.yaml".)
+            Setting file name. (the default is "default.yaml".)
         focalPlaneFileName : str, optional
-            Focal plane file name used in the PhoSim instrument directory.
+            Focal plane file name used in the PhoSim instrument directory. (the
+            default is "focalplanelayout.txt".)
         """
 
         self.sensorName = ""
@@ -626,9 +627,9 @@ class SourceProcessor(object):
         cenY = int(np.mean([minY, maxY]))
 
         # Get the image dimension
-        starRadiuxInPixel = self.settingFile.getSetting("starRadiuxInPixel")
-        d1 = (maxY - minY) + 4 * starRadiuxInPixel
-        d2 = (maxX - minX) + 4 * starRadiuxInPixel
+        starRadiusInPixel = self.settingFile.getSetting("starRadiusInPixel")
+        d1 = (maxY - minY) + 4 * starRadiusInPixel
+        d2 = (maxX - minX) + 4 * starRadiusInPixel
 
         # Make d1 and d2 to be symmetric and even
         d = max(d1, d2)

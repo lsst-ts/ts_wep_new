@@ -2,21 +2,20 @@
 
 # Default setting
 
-# Camera related constants
 # 1 pixel = 0.2 arcsec
 pixelToArcsec: 0.2
 
-# 1 pixel = 10 um
-pixelToUm: 10
-
-# The followings are the setting of source selector
+# Bright star catalog (BSC) database ("localDb" or "file")
+# localDb: Use the local database (not support yet)
+# file: Use the sky file
+bscDb: file
 
 # Camera MJD
 cameraMJD: 59580.0
 
 # Star (donut) radious in pixel
 # Donut radius is 63 pixel if the defocal distance is 1.5 mm
-starRadiuxInPixel: 63
+starRadiusInPixel: 63
 
 # Spacing coefficient
 spacingCoef: 2.5
@@ -24,11 +23,21 @@ spacingCoef: 2.5
 # Max number of neighboring star
 maxNumOfNbrStar: 0
 
-# The followings are the setting of source processor
-
 # Distance to be vignette
 distVignette: 1.75
 
-# with 1.5 mm defocal distance
-# DEFOCAL_DIS_IN_MM = 1.5
-# DONUT_IMG_SIZE_IN_PIXEL = 160
+# Algorithm to solve the Poisson's equation in the transport of intensity
+# equation (TIE). It can be "fft" or "exp".
+poissonSolver: exp
+
+# Optical model. It can be "paraxial", "onAxis", or "offAxis"
+opticalModel: offAxis
+
+# Defocal distance in mm (default is 1.5 mm)
+dofocalDistInMm: 1.5
+
+# Donut image size in pixel (default value at 1.5 mm)
+donutImgSizeInPixel: 160
+
+# Camera mapper for the data butler to use
+camMapper: phosim

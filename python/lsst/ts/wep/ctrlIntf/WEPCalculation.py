@@ -1,7 +1,7 @@
 import os
 
-from lsst.ts.wep.Utility import getModulePath, getConfigDir, FilterType, \
-    BscDbType
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, BscDbType, \
+    FilterType
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -9,6 +9,7 @@ from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.WepController import WepController
 from lsst.ts.wep.ctrlIntf.SensorWavefrontData import SensorWavefrontData
+from lsst.ts.wep.ParamReader import ParamReader
 
 
 class WEPCalculation(object):
@@ -18,18 +19,21 @@ class WEPCalculation(object):
     types of CCDs (normal, full array mode, comcam, cmos, shwfs).
     """
 
-    def __init__(self, astWcsSol, camType, isrDir):
+    def __init__(self, astWcsSol, camType, isrDir,
+                 settingFileName="default.yaml"):
         """Construct an WEP calculation object.
 
         Parameters
         ----------
         astWcsSol : AstWcsSol
             AST world coordinate system (WCS) solution.
-        camType : CamType
+        camType : enum 'CamType'
             Camera type.
         isrDir : str
             Instrument signature remocal (ISR) directory. This directory will
             have the input and output that the data butler needs.
+        settingFileName : str, optional
+            Setting file name. (the default is "default.yaml".)
         """
 
         super().__init__()
@@ -42,37 +46,41 @@ class WEPCalculation(object):
         self.isrDir = isrDir
 
         # Number of processors for WEP to use
+        # This is just a stakeholder at this moment
         self.numOfProc = 1
 
         # Boresight infomation
         self.raInDeg = 0.0
         self.decInDeg = 0.0
 
-        # Camera rotation angle
-        self.rotAngInDeg = 0.0
+        # Sky rotation angle
+        self.rotSkyPos = 0.0
 
         # Sky information file fro the temporary use
         self.skyFile = ""
 
-        # Remove these two in a latter time
-        # self.currentFilter = FilterType.REF
-        # self.calibsDir = ""
+        # Default setting file
+        settingFilePath = os.path.join(getConfigDir(), settingFileName)
+        self.settingFile = ParamReader(settingFilePath)
 
-        # WEP controller
-        self.wepCntlr = self._configWepController(camType, isrDir)
+        # Configure the WEP controller
+        self.wepCntlr = self._configWepController(camType, isrDir,
+                                                  settingFileName)
 
-    def _configWepController(self, camType, isrDir):
+    def _configWepController(self, camType, isrDir, settingFileName):
         """Configure the WEP controller.
 
         WEP: wavefront estimation pipeline.
 
         Parameters
         ----------
-        camType : CamType
+        camType : enum 'CamType'
             Camera type.
         isrDir : str
             Instrument signature remocal (ISR) directory. This directory will
             have the input and output that the data butler needs.
+        settingFileName : str
+            Setting file name.
 
         Returns
         -------
@@ -82,70 +90,118 @@ class WEPCalculation(object):
 
         dataCollector = CamDataCollector(isrDir)
         isrWrapper = CamIsrWrapper(isrDir)
-        sourSelc = self._configSourceSelector(camType)
-        sourProc = self._configSourceProcessor()
-        wfsEsti = self._configWfEstimator()
+
+        bscDbType = self._getBscDbType()
+        sourSelc = self._configSourceSelector(camType, bscDbType,
+                                              settingFileName)
+
+        sourProc = SourceProcessor(settingFileName=settingFileName)
+        wfsEsti = self._configWfEstimator(camType)
+
         wepCntlr = WepController(dataCollector, isrWrapper, sourSelc,
                                  sourProc, wfsEsti)
 
         return wepCntlr
 
-    def _configSourceSelector(self, camType):
+    def _getBscDbType(self):
+        """Get the bright star catalog (BSC) database type.
+
+        Returns
+        -------
+        enum 'BscDbType'
+            BSC database type.
+
+        Raises
+        ------
+        ValueError
+            The bscDb is not supported.
+        """
+
+        bscDb = self.settingFile.getSetting("bscDb")
+        if (bscDb == "localDb"):
+            return BscDbType.LocalDb
+        elif (bscDb == "file"):
+            return BscDbType.LocalDbForStarFile
+        else:
+            raise ValueError("The bscDb (%s) is not supported." % bscDb)
+
+    def _configSourceSelector(self, camType, bscDbType, settingFileName):
         """Configue the source selector.
+
+        Parameters
+        ----------
+        camType : enum 'CamType'
+            Camera type.
+        bscDbType : enum 'BscDbType'
+            Bright star catalog (BSC) database type.
+        settingFileName : str
+            Setting file name.
 
         Returns
         -------
         SourceSelector
             Configured source selector.
+
+        Raises
+        ------
+        ValueError
+            WEPCalculation does not support this bscDbType yet.
         """
 
-        sourSelc = SourceSelector(camType, BscDbType.LocalDbForStarFile)
-        dbAdress = os.path.join(getModulePath(), "tests", "testData",
-                                "bsc.db3")
-        sourSelc.connect(dbAdress)
+        sourSelc = SourceSelector(camType, bscDbType,
+                                  settingFileName=settingFileName)
+        sourSelc.setFilter(FilterType.REF)
+
+        if (bscDbType == BscDbType.LocalDbForStarFile):
+            dbAdress = os.path.join(getModulePath(), "tests", "testData",
+                                    "bsc.db3")
+            sourSelc.connect(dbAdress)
+        else:
+            raise ValueError("WEPCalculation does not support %s yet." % bscDbType)
 
         return sourSelc
 
-    def _configSourceProcessor(self):
-        """Configure the source processor.
-        Returns
-        -------
-        SourceProcessor
-            Configured source processor.
-        """
-
-        folderPath2FocalPlane = os.path.join(getModulePath(), "tests",
-                                             "testData")
-        sourProc = SourceProcessor(folderPath2FocalPlane=folderPath2FocalPlane)
-
-        return sourProc
-
-    def _configWfEstimator(self):
+    def _configWfEstimator(self, camType):
         """Configure the wavefront estimator.
+
         Returns
         -------
         WfEstimator
             Configured wavefront estimator.
         """
 
-        instruFolderPath = os.path.join(self._getConfigDataPath(), "cwfs",
-                                        "instruData")
-        algoFolderPath = os.path.join(self._getConfigDataPath(), "cwfs",
-                                      "algo")
-        wfsEsti = WfEstimator(instruFolderPath, algoFolderPath)
+        configDir = getConfigDir()
+        instDir = os.path.join(configDir, "cwfs", "instData")
+        algoDir = os.path.join(configDir, "cwfs", "algo")
+        wfsEsti = WfEstimator(instDir, algoDir)
 
-        # Use the comcam to calculate the LSST central raft image
-        wfsEsti.config(solver="exp", instName="comcam",
-                       opticalModel="offAxis",
-                       defocalDisInMm=self.DEFOCAL_DIS_IN_MM,
-                       sizeInPix=self.DONUT_IMG_SIZE_IN_PIXEL, debugLevel=0)
+        solver = self.settingFile.getSetting("poissonSolver")
+        opticalModel = self.settingFile.getSetting("opticalModel")
+        defocalDisInMm = self.settingFile.getSetting("dofocalDistInMm")
+        donutImgSizeInPixel = self.settingFile.getSetting("donutImgSizeInPixel")
+        wfsEsti.config(solver=solver, camType=camType,
+                       opticalModel=opticalModel,
+                       defocalDisInMm=defocalDisInMm,
+                       sizeInPix=donutImgSizeInPixel)
 
         return wfsEsti
+
+    def getWepCntlr(self):
+        """Get the configured WEP controller.
+
+        Returns
+        -------
+        WepController
+            Configured WEP controller.
+        """
+
+        return self.wepCntlr
 
     def disconnect(self):
         """Disconnect the database."""
 
-        self.wepCntlr.getSourSelc().disconnect()
+        sourSelc = self.wepCntlr.getSourSelc()
+        sourSelc.disconnect()
 
     def getIsrDir(self):
         """Get the instrument signature removal (ISR) directory.
@@ -203,22 +259,24 @@ class WEPCalculation(object):
 
         Parameters
         ----------
-        filterType : FilterType
+        filterType : enum 'FilterType'
             The new filter configuration to use for WEP data processing.
         """
 
-        self.currentFilter = filterType
+        sourSelc = self.wepCntlr.getSourSelc()
+        sourSelc.setFilter(filterType)
 
     def getFilter(self):
         """Get the current filter.
 
         Returns
         -------
-        FilterType
+        enum 'FilterType'
             The current filter configuration to use for WEP data processing.
         """
 
-        return self.currentFilter
+        sourSelc = self.wepCntlr.getSourSelc()
+        return sourSelc.getFilter()
 
     def setBoresight(self, raInDeg, decInDeg):
         """Set the boresight (ra, dec) in degree from the pointing component.
@@ -261,7 +319,11 @@ class WEPCalculation(object):
             The camera rotation angle in degree (-90 to 90).
         """
 
-        self.rotAngInDeg = rotAngInDeg
+        # In the WCS solution provided by SIMS team, the input angle is sky
+        # rotation angle. We do not know its relationship with the camera
+        # rotation angle yet.
+
+        self.rotSkyPos = rotAngInDeg
 
     def getRotAng(self):
         """Get the camera rotation angle in degree defined in the camera
@@ -273,7 +335,11 @@ class WEPCalculation(object):
             The camera rotation angle in degree.
         """
 
-        return self.rotAngInDeg
+        # In the WCS solution provided by SIMS team, the input angle is sky
+        # rotation angle. We do not know its relationship with the camera
+        # rotation angle yet.
+
+        return self.rotSkyPos
 
     def setNumOfProc(self, numOfProc):
         """Set the number of processor
@@ -288,6 +354,9 @@ class WEPCalculation(object):
         ValueError
             Number of processor should be >=1.
         """
+
+        # Discuss with Chris that we put this into the configuration file or
+        # not
 
         if (numOfProc < 1):
             raise ValueError("Number of processor should be >=1.")
@@ -326,7 +395,34 @@ class WEPCalculation(object):
             Calibration directory.
         """
 
-        self.calibsDir = calibsDir
+        self._genCamMapperIfNeed()
+
+        dataCollector = self.wepCntlr.getDataCollector()
+
+        calibFiles = os.path.join(calibsDir, "*")
+        dataCollector.ingestCalibs(calibFiles)
+
+    def _genCamMapperIfNeed(self):
+        """Generate the camera mapper file if it is needed.
+
+        The mapper file is used by the data butler.
+
+        Raises
+        ------
+        ValueError
+            Mapper is not supported yet.
+        """
+
+        mapperFile = os.path.join(self.isrDir, "_mapper")
+        if (not os.path.exists(mapperFile)):
+
+            dataCollector = self.wepCntlr.getDataCollector()
+
+            camMapper = self.settingFile.getSetting("camMapper")
+            if (camMapper == "phosim"):
+                dataCollector.genPhoSimMapper()
+            else:
+                raise ValueError("Mapper (%s) is not supported yet." % camMapper)
 
 
 if __name__ == "__main__":

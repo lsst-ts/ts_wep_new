@@ -53,7 +53,7 @@ class WfEstimator(object):
 
         Returns
         -------
-        CompensationImageDecorator
+        CompensableImage
             Intra-focal donut image.
         """
 
@@ -64,7 +64,7 @@ class WfEstimator(object):
 
         Returns
         -------
-        CompensationImageDecorator
+        CompensableImage
             Extra-focal donut image.
         """
 
@@ -166,11 +166,6 @@ class WfEstimator(object):
             Array of image. (the default is None.)
         imageFile : str, optional
             Path of image file. (the default is None.)
-
-        Raises
-        ------
-        ValueError
-            Wrong defocal type.
         """
 
         if (defocalType == DefocalType.Intra):

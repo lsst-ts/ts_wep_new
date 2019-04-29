@@ -134,6 +134,28 @@ class Instrument(object):
         self.xoSensor[idx] = np.nan
         self.yoSensor[idx] = np.nan
 
+    def setAnnDefocalDisInMm(self, annDefocalDisInMm):
+        """Set the announced defocal distance in mm.
+
+        Parameters
+        ----------
+        annDefocalDisInMm : float
+            Announced defocal distance in mm.
+        """
+
+        self.announcedDefocalDisInMm = annDefocalDisInMm
+
+    def getAnnDefocalDisInMm(self):
+        """Get the announced defocal distance in mm.
+
+        Returns
+        -------
+        float
+            Announced defocal distance in mm.
+        """
+
+        return self.announcedDefocalDisInMm
+
     def getInstFilePath(self):
         """Get the instrument parameter file path.
 

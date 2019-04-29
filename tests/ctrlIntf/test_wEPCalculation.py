@@ -1,6 +1,8 @@
+import os
 import unittest
+import shutil
 
-from lsst.ts.wep.Utility import FilterType, CamType
+from lsst.ts.wep.Utility import getModulePath, CamType, FilterType
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
@@ -13,9 +15,23 @@ class TestWEPCalculation(unittest.TestCase):
 
     def setUp(self):
 
-        self.isrDir = ""
+        self.modulePath = getModulePath()
+        self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
+        self.isrDir = os.path.join(self.dataDir, "input")
+        self._makeDir(self.isrDir)
+
         self.wepCalculation = WEPCalculation(AstWcsSol(), CamType.ComCam,
                                              self.isrDir)
+
+    def _makeDir(self, directory):
+
+        if (not os.path.exists(directory)):
+            os.makedirs(directory)
+
+    def tearDown(self):
+
+        self.wepCalculation.getWepCntlr().getSourSelc().disconnect()
+        shutil.rmtree(self.dataDir)
 
     def testGetIsrDir(self):
 
@@ -88,6 +104,7 @@ class TestWEPCalculation(unittest.TestCase):
         self.assertRaises(ValueError, self.wepCalculation.setNumOfProc,
                           numOfProc)
 
+    @unittest.skip
     def testIngestCalibs(self):
 
         self.assertEqual(self.wepCalculation.calibsDir, "")
@@ -97,6 +114,7 @@ class TestWEPCalculation(unittest.TestCase):
 
         self.assertEqual(self.wepCalculation.calibsDir, calibsDir)
 
+    @unittest.skip
     def testCalculateWavefrontErrors(self):
 
         listOfWfErr = self.wepCalculation.calculateWavefrontErrors(RawExpData())

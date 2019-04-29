@@ -1,6 +1,6 @@
 import unittest
 
-from lsst.ts.wep.Utility import FilterType
+from lsst.ts.wep.Utility import FilterType, CamType
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
@@ -14,7 +14,8 @@ class TestWEPCalculation(unittest.TestCase):
     def setUp(self):
 
         self.isrDir = ""
-        self.wepCalculation = WEPCalculation(AstWcsSol(), self.isrDir)
+        self.wepCalculation = WEPCalculation(AstWcsSol(), CamType.ComCam,
+                                             self.isrDir)
 
     def testGetIsrDir(self):
 

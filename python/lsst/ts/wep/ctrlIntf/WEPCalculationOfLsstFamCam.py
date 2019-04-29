@@ -1,3 +1,4 @@
+from lsst.ts.wep.Utility import CamType
 from lsst.ts.wep.ctrlIntf.WEPCalculationOfPiston import WEPCalculationOfPiston
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
 
@@ -15,7 +16,8 @@ class WEPCalculationOfLsstFamCam(WEPCalculationOfPiston):
             Instrument signature remocal (ISR) directory. This directory will
             have the input and output that the data butler needs.
         """
-        super(WEPCalculationOfLsstFamCam, self).__init__(AstWcsSol(), isrDir)
+        super(WEPCalculationOfLsstFamCam, self).__init__(
+            AstWcsSol(), CamType.LsstFamCam, isrDir)
 
 
 if __name__ == "__main__":

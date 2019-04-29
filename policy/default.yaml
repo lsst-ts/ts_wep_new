@@ -1,0 +1,21 @@
+---
+
+# Default setting
+
+# The followings are the setting of source selector
+
+# Camera MJD
+cameraMJD: 59580.0
+
+# Star (donut) radious in pixel
+starRadiuxInPixel: 63
+
+# Spacing coefficient
+spacingCoef: 2.5
+
+# Max number of neighboring star
+maxNumOfNbrStar: 0
+
+# with 1.5 mm defocal distance
+# DEFOCAL_DIS_IN_MM = 1.5
+# DONUT_IMG_SIZE_IN_PIXEL = 160

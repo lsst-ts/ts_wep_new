@@ -15,9 +15,9 @@ class SourceSelector(object):
 
         Parameters
         ----------
-        camType : CamType
+        camType : enum 'CamType'
             Camera type.
-        bscDbType : BscDbType
+        bscDbType : enum 'BscDbType'
             Bright star catalog (BSC) database type.
         settingFileName : str, optional
             Setting file name (the default is "default.yaml".)
@@ -34,7 +34,7 @@ class SourceSelector(object):
         self.settingFile = ParamReader(settingFilePath)
 
         # Configurate the criteria of neighboring stars
-        starRadiusInPixel = self.settingFile.getSetting("starRadiuxInPixel")
+        starRadiusInPixel = self.settingFile.getSetting("starRadiusInPixel")
         spacingCoefficient = self.settingFile.getSetting("spacingCoef")
         maxNeighboringStar = self.settingFile.getSetting("maxNumOfNbrStar")
         self.configNbrCriteria(starRadiusInPixel, spacingCoefficient,

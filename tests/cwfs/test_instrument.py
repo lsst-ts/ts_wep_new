@@ -30,6 +30,18 @@ class TestInstrument(unittest.TestCase):
         ansInstFileDir = os.path.join(self.instDir, "lsst")
         self.assertEqual(instFileDir, ansInstFileDir)
 
+    def testGetAnnDefocalDisInMm(self):
+
+        annDefocalDisInMm = self.inst.getAnnDefocalDisInMm()
+        self.assertEqual(annDefocalDisInMm, 1.5)
+
+    def testSetAnnDefocalDisInMm(self):
+
+        annDefocalDisInMm = 2.0
+        self.inst.setAnnDefocalDisInMm(annDefocalDisInMm)
+
+        self.assertEqual(self.inst.getAnnDefocalDisInMm(), annDefocalDisInMm)
+
     def testGetInstFilePath(self):
 
         instFilePath = self.inst.getInstFilePath()

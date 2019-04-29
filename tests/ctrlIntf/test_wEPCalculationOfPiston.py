@@ -16,16 +16,15 @@ class TestWEPCalculationOfPiston(unittest.TestCase):
     def testGetDefocalDisInMm(self):
 
         defocalDisInMm = self.wepCalculationOfPiston.getDefocalDisInMm()
-        self.assertEqual(defocalDisInMm,
-                         WEPCalculationOfPiston.DEFOCAL_DIS_IN_MM)
+        self.assertEqual(defocalDisInMm, 1.5225)
 
     def testSetDefocalDisInMm(self):
 
-        defocalDisInMm = 3.0
+        defocalDisInMm = 2.0
         self.wepCalculationOfPiston.setDefocalDisInMm(defocalDisInMm)
 
-        self.assertEqual(self.wepCalculationOfPiston.getDefocalDisInMm(),
-                         defocalDisInMm)
+        self.assertAlmostEqual(self.wepCalculationOfPiston.getDefocalDisInMm(),
+                               2.03)
 
 
 if __name__ == "__main__":

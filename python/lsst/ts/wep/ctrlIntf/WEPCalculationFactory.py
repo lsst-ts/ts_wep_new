@@ -20,7 +20,7 @@ class WEPCalculationFactory(object):
 
         Parameters
         ----------
-        camType : CamType
+        camType : enum 'CamType'
             The camera type to get the wavefront calculator for.
         isrDir : str
             Instrument signature remocal (ISR) directory. This directory will

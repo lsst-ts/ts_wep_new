@@ -1,17 +1,16 @@
+import os
+
 from lsst.ts.wep.bsc.Filter import Filter
 from lsst.ts.wep.bsc.CamFactory import CamFactory
 from lsst.ts.wep.bsc.DatabaseFactory import DatabaseFactory
 from lsst.ts.wep.bsc.LocalDatabaseForStarFile import LocalDatabaseForStarFile
-from lsst.ts.wep.Utility import mapFilterRefToG
+from lsst.ts.wep.Utility import mapFilterRefToG, getConfigDir
+from lsst.ts.wep.ParamReader import ParamReader
 
 
 class SourceSelector(object):
 
-    CAMERA_MJD = 59580.0
-    STAR_RADIUS_IN_PIXEL = 63
-    SPACING_COEFF = 2.5
-
-    def __init__(self, camType, bscDbType):
+    def __init__(self, camType, bscDbType, settingFileName="default.yaml"):
         """Initialize the source selector class.
 
         Parameters
@@ -20,6 +19,8 @@ class SourceSelector(object):
             Camera type.
         bscDbType : BscDbType
             Bright star catalog (BSC) database type.
+        settingFileName : str, optional
+            Setting file name (the default is "default.yaml".)
         """
 
         self.camera = CamFactory.createCam(camType)
@@ -29,9 +30,15 @@ class SourceSelector(object):
         self.maxDistance = 0.0
         self.maxNeighboringStar = 0
 
+        settingFilePath = os.path.join(getConfigDir(), settingFileName)
+        self.settingFile = ParamReader(settingFilePath)
+
         # Configurate the criteria of neighboring stars
-        self.configNbrCriteria(self.STAR_RADIUS_IN_PIXEL, self.SPACING_COEFF,
-                               maxNeighboringStar=0)
+        starRadiusInPixel = self.settingFile.getSetting("starRadiuxInPixel")
+        spacingCoefficient = self.settingFile.getSetting("spacingCoef")
+        maxNeighboringStar = self.settingFile.getSetting("maxNumOfNbrStar")
+        self.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
+                               maxNeighboringStar=maxNeighboringStar)
 
     def configNbrCriteria(self, starRadiusInPixel, spacingCoefficient,
                           maxNeighboringStar=0):
@@ -103,7 +110,8 @@ class SourceSelector(object):
             The orientation of the telescope in degrees.
         """
 
-        self.camera.setObsMetaData(ra, dec, rotSkyPos, mjd=self.CAMERA_MJD)
+        mjd = self.settingFile.getSetting("cameraMJD")
+        self.camera.setObsMetaData(ra, dec, rotSkyPos, mjd=mjd)
 
     def getTargetStar(self, offset=0):
         """Get the target stars by querying the database.

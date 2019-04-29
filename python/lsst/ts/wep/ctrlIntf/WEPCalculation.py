@@ -1,5 +1,13 @@
-from lsst.ts.wep.Utility import FilterType
+import os
 
+from lsst.ts.wep.Utility import getModulePath, getConfigDir, FilterType, \
+    BscDbType
+from lsst.ts.wep.CamDataCollector import CamDataCollector
+from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
+from lsst.ts.wep.SourceProcessor import SourceProcessor
+from lsst.ts.wep.SourceSelector import SourceSelector
+from lsst.ts.wep.WfEstimator import WfEstimator
+from lsst.ts.wep.WepController import WepController
 from lsst.ts.wep.ctrlIntf.SensorWavefrontData import SensorWavefrontData
 
 
@@ -47,8 +55,97 @@ class WEPCalculation(object):
         self.skyFile = ""
 
         # Remove these two in a latter time
-        self.currentFilter = FilterType.REF
-        self.calibsDir = ""
+        # self.currentFilter = FilterType.REF
+        # self.calibsDir = ""
+
+        # WEP controller
+        self.wepCntlr = self._configWepController(camType, isrDir)
+
+    def _configWepController(self, camType, isrDir):
+        """Configure the WEP controller.
+
+        WEP: wavefront estimation pipeline.
+
+        Parameters
+        ----------
+        camType : CamType
+            Camera type.
+        isrDir : str
+            Instrument signature remocal (ISR) directory. This directory will
+            have the input and output that the data butler needs.
+
+        Returns
+        -------
+        WepController
+            Configured WEP controller.
+        """
+
+        dataCollector = CamDataCollector(isrDir)
+        isrWrapper = CamIsrWrapper(isrDir)
+        sourSelc = self._configSourceSelector(camType)
+        sourProc = self._configSourceProcessor()
+        wfsEsti = self._configWfEstimator()
+        wepCntlr = WepController(dataCollector, isrWrapper, sourSelc,
+                                 sourProc, wfsEsti)
+
+        return wepCntlr
+
+    def _configSourceSelector(self, camType):
+        """Configue the source selector.
+
+        Returns
+        -------
+        SourceSelector
+            Configured source selector.
+        """
+
+        sourSelc = SourceSelector(camType, BscDbType.LocalDbForStarFile)
+        dbAdress = os.path.join(getModulePath(), "tests", "testData",
+                                "bsc.db3")
+        sourSelc.connect(dbAdress)
+
+        return sourSelc
+
+    def _configSourceProcessor(self):
+        """Configure the source processor.
+        Returns
+        -------
+        SourceProcessor
+            Configured source processor.
+        """
+
+        folderPath2FocalPlane = os.path.join(getModulePath(), "tests",
+                                             "testData")
+        sourProc = SourceProcessor(folderPath2FocalPlane=folderPath2FocalPlane)
+
+        return sourProc
+
+    def _configWfEstimator(self):
+        """Configure the wavefront estimator.
+        Returns
+        -------
+        WfEstimator
+            Configured wavefront estimator.
+        """
+
+        instruFolderPath = os.path.join(self._getConfigDataPath(), "cwfs",
+                                        "instruData")
+        algoFolderPath = os.path.join(self._getConfigDataPath(), "cwfs",
+                                      "algo")
+        wfsEsti = WfEstimator(instruFolderPath, algoFolderPath)
+
+        # Use the comcam to calculate the LSST central raft image
+        wfsEsti.config(solver="exp", instName="comcam",
+                       opticalModel="offAxis",
+                       defocalDisInMm=self.DEFOCAL_DIS_IN_MM,
+                       sizeInPix=self.DONUT_IMG_SIZE_IN_PIXEL, debugLevel=0)
+
+        return wfsEsti
+
+    def disconnect(self):
+        """Disconnect the database."""
+
+        self.wepCntlr.getSourSelc().disconnect()
 
     def getIsrDir(self):
         """Get the instrument signature removal (ISR) directory.

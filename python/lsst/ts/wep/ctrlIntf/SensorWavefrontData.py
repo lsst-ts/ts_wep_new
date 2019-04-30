@@ -75,7 +75,7 @@ class SensorWavefrontData(object):
 
         Parameters
         ----------
-        listOfDonut : list [DonutImage]
+        listOfDonut : list[DonutImage]
             List of donut.
         """
 
@@ -86,7 +86,7 @@ class SensorWavefrontData(object):
 
         Returns
         -------
-        list [DonutImage]
+        list[DonutImage]
             List of donut.
         """
 

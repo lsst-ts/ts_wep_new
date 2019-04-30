@@ -31,7 +31,7 @@ class SourceSelector(object):
         self.maxNeighboringStar = 0
 
         settingFilePath = os.path.join(getConfigDir(), settingFileName)
-        self.settingFile = ParamReader(settingFilePath)
+        self.settingFile = ParamReader(filePath=settingFilePath)
 
         # Configurate the criteria of neighboring stars
         starRadiusInPixel = self.settingFile.getSetting("starRadiusInPixel")

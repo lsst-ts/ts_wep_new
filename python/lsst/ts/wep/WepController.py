@@ -269,7 +269,8 @@ class WepController(object):
         -------
         dict
             Donut image map. The dictionary key is the sensor name. The
-            dictionaryitem is the donut image (type: DonutImage).
+            dictionary item is the list of donut image (type:
+            list[DonutImage]).
         """
 
         donutMap = dict()

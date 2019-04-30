@@ -1,7 +1,7 @@
 import os
 
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, BscDbType, \
-    FilterType
+    FilterType, abbrevDectectorName
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -10,6 +10,7 @@ from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.WepController import WepController
 from lsst.ts.wep.ctrlIntf.SensorWavefrontData import SensorWavefrontData
 from lsst.ts.wep.ParamReader import ParamReader
+from lsst.ts.wep.ctrlIntf.MapSensorNameAndId import MapSensorNameAndId
 
 
 class WEPCalculation(object):
@@ -61,13 +62,12 @@ class WEPCalculation(object):
 
         # Default setting file
         settingFilePath = os.path.join(getConfigDir(), settingFileName)
-        self.settingFile = ParamReader(settingFilePath)
+        self.settingFile = ParamReader(filePath=settingFilePath)
 
         # Configure the WEP controller
-        self.wepCntlr = self._configWepController(camType, isrDir,
-                                                  settingFileName)
+        self.wepCntlr = self._configWepController(camType, settingFileName)
 
-    def _configWepController(self, camType, isrDir, settingFileName):
+    def _configWepController(self, camType, settingFileName):
         """Configure the WEP controller.
 
         WEP: wavefront estimation pipeline.
@@ -76,9 +76,6 @@ class WEPCalculation(object):
         ----------
         camType : enum 'CamType'
             Camera type.
-        isrDir : str
-            Instrument signature remocal (ISR) directory. This directory will
-            have the input and output that the data butler needs.
         settingFileName : str
             Setting file name.
 
@@ -88,8 +85,8 @@ class WEPCalculation(object):
             Configured WEP controller.
         """
 
-        dataCollector = CamDataCollector(isrDir)
-        isrWrapper = CamIsrWrapper(isrDir)
+        dataCollector = CamDataCollector(self.isrDir)
+        isrWrapper = CamIsrWrapper(self.isrDir)
 
         bscDbType = self._getBscDbType()
         sourSelc = self._configSourceSelector(camType, bscDbType,
@@ -380,9 +377,195 @@ class WEPCalculation(object):
         -------
         list [SensorWavefrontData]
             List of SensorWavefrontData object.
+
+        Raises
+        ------
+        ValueError
+            Corner WFS is not supported yet.
+        ValueError
+            Only single visit is allowed at this time.
         """
 
-        listOfWfErr = [SensorWavefrontData()]
+        if (extraRawExpData is None):
+            raise ValueError("Corner WFS is not supported yet.")
+
+        if (len(rawExpData.getVisit()) != 1):
+            raise ValueError("Only single visit is allowed at this time.")
+
+        # Ingest the exposure data and do the ISR
+        self._ingestImg(rawExpData)
+        if (extraRawExpData is not None):
+            self._ingestImg(extraRawExpData)
+
+        self._doIsr(isrConfigfileName="isr_config.py")
+
+        # Set the butler inputs path to get the post-ISR CCD
+        rerunName = self._getIsrRerunName()
+        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName)
+        self.wepCntlr.setPostIsrCcdInputs(postIsrCcdDir)
+
+        # Get the target stars map neighboring stars
+        neighborStarMap = self._getTargetStar()
+
+        # Calculate the wavefront error
+        intraObsIdList = rawExpData.getVisit()
+        intraObsId = intraObsIdList[0]
+        if (extraRawExpData is None):
+            obsIdList = [intraObsId]
+        else:
+            extraObsIdList = extraRawExpData.getVisit()
+            extraObsId = extraObsIdList[0]
+            obsIdList = [intraObsId, extraObsId]
+
+        donutMap = self._calcWfErr(neighborStarMap, obsIdList)
+
+        listOfWfErr = self._populateListOfSensorWavefrontData(donutMap)
+
+        return listOfWfErr
+
+    def _ingestImg(self, rawExpData):
+        """Ingest the images.
+
+        Parameters
+        ----------
+        rawExpData : RawExpData
+            Raw exposure data.
+        """
+
+        dataCollector = self.wepCntlr.getDataCollector()
+
+        rawExpDirList = rawExpData.getRawExpDir()
+        for rawExpDir in rawExpDirList:
+            rawImgFiles = os.path.join(rawExpDir, "*.fits")
+            dataCollector.ingestImages(rawImgFiles)
+
+    def _doIsr(self, isrConfigfileName):
+        """Do the instrument signature removal (ISR).
+
+        Parameters
+        ----------
+        isrConfigfileName : str
+            ISR configuration file name.
+        """
+
+        isrWrapper = self.wepCntlr.getIsrWrapper()
+        isrWrapper.config(doFlat=True, fileName=isrConfigfileName)
+
+        rerunName = self._getIsrRerunName()
+        isrWrapper.doISR(self.isrDir, rerunName=rerunName)
+
+    def _getIsrRerunName(self):
+        """Get the instrument signature removal (ISR) rerun name.
+
+        Returns
+        -------
+        str
+            ISR rerun name.
+        """
+
+        return self.settingFile.getSetting("rerunName")
+
+    def _getTargetStar(self):
+        """Get the target stars
+
+        Returns
+        -------
+        dict
+            Information of neighboring stars and candidate stars with the name
+            of sensor as a dictionary.
+
+        Raises
+        ------
+        ValueError
+            BSC database is not supported.
+        """
+
+        sourSelc = self.wepCntlr.getSourSelc()
+        sourSelc.setObsMetaData(self.raInDeg, self.decInDeg, self.rotSkyPos)
+
+        camDimOffset = self.settingFile.getSetting("camDimOffset")
+
+        bscDbType = self._getBscDbType()
+        if (bscDbType == BscDbType.LocalDb):
+            return sourSelc.getTargetStar(offset=camDimOffset)[0]
+        elif (bscDbType == BscDbType.LocalDbForStarFile):
+            return sourSelc.getTargetStarByFile(self.skyFile,
+                                                offset=camDimOffset)[0]
+        else:
+            raise ValueError("BSC database (%s) is not supported." % bscDbType)
+
+    def _calcWfErr(self, neighborStarMap, obsIdList):
+        """Calculate the wavefront error.
+
+        Only consider one intra-focal and one extra-focal images at this
+        moment
+
+        Parameters
+        ----------
+        neighborStarMap : dict
+            Information of neighboring stars and candidate stars with the name
+            of sensor as a dictionary.
+        obsIdList : list[int]
+            Observation Id list in [intraObsId, extraObsId]. If the input is
+            [intraObsId], this means the corner WFS.
+
+        Returns
+        -------
+        dict
+            Donut image map with the calculated wavefront error. The dictionary
+            key is the sensor name. The dictionary item is the donut image
+            (type: DonutImage).
+        """
+
+        sensorNameList = list(neighborStarMap)
+        wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
+            sensorNameList, obsIdList)
+
+        doDeblending = self.settingFile.getSetting("doDeblending")
+        donutMap = self.wepCntlr.getDonutMap(
+            neighborStarMap, wfsImgMap, self.getFilter(),
+            doDeblending=doDeblending)
+
+        donutMap = self.wepCntlr.calcWfErr(donutMap)
+
+        return donutMap
+
+    def _populateListOfSensorWavefrontData(self, donutMap):
+        """Populate the list of sensor wavefront data.
+
+        Parameters
+        ----------
+        donutMap : dict
+            Donut image map with the calculated wavefront error. The dictionary
+            key is the sensor name. The dictionary item is the donut image
+            (type: DonutImage).
+
+        Returns
+        -------
+        list[SensorWavefrontData]
+            List of SensorWavefrontData object.
+        """
+
+        mapSensorNameAndId = MapSensorNameAndId()
+        listOfWfErr = []
+        for sensor, donutList in donutMap.items():
+
+            sensorWavefrontData = SensorWavefrontData()
+
+            # Set the sensor Id
+            abbrevSensor = abbrevDectectorName(sensor)
+            sensorIdList = mapSensorNameAndId.mapSensorNameToId(abbrevSensor)
+            sensorId = sensorIdList[0]
+            sensorWavefrontData.setSensorId(sensorId)
+
+            sensorWavefrontData.setListOfDonut(donutList)
+
+            # Set the average zk in um
+            avgErrInNm = self.wepCntlr.calcAvgWfErrOnSglCcd(donutList)
+            avgErrInUm = avgErrInNm * 1e-3
+            sensorWavefrontData.setAnnularZernikePoly(avgErrInUm)
+
+            listOfWfErr.append(sensorWavefrontData)
 
         return listOfWfErr
 
@@ -392,7 +575,7 @@ class WEPCalculation(object):
         Parameters
         ----------
         calibsDir : str
-            Calibration directory.
+            Calibration products directory.
         """
 
         self._genCamMapperIfNeed()

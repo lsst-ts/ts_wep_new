@@ -18,7 +18,7 @@ class Instrument(object):
 
         self.instDir = instDir
         self.instName = ""
-        self.sensorSamples = 0
+        self.dimOfDonut = 0
         self.announcedDefocalDisInMm = 0.0
 
         self.instParamFile = ParamReader()
@@ -54,7 +54,7 @@ class Instrument(object):
         """
 
         self.instName = self._getInstName(camType)
-        self.sensorSamples = int(dimOfDonutOnSensor)
+        self.dimOfDonut = int(dimOfDonutOnSensor)
         self.announcedDefocalDisInMm = announcedDefocalDisInMm
 
         # Path of instrument param file
@@ -110,11 +110,11 @@ class Instrument(object):
         """Set the sensor coordinate."""
 
         ySensorGrid, xSensorGrid = np.mgrid[
-            -(self.sensorSamples/2-0.5):(self.sensorSamples/2 + 0.5),
-            -(self.sensorSamples/2-0.5):(self.sensorSamples/2 + 0.5)]
+            -(self.dimOfDonut/2-0.5):(self.dimOfDonut/2 + 0.5),
+            -(self.dimOfDonut/2-0.5):(self.dimOfDonut/2 + 0.5)]
 
         sensorFactor = self.getSensorFactor()
-        denominator = self.sensorSamples / 2 / sensorFactor
+        denominator = self.dimOfDonut / 2 / sensorFactor
 
         self.xSensor = xSensorGrid / denominator
         self.ySensor = ySensorGrid / denominator
@@ -187,7 +187,7 @@ class Instrument(object):
             Dimension of donut's size on sensor in pixel.
         """
 
-        return self.sensorSamples
+        return self.dimOfDonut
 
     def getObscuration(self):
         """Get the obscuration.
@@ -277,7 +277,7 @@ class Instrument(object):
         apertureDiameter = self.getApertureDiameter()
         focalLength = self.getFocalLength()
         pixelSize = self.getCamPixelSize()
-        sensorFactor = self.sensorSamples / (
+        sensorFactor = self.dimOfDonut / (
             offset * apertureDiameter / focalLength / pixelSize)
 
         return sensorFactor

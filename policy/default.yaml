@@ -20,8 +20,9 @@ starRadiusInPixel: 63
 # Spacing coefficient
 spacingCoef: 2.5
 
-# Max number of neighboring star
-maxNumOfNbrStar: 0
+# Max number of neighboring star (0 or 1)
+# At this moment, we only plan to support the maximum number of 1
+maxNumOfNbrStar: 1
 
 # Distance to be vignette
 distVignette: 1.75
@@ -41,3 +42,15 @@ donutImgSizeInPixel: 160
 
 # Camera mapper for the data butler to use
 camMapper: phosim
+
+# Instrument signature removal (ISR) rerun name
+rerunName: run1
+
+# Offset to the dimension of camera. If the detector dimension is 10 (assume
+# 1-D), the star's position between -offset and 10+offset will be seem to be on
+# the detector.
+camDimOffset: 0
+
+# Do the deblending or not (we do not have the functionable deblending
+# algorithm yet)
+doDeblending: False

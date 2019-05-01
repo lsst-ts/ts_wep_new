@@ -2,12 +2,11 @@ import os
 import unittest
 import shutil
 
-from lsst.ts.wep.Utility import getModulePath, CamType, FilterType
+from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, runProgram
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
 from lsst.ts.wep.ctrlIntf.RawExpData import RawExpData
-from lsst.ts.wep.ctrlIntf.SensorWavefrontData import SensorWavefrontData
 
 
 class TestWEPCalculation(unittest.TestCase):
@@ -16,6 +15,7 @@ class TestWEPCalculation(unittest.TestCase):
     def setUp(self):
 
         self.modulePath = getModulePath()
+        self.testDataDir = os.path.join(self.modulePath, "tests", "testData")
         self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
         self.isrDir = os.path.join(self.dataDir, "input")
         self._makeDir(self.isrDir)
@@ -30,7 +30,7 @@ class TestWEPCalculation(unittest.TestCase):
 
     def tearDown(self):
 
-        self.wepCalculation.getWepCntlr().getSourSelc().disconnect()
+        self.wepCalculation.disconnect()
         shutil.rmtree(self.dataDir)
 
     def testGetIsrDir(self):
@@ -104,22 +104,105 @@ class TestWEPCalculation(unittest.TestCase):
         self.assertRaises(ValueError, self.wepCalculation.setNumOfProc,
                           numOfProc)
 
-    @unittest.skip
     def testIngestCalibs(self):
 
-        self.assertEqual(self.wepCalculation.calibsDir, "")
+        self._genCalibsAndIngest()
 
-        calibsDir = "temp"
-        self.wepCalculation.ingestCalibs(calibsDir)
+        calibRegistryPath = os.path.join(self.isrDir, "calibRegistry.sqlite3")
+        self.assertTrue(os.path.exists(calibRegistryPath))
 
-        self.assertEqual(self.wepCalculation.calibsDir, calibsDir)
+        ingestFlatDir = os.path.join(self.isrDir, "flat")
+        self.assertTrue(os.path.exists(ingestFlatDir))
 
-    @unittest.skip
+    def _genCalibsAndIngest(self):
+
+        flatCalibsDir = self._genFlatCalibs()
+        self.wepCalculation.ingestCalibs(flatCalibsDir)
+
+    def _genFlatCalibs(self):
+
+        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
+        self._makeDir(fakeFlatDir)
+
+        detector = "R22_S11 R22_S10"
+        self._genFakeFlat(fakeFlatDir, detector)
+
+        return fakeFlatDir
+
+    def _genFakeFlat(self, fakeFlatDir, detector):
+
+        currWorkDir = os.getcwd()
+
+        os.chdir(fakeFlatDir)
+
+        command = "makeGainImages.py"
+        argstring = "--detector_list %s" % detector
+        runProgram(command, argstring=argstring)
+
+        os.chdir(currWorkDir)
+
+    def testCalculateWavefrontErrorsWithoutExtraRawExpData(self):
+
+        self.assertRaises(ValueError,
+                          self.wepCalculation.calculateWavefrontErrors,
+                          RawExpData())
+
+    def testCalculateWavefrontErrorsWithMultiVisit(self):
+
+        rawExpData = RawExpData()
+        rawExpData.append(1, 0, "")
+        rawExpData.append(2, 0, "")
+
+        self.assertRaises(ValueError,
+                          self.wepCalculation.calculateWavefrontErrors,
+                          rawExpData, rawExpData)
+
     def testCalculateWavefrontErrors(self):
 
-        listOfWfErr = self.wepCalculation.calculateWavefrontErrors(RawExpData())
-        self.assertTrue(isinstance(listOfWfErr, list))
-        self.assertTrue(isinstance(listOfWfErr[0], SensorWavefrontData))
+        self._genCalibsAndIngest()
+
+        comcamDataDir = os.path.join(self.testDataDir, "phosimOutput",
+                                     "realComCam")
+        rawExpData, extraRawExpData = self._prepareRawExpData(comcamDataDir)
+
+        skyFile = os.path.join(comcamDataDir, "skyComCamInfo.txt")
+        self.wepCalculation.setSkyFile(skyFile)
+
+        listOfWfErr = self.wepCalculation.calculateWavefrontErrors(
+            rawExpData, extraRawExpData=extraRawExpData)
+
+        self.assertTrue(len(listOfWfErr), 2)
+
+        self.assertNotEqual(listOfWfErr[0].getSensorId(),
+                            listOfWfErr[1].getSensorId())
+
+        for sensorWavefrontData in listOfWfErr:
+            self._testSensorWavefrontData(sensorWavefrontData)
+
+    def _prepareRawExpData(self, comcamDataDir):
+
+        intraImgDir = os.path.join(comcamDataDir, "repackagedFiles", "intra")
+        extraImgDir = os.path.join(comcamDataDir, "repackagedFiles", "extra")
+
+        rawExpData = RawExpData()
+        rawExpData.append(9005001, 0, intraImgDir)
+
+        extraRawExpData = RawExpData()
+        extraRawExpData.append(9005000, 0, extraImgDir)
+
+        return rawExpData, extraRawExpData
+
+    def _testSensorWavefrontData(self, sensorWavefrontData):
+
+        sensorId = sensorWavefrontData.getSensorId()
+        self.assertTrue(sensorId in (99, 100))
+
+        listOfDonut = sensorWavefrontData.getListOfDonut()
+        self.assertTrue(len(listOfDonut), 2)
+
+        avgWfErr = sensorWavefrontData.getAnnularZernikePoly()
+        self.assertEqual(avgWfErr.argmax(), 2)
+        self.assertGreater(avgWfErr.max(), 0.1)
 
 
 if __name__ == "__main__":

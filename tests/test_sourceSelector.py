@@ -36,7 +36,7 @@ class TestSourceSelector(unittest.TestCase):
     def testInit(self):
 
         self.assertEqual(self.sourSelc.maxDistance, 157.5)
-        self.assertEqual(self.sourSelc.maxNeighboringStar, 0)
+        self.assertEqual(self.sourSelc.maxNeighboringStar, 1)
 
     def testConfigNbrCriteria(self):
 

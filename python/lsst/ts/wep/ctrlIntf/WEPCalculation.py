@@ -57,7 +57,7 @@ class WEPCalculation(object):
         # Sky rotation angle
         self.rotSkyPos = 0.0
 
-        # Sky information file fro the temporary use
+        # Sky information file for the temporary use
         self.skyFile = ""
 
         # Default setting file
@@ -375,7 +375,7 @@ class WEPCalculation(object):
 
         Returns
         -------
-        list [SensorWavefrontData]
+        list[SensorWavefrontData]
             List of SensorWavefrontData object.
 
         Raises

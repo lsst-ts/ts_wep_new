@@ -32,6 +32,13 @@ Important enums:
 * `CamType` defines the type of camera.
 * `BscDbType` defines the type of bright star catalog database.
 
+.. _lsst.ts.wep-pyapi:
+
+Python API reference
+====================
+
+.. automodapi:: lsst.ts.wep
+    :no-inheritance-diagram:
 
 .. _lsst.ts.wep-contributing:
 
@@ -40,10 +47,11 @@ Contributing
 
 ``lsst.ts.wep`` is developed at https://github.com/lsst-ts/ts_wep.
 
-.. _lsst.ts.wep-pyapi:
+.. _lsst.ts.wep-version:
 
-Python API reference
+Version
 ====================
 
-.. automodapi:: lsst.ts.wep
-    :no-inheritance-diagram:
+.. toctree::
+
+   versionHistory

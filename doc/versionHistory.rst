@@ -12,7 +12,7 @@ Version History
 1.2.6
 -------------
 
-Utilize the interface classes to main telescope active optics system (MTAOS).
+Utilize the interface classes to main telescope active optics system (MTAOS). Use sims_w_2019_17.
 
 .. _lsst.ts.wep-1.2.5:
 

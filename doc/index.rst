@@ -40,6 +40,15 @@ Python API reference
 .. automodapi:: lsst.ts.wep
     :no-inheritance-diagram:
 
+.. _lsst.ts.wep-content:
+
+Content
+====================
+
+.. toctree::
+
+   content
+
 .. _lsst.ts.wep-contributing:
 
 Contributing

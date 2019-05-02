@@ -94,15 +94,11 @@ cd $path_of_ts_wep
 setup -k -r .
 ```
 
-## 7. Content
-
-*The details of cotent is [here](./doc/devUse/Content.md).*
-
-## 8. Example Script
+## 7. Example Script
 
 - **mapSensorAndFieldIdx.py**: Map the sensor name to the field point index based on the sensor's position on the ideal focal plane.
 - **deblendEimg.py**: Do the deblending of eimage. The deblending algorithm now can only work on the eimage.
 
-## 9. Build the Document
+## 8. Build the Document
 
 *The user can use `package-docs build` to build the documentation. The documenteer is needed for this. To clean the built documents, use `package-docs clean`. See [Building single-package documentation locally](https://developer.lsst.io/stack/building-single-package-docs.html) for further details.*

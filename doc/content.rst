@@ -68,6 +68,7 @@ This module provides the interface classes to the main telescope active optics s
 * **WcsData**: Contains the world coordinate system (WCS) data of a camera.
 * **AstWcsSol**: AST world coordinate system (WCS) solution provided by DM team.
 * **RawExpData**: Raw exposure data class to populate the information of visit, snap, and data directory.
+* **MapSensorNameAndId**: Map the sensor name and Id class to transform the name and Id with each other.
 
 .. _lsst.ts.wep-modules_wep_cwfs:
 

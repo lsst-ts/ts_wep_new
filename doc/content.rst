@@ -14,6 +14,11 @@ The classes and files for each module are listed below.
 wep
 -------------
 
+This module is a high-level module to use other modules.
+
+.. uml:: uml/wepClass.uml
+    :caption: Class diagram of wep
+
 * **ButlerWrapper**: Wrapper of DM butler class to get the raw and post-ISR CCD image.
 * **CamDataCollector**: Ingest the amplifier images and calibration products based on the DM command line task.
 * **CamIsrWrapper**: Do the ISR and assemble the CCD images based on the DM command line task.
@@ -34,6 +39,9 @@ wep.bsc
 -------------
 
 This module queries the bright star catalog and gets the scientific target.
+
+.. uml:: uml/bscClass.uml
+    :caption: Class diagram of wep.bsc
 
 * **CamFactory**: Camera factory to create the concrete camera object.
 * **CameraData**: Camera data class as the parent of specific camera child class.
@@ -58,6 +66,9 @@ wep.ctrlIntf
 
 This module provides the interface classes to the main telescope active optics system (MTAOS). The factory pattern is applied to support the multiple instruments.
 
+.. uml:: uml/ctrlIntfClass.uml
+    :caption: Class diagram of wep.ctrlIntf
+
 * **WEPCalculationFactory**: Factory for creating the correct WEP calculation based off the camera type currently being used.
 * **WEPCalculation**: Base class for converting the wavefront images into wavefront errors.
 * **WEPCalculationOfPiston**: The child class of WEPCalculation that gets the defocal images by the camera piston.
@@ -78,6 +89,9 @@ wep.cwfs
 
 This module calculates the wavefront error by solving the TIE.
 
+.. uml:: uml/cwfsClass.uml
+    :caption: Class diagram of wep.cwfs
+
 * **Algorithm**: Algorithm class to solve the TIE to get the wavefront error.
 * **CompensableImage**: Compensable image class to project the donut image from the image plane to the pupil plane.
 * **Image**: Image class to have the function to get the donut center.
@@ -91,6 +105,9 @@ wep.deblend
 -------------
 
 This module does the image deblending.
+
+.. uml:: uml/deblendClass.uml
+    :caption: Class diagram of wep.deblend
 
 * **AdapThresImage**: Adapted threshold image class to get the donut centor according to the binary image by the adapted threshold method.
 * **BlendedImageDecorator**: Blended image decorator class to do the donut deblending.

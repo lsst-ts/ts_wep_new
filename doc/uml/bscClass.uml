@@ -1,0 +1,17 @@
+@startuml
+class Filter
+DefaultDatabase <|-- LocalDatabase
+LocalDatabase <|-- LocalDatabaseForStarFile
+DatabaseFactory ..> LocalDatabase
+DatabaseFactory ..> LocalDatabaseForStarFile
+DefaultDatabase ..> StarData
+StarData ..> NbrStar
+StarData -- CameraData
+CameraData *-- WcsSol
+CameraData <|-- LsstCam
+CameraData <|-- LsstFamCam
+CameraData <|-- ComCam
+CamFactory ..> LsstCam
+CamFactory ..> LsstFamCam
+CamFactory ..> ComCam
+@enduml

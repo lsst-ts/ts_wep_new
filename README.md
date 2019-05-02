@@ -15,6 +15,8 @@
 - *phosim_utils - master branch (commit: 7b02084)*
 - *scikit-image*
 - *[documenteer](https://github.com/lsst-sqre/documenteer) (optional)*
+- *[plantuml](http://plantuml.com) (optional)*
+- *[sphinxcontrib-plantuml](https://pypi.org/project/sphinxcontrib-plantuml/) (optional)*
 
 ## 3. Install the LSST Packages, phosim_utils, and ts_wep
 

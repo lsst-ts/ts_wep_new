@@ -1,0 +1,13 @@
+@startuml
+WEPCalculation *-- AstWcsSol
+WEPCalculation ..> RawExpData
+WEPCalculation ..> WcsData
+WEPCalculation ..> SensorWavefrontData
+WEPCalculation <|-- WEPCalculationOfLsstCam
+WEPCalculation <|-- WEPCalculationOfPiston
+WEPCalculationOfPiston <|-- WEPCalculationOfLsstFamCam
+WEPCalculationOfPiston <|-- WEPCalculationOfComCam
+WEPCalculationFactory ..> WEPCalculationOfLsstCam
+WEPCalculationFactory ..> WEPCalculationOfLsstFamCam
+WEPCalculationFactory ..> WEPCalculationOfComCam
+@enduml

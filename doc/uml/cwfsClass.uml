@@ -1,0 +1,6 @@
+@startuml
+Algorithm *-- Instrument
+CompensableImage *-- Image
+Algorithm -- CompensableImage
+CompensableImage ..> Instrument
+@enduml

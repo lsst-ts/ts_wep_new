@@ -1,0 +1,13 @@
+@startuml
+WepController *-- ButlerWrapper
+WepController *-- CamDataCollector
+WepController *-- CamIsrWrapper
+WepController *-- SourceSelector
+WepController *-- SourceProcessor
+WepController *-- WfEstimator
+DefocalImage <|-- DonutImage
+WepController ..> DefocalImage
+WepController ..> DonutImage
+SourceSelector *-- ParamReader
+SourceProcessor *-- ParamReader
+@enduml

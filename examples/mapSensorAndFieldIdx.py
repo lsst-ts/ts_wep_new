@@ -1,17 +1,12 @@
-import os
 import numpy as np
 
 from lsst.ts.wep.SourceProcessor import SourceProcessor
-from lsst.ts.wep.Utility import getModulePath
 
 
 if __name__ == "__main__":
 
-    # Folder path of focal plane txt file
-    folderPath2FocalPlane = os.path.join(getModulePath(), "tests", "testData")
-
     # Configurate the source processor
-    sourPro = SourceProcessor(folderPath2FocalPlane=folderPath2FocalPlane)
+    sourPro = SourceProcessor()
 
     # Get the list of sensor name and coordinate
     sensorFocaPlaneInDeg = sourPro.sensorFocaPlaneInDeg

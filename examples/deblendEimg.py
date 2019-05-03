@@ -1,7 +1,8 @@
 import os
 import numpy as np
 
-from lsst.ts.wep.deblend import AdapThresImage, BlendedImageDecorator
+from lsst.ts.wep.deblend.AdapThresImage import AdapThresImage
+from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
 from lsst.ts.wep.cwfs.Tool import plotImage
 from lsst.ts.wep.Utility import getModulePath
 
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     imageName = 'z11_0.25_intra.txt'
     imageFile = os.path.join(imageFolderPath, imageName)
 
-    imageIntra = AdapThresImage.AdapThresImage()
+    imageIntra = AdapThresImage()
     imageIntra.setImg(imageFile=imageFile)
 
     # Coefficient of distance between donuts
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 
     # Final blended image
     # blendImage = BlendedImage.BlendedImage(image=image, atype="intra")
-    blendImage = BlendedImageDecorator.BlendedImageDecorator()
+    blendImage = BlendedImageDecorator()
     blendImage.setImg(image=image)
 
     # Generate a random error to simulate the uncertainty of position of

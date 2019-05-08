@@ -46,10 +46,6 @@ class WEPCalculation(object):
         # ISR directory that the data butler uses
         self.isrDir = isrDir
 
-        # Number of processors for WEP to use
-        # This is just a stakeholder at this moment
-        self.numOfProc = 1
-
         # Boresight infomation
         self.raInDeg = 0.0
         self.decInDeg = 0.0
@@ -337,28 +333,6 @@ class WEPCalculation(object):
         # rotation angle yet.
 
         return self.rotSkyPos
-
-    def setNumOfProc(self, numOfProc):
-        """Set the number of processor
-
-        Parameters
-        ----------
-        numOfProc : int
-            Number of processor.
-
-        Raises
-        ------
-        ValueError
-            Number of processor should be >=1.
-        """
-
-        # Discuss with Chris that we put this into the configuration file or
-        # not
-
-        if (numOfProc < 1):
-            raise ValueError("Number of processor should be >=1.")
-
-        self.numOfProc = numOfProc
 
     def calculateWavefrontErrors(self, rawExpData, extraRawExpData=None):
         """Calculate the wavefront errors.

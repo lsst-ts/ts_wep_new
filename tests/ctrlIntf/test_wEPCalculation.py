@@ -89,21 +89,6 @@ class TestWEPCalculation(unittest.TestCase):
 
         self.assertEqual(self.wepCalculation.getRotAng(), rotAng)
 
-    def testSetNumOfProc(self):
-
-        self.assertEqual(self.wepCalculation.numOfProc, 1)
-
-        numOfProc = 3
-        self.wepCalculation.setNumOfProc(numOfProc)
-
-        self.assertEqual(self.wepCalculation.numOfProc, numOfProc)
-
-    def testSetNumOfProcWithWrongNum(self):
-
-        numOfProc = 0
-        self.assertRaises(ValueError, self.wepCalculation.setNumOfProc,
-                          numOfProc)
-
     def testIngestCalibs(self):
 
         self._genCalibsAndIngest()

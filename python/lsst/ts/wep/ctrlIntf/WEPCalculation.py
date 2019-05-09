@@ -159,11 +159,11 @@ class WEPCalculation(object):
 
         solver = self.settingFile.getSetting("poissonSolver")
         opticalModel = self.settingFile.getSetting("opticalModel")
-        defocalDisInMm = self.settingFile.getSetting("dofocalDistInMm")
+        defocalDistInMm = self.settingFile.getSetting("defocalDistInMm")
         donutImgSizeInPixel = self.settingFile.getSetting("donutImgSizeInPixel")
         wfsEsti.config(solver=solver, camType=camType,
                        opticalModel=opticalModel,
-                       defocalDisInMm=defocalDisInMm,
+                       defocalDisInMm=defocalDistInMm,
                        sizeInPix=donutImgSizeInPixel)
 
         return wfsEsti

@@ -10,6 +10,13 @@ pixelToArcsec: 0.2
 # file: Use the sky file
 bscDb: file
 
+# Default BSC database path relative to the root of module
+defaultBscPath: tests/testData/bsc.db3
+
+# Default sky file path relative to the root of module
+# This is for the test only
+defaultSkyFilePath: tests/testData/phosimOutput/realComCam/skyComCamInfo.txt
+
 # Camera MJD
 cameraMJD: 59580.0
 

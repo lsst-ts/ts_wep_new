@@ -30,7 +30,6 @@ class TestWEPCalculation(unittest.TestCase):
 
     def tearDown(self):
 
-        self.wepCalculation.disconnect()
         shutil.rmtree(self.dataDir)
 
     def testGetIsrDir(self):
@@ -149,9 +148,6 @@ class TestWEPCalculation(unittest.TestCase):
         comcamDataDir = os.path.join(self.testDataDir, "phosimOutput",
                                      "realComCam")
         rawExpData, extraRawExpData = self._prepareRawExpData(comcamDataDir)
-
-        skyFile = os.path.join(comcamDataDir, "skyComCamInfo.txt")
-        self.wepCalculation.setSkyFile(skyFile)
 
         listOfWfErr = self.wepCalculation.calculateWavefrontErrors(
             rawExpData, extraRawExpData=extraRawExpData)

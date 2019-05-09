@@ -42,7 +42,7 @@ poissonSolver: exp
 opticalModel: offAxis
 
 # Defocal distance in mm (default is 1.5 mm)
-dofocalDistInMm: 1.5
+defocalDistInMm: 1.5
 
 # Donut image size in pixel (default value at 1.5 mm)
 donutImgSizeInPixel: 160

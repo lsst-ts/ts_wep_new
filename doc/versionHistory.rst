@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.2.7:
+
+-------------
+1.2.7
+-------------
+
+Put the default BSC path and sky file path in default yaml file. Concrete WEPCalculation class will connect and disconnect the database at each query. Use sims_w_2019_18.
+
 .. _lsst.ts.wep-1.2.6:
 
 -------------

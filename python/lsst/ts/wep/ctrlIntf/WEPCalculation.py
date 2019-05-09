@@ -1,4 +1,5 @@
 import os
+import warnings
 
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, BscDbType, \
     FilterType, abbrevDectectorName
@@ -134,23 +135,11 @@ class WEPCalculation(object):
         -------
         SourceSelector
             Configured source selector.
-
-        Raises
-        ------
-        ValueError
-            WEPCalculation does not support this bscDbType yet.
         """
 
         sourSelc = SourceSelector(camType, bscDbType,
                                   settingFileName=settingFileName)
         sourSelc.setFilter(FilterType.REF)
-
-        if (bscDbType == BscDbType.LocalDbForStarFile):
-            dbAdress = os.path.join(getModulePath(), "tests", "testData",
-                                    "bsc.db3")
-            sourSelc.connect(dbAdress)
-        else:
-            raise ValueError("WEPCalculation does not support %s yet." % bscDbType)
 
         return sourSelc
 
@@ -189,12 +178,6 @@ class WEPCalculation(object):
         """
 
         return self.wepCntlr
-
-    def disconnect(self):
-        """Disconnect the database."""
-
-        sourSelc = self.wepCntlr.getSourSelc()
-        sourSelc.disconnect()
 
     def getIsrDir(self):
         """Get the instrument signature removal (ISR) directory.
@@ -451,22 +434,58 @@ class WEPCalculation(object):
         Raises
         ------
         ValueError
-            BSC database is not supported.
+            WEPCalculation does not support this BSC yet.
         """
 
+        # Connect the database
         sourSelc = self.wepCntlr.getSourSelc()
+        bscDbType = self._getBscDbType()
+        if bscDbType in (BscDbType.LocalDb, BscDbType.LocalDbForStarFile):
+            dbRelativePath = self.settingFile.getSetting("defaultBscPath")
+            dbAdress = os.path.join(getModulePath(), dbRelativePath)
+            sourSelc.connect(dbAdress)
+        else:
+            raise ValueError("WEPCalculation does not support %s yet." % bscDbType)
+
+        # Do the query
         sourSelc.setObsMetaData(self.raInDeg, self.decInDeg, self.rotSkyPos)
 
         camDimOffset = self.settingFile.getSetting("camDimOffset")
-
-        bscDbType = self._getBscDbType()
         if (bscDbType == BscDbType.LocalDb):
-            return sourSelc.getTargetStar(offset=camDimOffset)[0]
+            neighborStarMap = sourSelc.getTargetStar(offset=camDimOffset)[0]
         elif (bscDbType == BscDbType.LocalDbForStarFile):
-            return sourSelc.getTargetStarByFile(self.skyFile,
-                                                offset=camDimOffset)[0]
+            skyFile = self._assignSkyFile()
+            neighborStarMap = sourSelc.getTargetStarByFile(
+                skyFile, offset=camDimOffset)[0]
+
+        # Disconnect the database
+        sourSelc.disconnect()
+
+        return neighborStarMap
+
+    def _assignSkyFile(self):
+        """Assign the sky file.
+
+        If the skyFile attribute value is "", the default one from the
+        configuration file will be used.
+
+        Returns
+        -------
+        str
+            Path of sky file.
+        """
+
+        isSkyFileExist = os.path.exists(self.skyFile)
+        if isSkyFileExist:
+            skyFile = self.skyFile
         else:
-            raise ValueError("BSC database (%s) is not supported." % bscDbType)
+            warnings.warn("No sky file assigned. Use the default one.",
+                          category=UserWarning)
+            skyFileRelativePath = self.settingFile.getSetting(
+                "defaultSkyFilePath")
+            skyFile = os.path.join(getModulePath(), skyFileRelativePath)
+
+        return skyFile
 
     def _calcWfErr(self, neighborStarMap, obsIdList):
         """Calculate the wavefront error.

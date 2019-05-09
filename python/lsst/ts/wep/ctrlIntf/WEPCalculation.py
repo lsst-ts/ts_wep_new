@@ -481,6 +481,7 @@ class WEPCalculation(object):
         else:
             warnings.warn("No sky file assigned. Use the default one.",
                           category=UserWarning)
+
             skyFileRelativePath = self.settingFile.getSetting(
                 "defaultSkyFilePath")
             skyFile = os.path.join(getModulePath(), skyFileRelativePath)

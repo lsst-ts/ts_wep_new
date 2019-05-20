@@ -6,7 +6,7 @@ DatabaseFactory ..> LocalDatabase
 DatabaseFactory ..> LocalDatabaseForStarFile
 DefaultDatabase ..> StarData
 StarData ..> NbrStar
-StarData -- CameraData
+CameraData --> StarData
 CameraData *-- WcsSol
 CameraData <|-- LsstCam
 CameraData <|-- LsstFamCam

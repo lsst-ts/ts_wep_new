@@ -55,3 +55,4 @@
 /tests/testData/phosimOutput/realComCam/repackagedFiles/extra/lsst_a_9005000_f1_R22_S11_E000.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/phosimOutput/realComCam/repackagedFiles/intra/lsst_a_9005001_f1_R22_S10_E000.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/phosimOutput/realComCam/repackagedFiles/intra/lsst_a_9005001_f1_R22_S11_E000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/repackagedFiles/lsst_a_9005000_f1_R22_S10_E000.fits filter=lfs diff=lfs merge=lfs -text

@@ -1,4 +1,6 @@
 import os
+import shutil
+import warnings
 
 from lsst.ts.wep.Utility import runProgram, writeFile
 
@@ -94,6 +96,15 @@ class CamIsrWrapper(object):
             Rerun name. (the default is "run1".)
         """
 
+        # Work around the bug of obs_lsst in w_2019_20 that can not do the ISR
+        # continuously. This part should be removed in the final.
+        rerunDirPath = os.path.join(inputDir, "rerun")
+        if os.path.exists(rerunDirPath):
+            shutil.rmtree(rerunDirPath)
+            warnings.warn("Rerun dir exists. Remove it to work around.",
+                          category=UserWarning)
+
+        # Do the ISR
         command = "runIsr.py"
 
         argstring = "%s --id --rerun=%s" % (inputDir, rerunName)

@@ -12,9 +12,13 @@ class TestCamIsrWrapper(unittest.TestCase):
 
     def setUp(self):
 
-        self.dataDir = os.path.join(getModulePath(), "tests", "tmpIsr")
+        testDir = os.path.join(getModulePath(), "tests")
+        self.dataDir = os.path.join(testDir, "tmpIsr")
         self.isrDir = os.path.join(self.dataDir, "input")
         self._makeDir(self.isrDir)
+
+        self.repackagedTestData = os.path.join(testDir, "testData",
+                                               "repackagedFiles")
 
         self.camIsrWrapper = CamIsrWrapper(self.isrDir)
 
@@ -52,6 +56,27 @@ class TestCamIsrWrapper(unittest.TestCase):
 
     def testDoIsr(self):
 
+        # Get the camDataCollector and ingest the calibs
+        detector = "R00_S22"
+        camDataCollector = self._getCamDataCollectorAndIngestCalibs(
+            detector)
+
+        # Ingest the raw images and do the ISR
+        imgFileName = "lsst_a_20_f5_R00_S22_E000.fits"
+        rerunName = "run1"
+        self._ingestRawAndDoIsr(imgFileName, camDataCollector, rerunName,
+                                doIsrConfig=True)
+
+        # Check the condition
+        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName,
+                                     "postISRCCD")
+        self.assertTrue(os.path.exists(postIsrCcdDir))
+
+        numOfDir = self._getNumOfDir(postIsrCcdDir)
+        self.assertEqual(numOfDir, 1)
+
+    def _getCamDataCollectorAndIngestCalibs(self, detector):
+
         # Generate the camera mapper
         camDataCollector = CamDataCollector(self.isrDir)
         camDataCollector.genPhoSimMapper()
@@ -60,30 +85,13 @@ class TestCamIsrWrapper(unittest.TestCase):
         fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
         self._makeDir(fakeFlatDir)
 
-        detector = "R00_S22"
         self._genFakeFlat(fakeFlatDir, detector)
 
         # Ingest the calibration images
         calibFiles = os.path.join(fakeFlatDir, "*")
         camDataCollector.ingestCalibs(calibFiles)
 
-        # Ingest the raw images
-        imgFiles = os.path.join(getModulePath(), "tests", "testData",
-                                "repackagedFiles",
-                                "lsst_a_20_f5_R00_S22_E000.fits")
-        camDataCollector.ingestImages(imgFiles)
-
-        # Do the ISR configuration
-        self._doIsrConfig()
-
-        # Do the ISR
-        rerunName = "run1"
-        self.camIsrWrapper.doISR(self.isrDir, rerunName=rerunName)
-
-        # Check the condition
-        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName,
-                                     "postISRCCD")
-        self.assertTrue(os.path.exists(postIsrCcdDir))
+        return camDataCollector
 
     def _genFakeFlat(self, fakeFlatDir, detector):
 
@@ -106,6 +114,54 @@ class TestCamIsrWrapper(unittest.TestCase):
         command = "makeGainImages.py"
         argstring = "--detector_list %s" % detector
         runProgram(command, argstring=argstring)
+
+    def _ingestRawAndDoIsr(self, imgFileName, camDataCollector, rerunName,
+                           doIsrConfig=False):
+
+        imgFiles = os.path.join(self.repackagedTestData, imgFileName)
+        camDataCollector.ingestImages(imgFiles)
+
+        # Do the ISR configuration
+        if (doIsrConfig is True):
+            self._doIsrConfig()
+
+        # Do the ISR
+        self.camIsrWrapper.doISR(self.isrDir, rerunName=rerunName)
+
+    def _getNumOfDir(self, dirPath):
+
+        numOfDir = sum(os.path.isdir(os.path.join(dirPath, aDir))
+                       for aDir in os.listdir(path=dirPath))
+
+        return numOfDir
+
+    def testDoIsrContinuous(self):
+
+        # Get the camDataCollector and ingest the calibs
+        detector = "R00_S22 R22_S10"
+        camDataCollector = self._getCamDataCollectorAndIngestCalibs(
+            detector)
+
+        # Ingest the first raw images and do the ISR
+        imgFileName = "lsst_a_20_f5_R00_S22_E000.fits"
+        rerunName = "run1"
+        self._ingestRawAndDoIsr(imgFileName, camDataCollector, rerunName,
+                                doIsrConfig=True)
+
+        # Check the condition
+        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName,
+                                     "postISRCCD")
+        numOfDir = self._getNumOfDir(postIsrCcdDir)
+        self.assertEqual(numOfDir, 1)
+
+        # Ingest the second raw image and do the ISR again
+        imgFileName = "lsst_a_9005000_f1_R22_S10_E000.fits"
+        self._ingestRawAndDoIsr(imgFileName, camDataCollector, rerunName,
+                                doIsrConfig=False)
+
+        # Check the condition again
+        numOfDir = self._getNumOfDir(postIsrCcdDir)
+        self.assertEqual(numOfDir, 2)
 
 
 if __name__ == "__main__":

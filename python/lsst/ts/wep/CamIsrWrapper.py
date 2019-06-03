@@ -96,14 +96,6 @@ class CamIsrWrapper(object):
             Rerun name. (the default is "run1".)
         """
 
-        # Work around the bug of obs_lsst in w_2019_20 that can not do the ISR
-        # continuously. This part should be removed in the final.
-        rerunDirPath = os.path.join(inputDir, "rerun")
-        if os.path.exists(rerunDirPath):
-            shutil.rmtree(rerunDirPath)
-            warnings.warn("Rerun dir exists. Remove it to work around.",
-                          category=UserWarning)
-
         # Do the ISR
         command = "runIsr.py"
 
@@ -112,6 +104,26 @@ class CamIsrWrapper(object):
             argstring += " --configfile %s" % self.isrConfigFilePath
 
         runProgram(command, argstring=argstring)
+
+    def _rmRerunDirIfExist(self, inputDir, rerunDirName):
+        """Remove the rerun directory if it is existed.
+
+        Work around the bug of obs_lsst in w_2019_20 that can not do the ISR
+        continuously. This part should be removed in the final.
+
+        Parameters
+        ----------
+        inputDir : str
+            Input data directory.
+        rerunName : str
+            Rerun name.
+        """
+
+        rerunDirPath = os.path.join(inputDir, rerunDirName)
+        if os.path.exists(rerunDirPath):
+            shutil.rmtree(rerunDirPath)
+            warnings.warn("Rerun dir exists. Remove it to work around.",
+                          category=UserWarning)
 
 
 if __name__ == "__main__":

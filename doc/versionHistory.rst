@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.2.9:
+
+-------------
+1.2.9
+-------------
+
+Use sims_w_2019_22. Adapt the new version of ip_isr that fixes the bug that can not do the ISR continuously. 
+
 .. _lsst.ts.wep-1.2.8:
 
 -------------

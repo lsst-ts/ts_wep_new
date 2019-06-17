@@ -8,7 +8,7 @@ pipeline {
         // The nodes in T&S teams is 'jenkins-el7-1'.
         // It is recommended by SQUARE team do not add the label.
         docker {
-            image 'lsstts/aos:w_2019_22'
+            image 'lsstts/aos:w_2019_24'
             args '-u root'
         }
     }
@@ -39,8 +39,8 @@ pipeline {
                         conda install scikit-image
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
-                        git checkout 7b02084
-                        setup -k -r . -t sims_w_2019_22
+                        git checkout c1f2391
+                        setup -k -r . -t sims_w_2019_24
                         scons
                         cd ..
                         setup -k -r .
@@ -62,7 +62,7 @@ pipeline {
                         source /opt/rh/devtoolset-6/enable
                         source ${env.LSST_STACK}/loadLSST.bash
                         cd phosim_utils/
-                        setup -k -r . -t sims_w_2019_22
+                        setup -k -r . -t sims_w_2019_24
                         cd ..
                         setup -k -r .
                         pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.XML_REPORT} tests/

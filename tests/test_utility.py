@@ -2,7 +2,8 @@ import os
 import unittest
 
 from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
-    mapFilterRefToG, FilterType, getModulePath, getConfigDir
+    mapFilterRefToG, FilterType, getModulePath, getConfigDir, \
+    getObsLsstCmdTaskConfigDir, ImageType, getImageType
 
 
 class TestUtility(unittest.TestCase):
@@ -35,12 +36,12 @@ class TestUtility(unittest.TestCase):
 
         self.assertRaises(ValueError, expandDetectorName, "R40_S02_C2")
 
-    def testmapFilterRefToG(self):
+    def testMapFilterRefToG(self):
 
         mappedFilterType = mapFilterRefToG(FilterType.REF)
         self.assertEqual(mappedFilterType, FilterType.G)
 
-    def testmapFilterRefToGForFilterU(self):
+    def testMapFilterRefToGForFilterU(self):
 
         mappedFilterType = mapFilterRefToG(FilterType.U)
         self.assertEqual(mappedFilterType, FilterType.U)
@@ -49,6 +50,24 @@ class TestUtility(unittest.TestCase):
 
         ansConfigDir = os.path.join(getModulePath(), "policy")
         self.assertEqual(getConfigDir(), ansConfigDir)
+
+    def testGetObsLsstCmdTaskConfigDir(self):
+
+        obsLsstCmdTaskConfirDir = getObsLsstCmdTaskConfigDir()
+        configNormPath = os.path.normpath(obsLsstCmdTaskConfirDir)
+        configNormPathList = configNormPath.split(os.sep)
+
+        self.assertEqual(configNormPathList[-1], "config")
+        self.assertTrue(("obs_lsst" in configNormPathList))
+
+    def testGetImageType(self):
+
+        self.assertEqual(getImageType("amp"), ImageType.Amp)
+        self.assertEqual(getImageType("eimage"), ImageType.Eimg)
+
+    def testGetImageTypeWithWrongInput(self):
+
+        self.assertRaises(ValueError, getImageType, "wrongType")
 
 
 if __name__ == "__main__":

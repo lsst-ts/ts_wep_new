@@ -4,7 +4,8 @@ import numpy as np
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
-from lsst.ts.wep.Utility import abbrevDectectorName, searchDonutPos, DefocalType
+from lsst.ts.wep.Utility import abbrevDectectorName, searchDonutPos, \
+    DefocalType, ImageType
 
 
 class WepController(object):
@@ -30,12 +31,22 @@ class WepController(object):
             Wavefront estimator.
         """
 
+        # Data collector to use DM ingest command line task
         self.dataCollector = dataCollector
+
+        # ISR wrapper to use DM ISR command line task
         self.isrWrapper = isrWrapper
+
+        # Source selector to query the bright star catalog
         self.sourSelc = sourSelc
+
+        # Source processor to get the donut image or do the deblending
         self.sourProc = sourProc
+
+        # Wavefront estimator to get zk
         self.wfEsti = wfEsti
 
+        # Butler wrapper to use DM data butler
         self.butlerWrapper = None
 
     def getDataCollector(self):
@@ -146,6 +157,34 @@ class WepController(object):
             (type: DefocalImage).
         """
 
+        return self._getImgMapByPistonDefocal(sensorNameList, obsIdList,
+                                              ImageType.Amp)
+
+    def _getImgMapByPistonDefocal(self, sensorNameList, obsIdList, imageType):
+        """Get the image map that the defocal images are by the pistion motion.
+
+        Parameters
+        ----------
+        sensorNameList : list
+            List of sensor name.
+        obsIdList : list
+            Observation Id list in [intraObsId, extraObsId].
+        imageType : ImageType
+            Image type.
+
+        Returns
+        -------
+        dict
+            Image map. The dictionary key is the sensor name. The dictionary
+            item is the defocal image on the camera coordinate. (type:
+            DefocalImage).
+
+        Raises
+        ------
+        ValueError
+            The image type is not supported.
+        """
+
         # Get the waveront image map
         wfsImgMap = dict()
         for sensorName in sensorNameList:
@@ -158,7 +197,15 @@ class WepController(object):
             for visit in obsIdList:
 
                 # Get the exposure image in ndarray
-                exp = self.butlerWrapper.getPostIsrCcd(int(visit), raft, sensor)
+                if (imageType == ImageType.Amp):
+                    exp = self.butlerWrapper.getPostIsrCcd(
+                        int(visit), raft, sensor)
+                elif (imageType == ImageType.Eimg):
+                    exp = self.butlerWrapper.getEimage(
+                        int(visit), raft, sensor)
+                else:
+                    raise ValueError("The %s is not supported." % imageType)
+
                 img = self.butlerWrapper.getImageData(exp)
 
                 # Transform the image in DM coordinate to camera coordinate.
@@ -171,48 +218,6 @@ class WepController(object):
                                                  extraImg=imgList[1])
 
         return wfsImgMap
-
-    def _transImgDmCoorToCamCoor(self, dmImg):
-        """Transfrom the image in DM coordinate to camera coordinate.
-
-        Parameters
-        ----------
-        dmImg : numpy.ndarray
-            Image in DM coordinate.
-
-        Returns
-        -------
-        numpy.ndarray
-            Image is camera coordinate.
-        """
-
-        # The relationship between DM and camera coordinate should be 90 degree
-        # difference.
-        # For the PhoSim mapper, it is the transpose (x, y) to (y, x). This
-        # should be fixed.
-
-        camImg = dmImg.T
-
-        return camImg
-
-    def getPostIsrImgMapOnCornerWfs(self, sensorNameList, obsId):
-        """Get the post ISR image map of corner wavefront sensors.
-
-        Parameters
-        ----------
-        sensorNameList : list
-            List of sensor name.
-        obsId : int
-            Observation Id.
-
-        Returns
-        -------
-        dict
-            Post-ISR image map. The dictionary key is the sensor name. The
-            dictionary item is the defocal image on the camera coordinate.
-            (type: DefocalImage).
-        """
-        pass
 
     def _getSensorInfo(self, sensorName):
         """Get the sensor information.
@@ -245,6 +250,68 @@ class WepController(object):
         sensorAbbName = "S" + sensor[0] + sensor[-1]
 
         return raftAbbName, sensorAbbName, channel
+
+    def _transImgDmCoorToCamCoor(self, dmImg):
+        """Transfrom the image in DM coordinate to camera coordinate.
+
+        The geometry transformation is defined in LSE-349.
+
+        Parameters
+        ----------
+        dmImg : numpy.ndarray
+            Image in DM coordinate.
+
+        Returns
+        -------
+        numpy.ndarray
+            Image is camera coordinate.
+        """
+
+        # For the PhoSim mapper, it is the transpose (x, y) to (y, x).
+        camImg = dmImg.T
+
+        return camImg
+
+    def getEimgMapByPistonDefocal(self, sensorNameList, obsIdList):
+        """Get the eimage map that the defocal images are by the pistion
+        motion.
+
+        Parameters
+        ----------
+        sensorNameList : list
+            List of sensor name.
+        obsIdList : list
+            Observation Id list in [intraObsId, extraObsId].
+
+        Returns
+        -------
+        dict
+            Eimage map. The dictionary key is the sensor name. The dictionary
+            item is the defocal image on the camera coordinate. (type:
+            DefocalImage).
+        """
+
+        return self._getImgMapByPistonDefocal(sensorNameList, obsIdList,
+                                              ImageType.Eimg)
+
+    def getPostIsrImgMapOnCornerWfs(self, sensorNameList, obsId):
+        """Get the post ISR image map of corner wavefront sensors.
+
+        Parameters
+        ----------
+        sensorNameList : list
+            List of sensor name.
+        obsId : int
+            Observation Id.
+
+        Returns
+        -------
+        dict
+            Post-ISR image map. The dictionary key is the sensor name. The
+            dictionary item is the defocal image on the camera coordinate.
+            (type: DefocalImage).
+        """
+        pass
 
     def getDonutMap(self, neighborStarMap, wfsImgMap, filterType,
                     doDeblending=False):

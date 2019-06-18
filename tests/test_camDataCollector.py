@@ -100,12 +100,28 @@ class TestCamDataCollector(unittest.TestCase):
                                 "lsst_a_20_f5_R00_S22_E000.fits")
         self.camDataCollector.ingestImages(imgFiles)
 
-        # Check the ingested calibration products
+        # Check the ingested files
+        self._checkIngestion("raw")
+
+    def _checkIngestion(self, imgType):
+
         registryFilePath = os.path.join(self.isrDir, "registry.sqlite3")
         self.assertTrue(os.path.exists(registryFilePath))
 
-        rawDir = os.path.join(self.isrDir, "raw")
+        rawDir = os.path.join(self.isrDir, imgType)
         self.assertTrue(os.path.exists(rawDir))
+
+    def testIngestEimages(self):
+
+        self._genMapper()
+
+        imgFiles = os.path.join(getModulePath(), "tests", "testData",
+                                "repackagedFiles",
+                                "lsst_e_9006001_f1_R22_S00_E000.fits.gz")
+        self.camDataCollector.ingestEimages(imgFiles)
+
+        # Check the ingested files
+        self._checkIngestion("eimage")
 
 
 if __name__ == "__main__":

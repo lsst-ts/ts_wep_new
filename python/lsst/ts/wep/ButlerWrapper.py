@@ -75,9 +75,12 @@ class ButlerWrapper(object):
             Raw exposure object.
         """
 
+        # Data Id keys in w_2019_24:
+        # {'run': str, 'raftName': str, 'visit': int, 'detectorName': str,
+        #  'detector': int, 'snap': int}
+
         dataId = self._getDefaultDataId(visit, raft, sensor)
-        if (snap is not None) and isinstance(snap, (int, float)):
-            dataId["snap"] = int(snap)
+        self._extendDataId(dataId, snap=snap)
 
         return self._butler.get("raw", dataId=dataId)
 
@@ -103,7 +106,27 @@ class ButlerWrapper(object):
 
         return dataId
 
-    def getPostIsrCcd(self, visit, raft, sensor, afilter=None):
+    def _extendDataId(self, dataId, snap=None, aFilter=None):
+        """Extend the data Id.
+
+        Parameters
+        ----------
+        dataId : dict
+            Data Id.
+        snap : int, optional
+            Snap time (0 or 1) means first/ second exposure. (the default is
+            None.)
+        aFilter : str, optional
+            Active filter ("u", "g", "r", "i", "z", "y") (the default is None.)
+        """
+
+        if (snap is not None) and isinstance(snap, (int, float)):
+            dataId["snap"] = int(snap)
+
+        if (aFilter is not None) and isinstance(aFilter, str):
+            dataId["filter"] = aFilter
+
+    def getPostIsrCcd(self, visit, raft, sensor, aFilter=None):
         """Get the post-ISR CCD exposure.
 
         ISR: Instrument signature removal.
@@ -117,7 +140,7 @@ class ButlerWrapper(object):
             Abbreviated raft name (e.g. "R22").
         sensor : str
             Abbreviated sensor name (e.g. "S11").
-        afilter : str, optional
+        aFilter : str, optional
             Active filter ("u", "g", "r", "i", "z", "y") (the default is None.)
 
         Returns
@@ -126,11 +149,42 @@ class ButlerWrapper(object):
             Post-ISR CCD object.
         """
 
+        # Data Id keys in w_2019_24:
+        # {'visit': int, 'filter': str, 'raftName': str, 'detectorName': str,
+        #  'detector': int}
+
         dataId = self._getDefaultDataId(visit, raft, sensor)
-        if (afilter is not None) and isinstance(afilter, str):
-            dataId["filter"] = afilter
+        self._extendDataId(dataId, aFilter=aFilter)
 
         return self._butler.get("postISRCCD", dataId=dataId)
+
+    def getEimage(self, visit, raft, sensor, snap=None):
+        """Get the PhoSim eimage exposure.
+
+        Parameters
+        ----------
+        visit : int
+            Visit Id.
+        raft : str
+            Abbreviated raft name (e.g. "R22").
+        sensor : str
+            Abbreviated sensor name (e.g. "S11").
+        snap : int, optional
+            Snap time (0 or 1) means first/ second exposure. (the default is
+            None.)
+
+        Returns
+        -------
+        lsst.afw.image.exposure.exposure.ExposureF
+            Eimage exposure object.
+        """
+
+        # Data Id keys in w_2019_24:
+        # {'visit': int, 'snap': int, 'raftName': str, 'detectorName': str}
+        dataId = self._getDefaultDataId(visit, raft, sensor)
+        self._extendDataId(dataId, snap=snap)
+
+        return self._butler.get("eimage", dataId=dataId)
 
     @staticmethod
     def getImageData(exposure):

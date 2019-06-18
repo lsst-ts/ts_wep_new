@@ -18,30 +18,35 @@ class TestButlerWrapper(unittest.TestCase):
     def testGetRawExp(self):
 
         exposure = self._getRawExp()
-        self.assertEqual(exposure.getDimensions()[0], 4176)
-        self.assertEqual(exposure.getDimensions()[1], 4020)
+        self.assertEqual(exposure.getDimensions().getX(), 4176)
+        self.assertEqual(exposure.getDimensions().getY(), 4020)
 
     def _getRawExp(self):
-
-        visit, raft, sensor = self._getDefaultSurveyMetaData()
-        exposure = self.butlerWrapper.getRawExp(visit, raft, sensor)
-
-        return exposure
-
-    def _getDefaultSurveyMetaData(self):
 
         visit = 20
         raft = "R00"
         sensor = "S22"
+        return self.butlerWrapper.getRawExp(visit, raft, sensor)
 
-        return visit, raft, sensor
+    def testGetEimage(self):
+
+        exposure = self._getEimage()
+        self.assertEqual(exposure.getDimensions().getX(), 4072)
+        self.assertEqual(exposure.getDimensions().getY(), 4000)
+
+    def _getEimage(self):
+
+        visit = 9006001
+        raft = "R22"
+        sensor = "S00"
+        return self.butlerWrapper.getEimage(visit, raft, sensor)
 
     def testSetInputsAndOutputs(self):
 
         self.butlerWrapper.setInputsAndOutputs(inputs=self.inputs)
 
         exposure = self._getRawExp()
-        self.assertEqual(exposure.getDimensions()[0], 4176)
+        self.assertEqual(exposure.getDimensions().getX(), 4176)
 
     def testGetImageData(self):
 
@@ -50,6 +55,17 @@ class TestButlerWrapper(unittest.TestCase):
         image = ButlerWrapper.getImageData(exposure)
         self.assertTrue(isinstance(image, np.ndarray))
         self.assertEqual(image.shape, (4020, 4176))
+
+    def testExtendDataId(self):
+
+        dataId = dict()
+
+        snap = 0
+        aFilter = "u"
+        self.butlerWrapper._extendDataId(dataId, snap=snap, aFilter=aFilter)
+
+        self.assertEqual(dataId["snap"], snap)
+        self.assertEqual(dataId["filter"], aFilter)
 
 
 if __name__ == "__main__":

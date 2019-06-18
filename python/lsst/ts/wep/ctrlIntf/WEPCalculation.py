@@ -2,7 +2,7 @@ import os
 import warnings
 
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, BscDbType, \
-    FilterType, abbrevDectectorName
+    FilterType, abbrevDectectorName, getImageType, ImageType
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -512,8 +512,14 @@ class WEPCalculation(object):
         """
 
         sensorNameList = list(neighborStarMap)
-        wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
-            sensorNameList, obsIdList)
+
+        imgType = self._getImgType()
+        if (imgType == ImageType.Amp):
+            wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
+                sensorNameList, obsIdList)
+        elif (imgType == ImageType.Eimg):
+            wfsImgMap = self.wepCntlr.getEimgMapByPistonDefocal(
+                sensorNameList, obsIdList)
 
         doDeblending = self.settingFile.getSetting("doDeblending")
         donutMap = self.wepCntlr.getDonutMap(
@@ -523,6 +529,19 @@ class WEPCalculation(object):
         donutMap = self.wepCntlr.calcWfErr(donutMap)
 
         return donutMap
+
+    def _getImgType(self):
+        """Get the image type defined in the configuration file.
+
+        Returns
+        -------
+        enum 'ImageType'
+            ImageType enum.
+        """
+
+        imgType = self.settingFile.getSetting("imageType")
+
+        return getImageType(imgType)
 
     def _populateListOfSensorWavefrontData(self, donutMap):
         """Populate the list of sensor wavefront data.

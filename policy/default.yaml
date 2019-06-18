@@ -2,6 +2,9 @@
 
 # Default setting
 
+# Image type to use in the analysis ("amp" or "eimage")
+imageType: amp
+
 # 1 pixel = 0.2 arcsec
 pixelToArcsec: 0.2
 

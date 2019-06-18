@@ -2,7 +2,8 @@ import os
 import unittest
 import shutil
 
-from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, runProgram
+from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, \
+    runProgram, ImageType
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
@@ -31,6 +32,10 @@ class TestWEPCalculation(unittest.TestCase):
     def tearDown(self):
 
         shutil.rmtree(self.dataDir)
+
+    def testGetImgType(self):
+
+        self.assertEqual(self.wepCalculation._getImgType(), ImageType.Amp)
 
     def testGetIsrDir(self):
 

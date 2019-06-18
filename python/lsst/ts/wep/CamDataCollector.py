@@ -1,5 +1,6 @@
 import os
-from lsst.ts.wep.Utility import runProgram, writeFile
+from lsst.ts.wep.Utility import runProgram, writeFile, \
+    getObsLsstCmdTaskConfigDir
 
 
 class CamDataCollector(object):
@@ -40,7 +41,7 @@ class CamDataCollector(object):
         runProgram(command, argstring=argstring)
 
     def ingestImages(self, imgFiles):
-        """Ingest the image files.
+        """Ingest the amplifier image files.
 
         Parameters
         ----------
@@ -48,9 +49,39 @@ class CamDataCollector(object):
             Image files.
         """
 
+        self._ingestImagesByButler(imgFiles)
+
+    def _ingestImagesByButler(self, imgFiles, configFile=None):
+        """Ingest the images by butler.
+
+        Parameters
+        ----------
+        imgFiles : str
+            Image files.
+        configFile : str, optional
+            Config override file(s). (the default is None.)
+        """
+
         command = "ingestImages.py"
+
         argstring = "%s %s" % (self.destDir, imgFiles)
+        if (configFile is not None):
+            argstring += " --configfile %s" % configFile
+
         runProgram(command, argstring=argstring)
+
+    def ingestEimages(self, imgFiles):
+        """Ingest the PhoSim eimage files.
+
+        Parameters
+        ----------
+        imgFiles : str
+            Image files.
+        """
+
+        eimgConfigFile = os.path.join(getObsLsstCmdTaskConfigDir(), "phosim",
+                                      "ingestEimg.py")
+        self._ingestImagesByButler(imgFiles, configFile=eimgConfigFile)
 
 
 if __name__ == "__main__":

@@ -89,6 +89,11 @@ class DefocalType(Enum):
     Extra = 2
 
 
+class ImageType(Enum):
+    Amp = 1
+    Eimg = 2
+
+
 def getModulePath():
     """Get the path of module.
 
@@ -111,6 +116,18 @@ def getConfigDir():
     """
 
     return os.path.join(getModulePath(), "policy")
+
+
+def getObsLsstCmdTaskConfigDir():
+    """Get the obs_lsst command line task configuration directory.
+
+    Returns
+    -------
+    str
+        obs_lsst command line task configuration directory.
+    """
+
+    return os.path.join(getPackageDir("obs_lsst"), "config")
 
 
 def runProgram(command, binDir=None, argstring=None):
@@ -364,6 +381,33 @@ def mapFilterRefToG(filterType):
         return FilterType.G
     else:
         return filterType
+
+
+def getImageType(imageType):
+    """Get the image type.
+
+    Parameters
+    ----------
+    imageType : str
+        Image type to use (amp or eimage).
+
+    Returns
+    -------
+    enum 'ImageType'
+        ImageType enum.
+
+    Raises
+    ------
+    ValueError
+        The image type is not supported.
+    """
+
+    if (imageType == "amp"):
+        return ImageType.Amp
+    elif (imageType == "eimage"):
+        return ImageType.Eimg
+    else:
+        raise ValueError("The %s is not supported." % imageType)
 
 
 if __name__ == "__main__":

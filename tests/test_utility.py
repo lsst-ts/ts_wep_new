@@ -3,7 +3,8 @@ import unittest
 
 from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
     mapFilterRefToG, FilterType, getModulePath, getConfigDir, \
-    getObsLsstCmdTaskConfigDir, ImageType, getImageType
+    getObsLsstCmdTaskConfigDir, ImageType, getImageType, getBscDbType, \
+    BscDbType
 
 
 class TestUtility(unittest.TestCase):
@@ -59,6 +60,15 @@ class TestUtility(unittest.TestCase):
 
         self.assertEqual(configNormPathList[-1], "config")
         self.assertTrue(("obs_lsst" in configNormPathList))
+
+    def testGetBscDbType(self):
+
+        self.assertEqual(getBscDbType("localDb"), BscDbType.LocalDb)
+        self.assertEqual(getBscDbType("file"), BscDbType.LocalDbForStarFile)
+
+    def testGetBscDbTypeWithWrongInput(self):
+
+        self.assertRaises(ValueError, getBscDbType, "wrongType")
 
     def testGetImageType(self):
 

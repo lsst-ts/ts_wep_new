@@ -383,6 +383,33 @@ def mapFilterRefToG(filterType):
         return filterType
 
 
+def getBscDbType(bscDbType):
+    """Get the bright star catalog (BSC) database type.
+
+    Parameters
+    ----------
+    bscDbType : str
+        BSC database type to use (localDb or file).
+
+    Returns
+    -------
+    enum 'BscDbType'
+        BSC database type.
+
+    Raises
+    ------
+    ValueError
+        The bscDb is not supported.
+    """
+
+    if (bscDbType == "localDb"):
+        return BscDbType.LocalDb
+    elif (bscDbType == "file"):
+        return BscDbType.LocalDbForStarFile
+    else:
+        raise ValueError("The bscDb (%s) is not supported." % bscDbType)
+
+
 def getImageType(imageType):
     """Get the image type.
 

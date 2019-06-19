@@ -2,7 +2,7 @@ import os
 import warnings
 
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, BscDbType, \
-    FilterType, abbrevDectectorName, getImageType, ImageType
+    FilterType, abbrevDectectorName, getBscDbType, getImageType, ImageType
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -104,20 +104,11 @@ class WEPCalculation(object):
         -------
         enum 'BscDbType'
             BSC database type.
-
-        Raises
-        ------
-        ValueError
-            The bscDb is not supported.
         """
 
-        bscDb = self.settingFile.getSetting("bscDb")
-        if (bscDb == "localDb"):
-            return BscDbType.LocalDb
-        elif (bscDb == "file"):
-            return BscDbType.LocalDbForStarFile
-        else:
-            raise ValueError("The bscDb (%s) is not supported." % bscDb)
+        bscDb = self.settingFile.getSetting("bscDbType")
+
+        return getBscDbType(bscDb)
 
     def _configSourceSelector(self, camType, bscDbType, settingFileName):
         """Configue the source selector.
@@ -513,7 +504,7 @@ class WEPCalculation(object):
 
         sensorNameList = list(neighborStarMap)
 
-        imgType = self._getImgType()
+        imgType = self._getImageType()
         if (imgType == ImageType.Amp):
             wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
                 sensorNameList, obsIdList)
@@ -530,7 +521,7 @@ class WEPCalculation(object):
 
         return donutMap
 
-    def _getImgType(self):
+    def _getImageType(self):
         """Get the image type defined in the configuration file.
 
         Returns

@@ -3,7 +3,7 @@ import unittest
 import shutil
 
 from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, \
-    runProgram, ImageType
+    runProgram, ImageType, BscDbType
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
@@ -33,9 +33,14 @@ class TestWEPCalculation(unittest.TestCase):
 
         shutil.rmtree(self.dataDir)
 
-    def testGetImgType(self):
+    def testGetImageType(self):
 
-        self.assertEqual(self.wepCalculation._getImgType(), ImageType.Amp)
+        self.assertEqual(self.wepCalculation._getImageType(), ImageType.Amp)
+
+    def testGetBscDbType(self):
+
+        self.assertEqual(self.wepCalculation._getBscDbType(),
+                         BscDbType.LocalDbForStarFile)
 
     def testGetIsrDir(self):
 

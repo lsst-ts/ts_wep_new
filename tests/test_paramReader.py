@@ -36,6 +36,11 @@ class TestParamReader(unittest.TestCase):
         znmax = self.paramReader.getSetting("znmax")
         self.assertEqual(znmax, 22)
 
+    def testGetSettingWithWrongParam(self):
+
+        self.assertRaises(ValueError, self.paramReader.getSetting,
+                          "wrongParam")
+
     def testGetFilePath(self):
 
         ansFilePath = os.path.join(self.configDir, self.fileName)
@@ -104,6 +109,60 @@ class TestParamReader(unittest.TestCase):
 
         self.assertTrue(isinstance(matInYamlFile, np.ndarray))
         self.assertEqual(len(matInYamlFile), 0)
+
+    def testUpdateSettingSeries(self):
+
+        znmaxValue = 20
+        zn3IdxValue = [1, 2, 3]
+        settingSeries = {"znmax": znmaxValue, "zn3Idx": zn3IdxValue}
+        self.paramReader.updateSettingSeries(settingSeries)
+
+        self.assertEqual(self.paramReader.getSetting("znmax"), znmaxValue)
+        self.assertEqual(self.paramReader.getSetting("zn3Idx"), zn3IdxValue)
+
+    def testUpdateSetting(self):
+
+        value = 10
+        param = "znmax"
+        self.paramReader.updateSetting(param, value)
+
+        self.assertEqual(self.paramReader.getSetting(param), value)
+
+    def testUpdateSettingWithWrongParam(self):
+
+        self.assertRaises(ValueError, self.paramReader.updateSetting,
+                          "wrongParam", -1)
+
+    def testSaveSettingWithFilePath(self):
+
+        filePath = self._saveSettingFile()
+
+        self.assertTrue(os.path.exists(filePath))
+        self.assertEqual(self.paramReader.getFilePath(), filePath)
+
+    def _saveSettingFile(self):
+
+        filePath = os.path.join(self.testTempDir, "newConfigFile.yaml")
+        self.paramReader.saveSetting(filePath=filePath)
+
+        return filePath
+
+    def testSaveSettingWithoutFilePath(self):
+
+        filePath = self._saveSettingFile()
+        paramReader = ParamReader(filePath=filePath)
+
+        paramReader.saveSetting()
+        self.assertEqual(paramReader.getFilePath(), filePath)
+
+        # Check the values are saved actually
+        self.assertEqual(paramReader.getSetting("znmax"), 22)
+
+        keysInContent = paramReader.getContent().keys()
+        self.assertTrue("dofIdx" in keysInContent)
+        self.assertTrue("zn3Idx" in keysInContent)
+
+        self.assertEqual(paramReader.getSetting("zn3Idx"), [1]*19)
 
 
 if __name__ == "__main__":

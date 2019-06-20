@@ -159,6 +159,17 @@ class WEPCalculation(object):
 
         return wfsEsti
 
+    def getSettingFile(self):
+        """Get the setting file.
+
+        Returns
+        -------
+        ParamReader
+            Setting file.
+        """
+
+        return self.settingFile
+
     def getWepCntlr(self):
         """Get the configured WEP controller.
 
@@ -340,17 +351,23 @@ class WEPCalculation(object):
         if (len(rawExpData.getVisit()) != 1):
             raise ValueError("Only single visit is allowed at this time.")
 
+        # When evaluating the eimage, the calibration products are not needed.
+        # Therefore, need to make sure the camera mapper file exists.
+        self._genCamMapperIfNeed()
+
         # Ingest the exposure data and do the ISR
         self._ingestImg(rawExpData)
         if (extraRawExpData is not None):
             self._ingestImg(extraRawExpData)
 
-        self._doIsr(isrConfigfileName="isr_config.py")
+        # Only the amplifier image needs to do the ISR
+        imgType = self._getImageType()
+        if (imgType == ImageType.Amp):
+            self._doIsr(isrConfigfileName="isr_config.py")
 
-        # Set the butler inputs path to get the post-ISR CCD
-        rerunName = self._getIsrRerunName()
-        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName)
-        self.wepCntlr.setPostIsrCcdInputs(postIsrCcdDir)
+        # Set the butler inputs path to get the images
+        butlerRootPath = self._getButlerRootPath()
+        self.wepCntlr.setPostIsrCcdInputs(butlerRootPath)
 
         # Get the target stars map neighboring stars
         neighborStarMap = self._getTargetStar()
@@ -371,6 +388,28 @@ class WEPCalculation(object):
 
         return listOfWfErr
 
+    def _genCamMapperIfNeed(self):
+        """Generate the camera mapper file if it is needed.
+
+        The mapper file is used by the data butler.
+
+        Raises
+        ------
+        ValueError
+            Mapper is not supported yet.
+        """
+
+        mapperFile = os.path.join(self.isrDir, "_mapper")
+        if (not os.path.exists(mapperFile)):
+
+            dataCollector = self.wepCntlr.getDataCollector()
+
+            camMapper = self.settingFile.getSetting("camMapper")
+            if (camMapper == "phosim"):
+                dataCollector.genPhoSimMapper()
+            else:
+                raise ValueError("Mapper (%s) is not supported yet." % camMapper)
+
     def _ingestImg(self, rawExpData):
         """Ingest the images.
 
@@ -384,8 +423,27 @@ class WEPCalculation(object):
 
         rawExpDirList = rawExpData.getRawExpDir()
         for rawExpDir in rawExpDirList:
-            rawImgFiles = os.path.join(rawExpDir, "*.fits")
-            dataCollector.ingestImages(rawImgFiles)
+
+            imgType = self._getImageType()
+            if (imgType == ImageType.Amp):
+                rawImgFiles = os.path.join(rawExpDir, "*_a_*.fits*")
+                dataCollector.ingestImages(rawImgFiles)
+            elif (imgType == ImageType.Eimg):
+                rawImgFiles = os.path.join(rawExpDir, "*_e_*.fits*")
+                dataCollector.ingestEimages(rawImgFiles)
+
+    def _getImageType(self):
+        """Get the image type defined in the configuration file.
+
+        Returns
+        -------
+        enum 'ImageType'
+            ImageType enum.
+        """
+
+        imgType = self.settingFile.getSetting("imageType")
+
+        return getImageType(imgType)
 
     def _doIsr(self, isrConfigfileName):
         """Do the instrument signature removal (ISR).
@@ -412,6 +470,22 @@ class WEPCalculation(object):
         """
 
         return self.settingFile.getSetting("rerunName")
+
+    def _getButlerRootPath(self):
+        """Get the butler root path based on the image type.
+
+        Returns
+        -------
+        str
+            Butler root path.
+        """
+
+        imgType = self._getImageType()
+        if (imgType == ImageType.Amp):
+            rerunName = self._getIsrRerunName()
+            return os.path.join(self.isrDir, "rerun", rerunName)
+        elif (imgType == ImageType.Eimg):
+            return self.isrDir
 
     def _getTargetStar(self):
         """Get the target stars
@@ -521,19 +595,6 @@ class WEPCalculation(object):
 
         return donutMap
 
-    def _getImageType(self):
-        """Get the image type defined in the configuration file.
-
-        Returns
-        -------
-        enum 'ImageType'
-            ImageType enum.
-        """
-
-        imgType = self.settingFile.getSetting("imageType")
-
-        return getImageType(imgType)
-
     def _populateListOfSensorWavefrontData(self, donutMap):
         """Populate the list of sensor wavefront data.
 
@@ -588,28 +649,6 @@ class WEPCalculation(object):
 
         calibFiles = os.path.join(calibsDir, "*")
         dataCollector.ingestCalibs(calibFiles)
-
-    def _genCamMapperIfNeed(self):
-        """Generate the camera mapper file if it is needed.
-
-        The mapper file is used by the data butler.
-
-        Raises
-        ------
-        ValueError
-            Mapper is not supported yet.
-        """
-
-        mapperFile = os.path.join(self.isrDir, "_mapper")
-        if (not os.path.exists(mapperFile)):
-
-            dataCollector = self.wepCntlr.getDataCollector()
-
-            camMapper = self.settingFile.getSetting("camMapper")
-            if (camMapper == "phosim"):
-                dataCollector.genPhoSimMapper()
-            else:
-                raise ValueError("Mapper (%s) is not supported yet." % camMapper)
 
 
 if __name__ == "__main__":

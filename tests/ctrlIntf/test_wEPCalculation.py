@@ -4,6 +4,7 @@ import shutil
 
 from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, \
     runProgram, ImageType, BscDbType
+from lsst.ts.wep.ParamReader import ParamReader
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
 from lsst.ts.wep.ctrlIntf.AstWcsSol import AstWcsSol
@@ -32,6 +33,11 @@ class TestWEPCalculation(unittest.TestCase):
     def tearDown(self):
 
         shutil.rmtree(self.dataDir)
+
+    def testGetSettingFile(self):
+
+        settingFile = self.wepCalculation.getSettingFile()
+        self.assertTrue(isinstance(settingFile, ParamReader))
 
     def testGetImageType(self):
 
@@ -155,6 +161,10 @@ class TestWEPCalculation(unittest.TestCase):
 
         self._genCalibsAndIngest()
 
+        self._calculateWavefrontErrorsAndCheck()
+
+    def _calculateWavefrontErrorsAndCheck(self):
+
         comcamDataDir = os.path.join(self.testDataDir, "phosimOutput",
                                      "realComCam")
         rawExpData, extraRawExpData = self._prepareRawExpData(comcamDataDir)
@@ -194,6 +204,13 @@ class TestWEPCalculation(unittest.TestCase):
         avgWfErr = sensorWavefrontData.getAnnularZernikePoly()
         self.assertEqual(avgWfErr.argmax(), 2)
         self.assertGreater(avgWfErr.max(), 0.1)
+
+    def testCalculateWavefrontErrorsOfEimg(self):
+
+        settingFile = self.wepCalculation.getSettingFile()
+        settingFile.updateSetting("imageType", "eimage")
+
+        self._calculateWavefrontErrorsAndCheck()
 
 
 if __name__ == "__main__":

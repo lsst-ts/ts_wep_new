@@ -6,14 +6,13 @@ import unittest
 
 from lsst.ts.wep.cwfs.Tool import ZernikeAnnularFit
 from lsst.ts.wep.CamDataCollector import CamDataCollector
-from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.WfEstimator import WfEstimator
 from lsst.ts.wep.WepController import WepController
 
 from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType,\
-    runProgram, getConfigDir
+    getConfigDir
 
 
 class TestWepControllerMonolithic(unittest.TestCase):
@@ -23,21 +22,20 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         self.modulePath = getModulePath()
         self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
-        self.isrDir = os.path.join(self.dataDir, "input")
+        self.butlerInput = os.path.join(self.dataDir, "input")
         self.opdDir = os.path.join(self.modulePath, "tests", "testData",
                                    "opdOutput", "9005000")
 
-        self._makeDir(self.isrDir)
+        self._makeDir(self.butlerInput)
 
         # Configurate the WEP components
-        dataCollector = CamDataCollector(self.isrDir)
-        isrWrapper = CamIsrWrapper(self.isrDir)
+        dataCollector = CamDataCollector(self.butlerInput)
         sourSelc = self._configSourceSelector()
         sourProc = SourceProcessor()
         wfEsti = self._configWfEstimator()
 
         # Instantiate the WEP controller
-        self.wepCntlr = WepController(dataCollector, isrWrapper, sourSelc,
+        self.wepCntlr = WepController(dataCollector, None, sourSelc,
                                       sourProc, wfEsti)
 
         # Intemediate data used in the test
@@ -95,35 +93,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         shutil.rmtree(self.dataDir)
 
-    def testGetDataCollector(self):
-
-        self.assertTrue(isinstance(self.wepCntlr.getDataCollector(),
-                                   CamDataCollector))
-
-    def testGetIsrWrapper(self):
-
-        self.assertTrue(isinstance(self.wepCntlr.getIsrWrapper(),
-                                   CamIsrWrapper))
-
-    def testGetSourSelc(self):
-
-        self.assertTrue(isinstance(self.wepCntlr.getSourSelc(),
-                                   SourceSelector))
-
-    def testGetSourProc(self):
-
-        self.assertTrue(isinstance(self.wepCntlr.getSourProc(),
-                                   SourceProcessor))
-
-    def testGetWfEsti(self):
-
-        self.assertTrue(isinstance(self.wepCntlr.getWfEsti(),
-                                   WfEstimator))
-
-    def testGetButlerWrapper(self):
-
-        self.assertEqual(self.wepCntlr.getButlerWrapper(), None)
-
     def testMonolithicSteps(self):
         """Do the test based on the steps defined in the child class."""
 
@@ -148,62 +117,26 @@ class TestWepControllerMonolithic(unittest.TestCase):
             if name.startswith("step"):
                 yield name, getattr(self, name)
 
-    def step1_genCalibsAndIngest(self):
-
-        # Generate the fake flat images
-        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
-        self._makeDir(fakeFlatDir)
-
-        detector = "R22_S11 R22_S10"
-        self._genFakeFlat(fakeFlatDir, detector)
+    def step1_ingestEimg(self):
 
         # Generate the PhoSim mapper
         self.wepCntlr.getDataCollector().genPhoSimMapper()
 
-        # Do the ingestion
-        calibFiles = os.path.join(fakeFlatDir, "*")
-        self.wepCntlr.getDataCollector().ingestCalibs(calibFiles)
-
-    def _genFakeFlat(self, fakeFlatDir, detector):
-
-        currWorkDir = os.getcwd()
-
-        os.chdir(fakeFlatDir)
-        self._makeFakeFlat(detector)
-        os.chdir(currWorkDir)
-
-    def _makeFakeFlat(self, detector):
-
-        command = "makeGainImages.py"
-        argstring = "--detector_list %s" % detector
-        runProgram(command, argstring=argstring)
-
-    def step2_ingestExp(self):
-
         intraImgFiles = os.path.join(
             getModulePath(), "tests", "testData", "phosimOutput", "realComCam",
-            "repackagedFiles", "intra", "lsst_a*.fits")
+            "repackagedFiles", "intra", "lsst_e*.fits*")
         extraImgFiles = os.path.join(
             getModulePath(), "tests", "testData", "phosimOutput", "realComCam",
-            "repackagedFiles", "extra", "lsst_a*.fits")
+            "repackagedFiles", "extra", "lsst_e*.fits*")
 
-        self.wepCntlr.getDataCollector().ingestImages(intraImgFiles)
-        self.wepCntlr.getDataCollector().ingestImages(extraImgFiles)
+        self.wepCntlr.getDataCollector().ingestEimages(intraImgFiles)
+        self.wepCntlr.getDataCollector().ingestEimages(extraImgFiles)
 
-    def step3_doIsr(self):
+    def step2_setButlerInputsPath(self):
 
-        fileName = "isr_config.py"
-        self.wepCntlr.getIsrWrapper().config(doFlat=True, fileName=fileName)
+        self.wepCntlr.setPostIsrCcdInputs(self.butlerInput)
 
-        rerunName = "run1"
-        self.wepCntlr.getIsrWrapper().doISR(self.isrDir, rerunName=rerunName)
-
-    def step4_setButlerInputsPath(self):
-
-        inputs = os.path.join(self.isrDir, "rerun", "run1")
-        self.wepCntlr.setPostIsrCcdInputs(inputs)
-
-    def step5_getTargetStar(self):
+    def step3_getTargetStar(self):
 
         # Set the observation meta data
         ra = 0.0
@@ -231,7 +164,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.assertEqual(len(starMap), 2)
         self.assertEqual(len(wavefrontSensors), 2)
 
-    def step6_getPostIsrDefocalImgMap(self):
+    def step4_getEimgDefocalImgMap(self):
 
         sensorNameList = list(self.wavefrontSensors)
 
@@ -239,7 +172,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         extraObsId = 9005000
         obsIdList = [intraObsId, extraObsId]
 
-        wfsImgMap = self.wepCntlr.getPostIsrImgMapByPistonDefocal(
+        wfsImgMap = self.wepCntlr.getEimgMapByPistonDefocal(
             sensorNameList, obsIdList)
 
         # Assign the data for the following steps to use
@@ -248,7 +181,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         # Do the assertion
         self.assertEqual(len(wfsImgMap), 2)
 
-    def step7_getDonutMap(self):
+    def step5_getDonutMap(self):
 
         self.donutMap = self.wepCntlr.getDonutMap(
             self.neighborStarMap, self.wfsImgMap, self.filter,
@@ -258,7 +191,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         for sensor, donutList in self.donutMap.items():
             self.assertEqual(len(donutList), 2)
 
-    def step8a_calcWfErr(self):
+    def step6a_calcWfErr(self):
 
         self.donutMap = self.wepCntlr.calcWfErr(self.donutMap)
 
@@ -302,7 +235,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         # Return the unit in nm (the unit in OPD is um)
         return zk * 1e3
 
-    def step8b_calcAvgWfErrOnSglCcd(self):
+    def step6b_calcAvgWfErrOnSglCcd(self):
 
         avgErrMap = dict()
         for sensor, donutList in self.donutMap.items():
@@ -324,7 +257,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         deltaOnR22S10 = np.abs(wfErrOnR22S10[7] - zkOfOpdOnR22S10[7])
         self.assertLess(deltaOnR22S10, 5)
 
-    def step9a_genMasterDonut(self):
+    def step7a_genMasterDonut(self):
 
         self.masterDonutMap = self.wepCntlr.genMasterDonut(
             self.donutMap, zcCol=np.zeros(22))
@@ -334,7 +267,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
         for sensor, masterDonutList in self.masterDonutMap.items():
             self.assertEqual(len(masterDonutList), 1)
 
-    def step9b_calcWfErrOfMasterDonut(self):
+    def step7b_calcWfErrOfMasterDonut(self):
 
         self.masterDonutMap = self.wepCntlr.calcWfErr(self.masterDonutMap)
 

@@ -51,7 +51,7 @@ class TestMapSensorNameAndId(unittest.TestCase):
         self.assertEqual(sensorIdList, [])
 
         incorrectSensorName = ["R00_S21", "R000_S1111"]
-        self.assertRaises(KeyError, self.mapping.mapSensorNameToId,
+        self.assertRaises(ValueError, self.mapping.mapSensorNameToId,
                           incorrectSensorName)
 
     def testMapSensorNameToIdWithStrInput(self):

@@ -20,6 +20,8 @@ pipeline {
     environment {
         // Position of LSST stack directory
         LSST_STACK="/opt/lsst/software/stack"
+        // Pipeline Sims Version
+        SIMS_VERSION="sims_w_2019_24"
         // XML report path
         XML_REPORT="jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
@@ -40,7 +42,7 @@ pipeline {
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
                         git checkout c1f2391
-                        setup -k -r . -t sims_w_2019_24
+                        setup -k -r . -t ${env.SIMS_VERSION}
                         scons
                         cd ..
                         setup -k -r .
@@ -62,7 +64,7 @@ pipeline {
                         source /opt/rh/devtoolset-6/enable
                         source ${env.LSST_STACK}/loadLSST.bash
                         cd phosim_utils/
-                        setup -k -r . -t sims_w_2019_24
+                        setup -k -r . -t ${env.SIMS_VERSION}
                         cd ..
                         setup -k -r .
                         pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.XML_REPORT} tests/

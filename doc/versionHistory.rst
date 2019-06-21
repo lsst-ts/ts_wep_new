@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.3.0:
+
+-------------
+1.3.0
+-------------
+
+Use sims_w_2019_24. Support the eimage. Enable to update and save the setting file. 
+
 .. _lsst.ts.wep-1.2.9:
 
 -------------

@@ -11,6 +11,7 @@ setupRequired(obs_lsstSim)
 setupRequired(afw)
 setupRequired(sims_utils)
 setupRequired(sims_coordUtils)
+setupRequired(phosim_utils)
 
 # The following is boilerplate for all packages.
 # See https://dmtn-001.lsst.io for details on LSST_LIBRARY_PATH.

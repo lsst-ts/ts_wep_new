@@ -19,13 +19,20 @@ class TestDonutImageCheck(unittest.TestCase):
                                "testImages", "LSST_NE_SN25",
                                "z11_0.25_intra.txt")
         donutImg = np.loadtxt(imgFile)
+        # This assumes this "txt" file is in the format
+        # I[0,0]   I[0,1]
+        # I[1,0]   I[1,1]
+        donutImg = donutImg[::-1, :]
 
         self.assertTrue(self.donutImgCheck.isEffDonut(donutImg))
 
-    def testIsEffDonutWithZeroImg(self):
+    def testIsEffDonutWithConstImg(self):
 
-        donutImg = np.zeros((120, 120))
-        self.assertFalse(self.donutImgCheck.isEffDonut(donutImg))
+        zeroDonutImg = np.zeros((120, 120))
+        self.assertFalse(self.donutImgCheck.isEffDonut(zeroDonutImg))
+
+        onesDonutImg = np.ones((120, 120))
+        self.assertFalse(self.donutImgCheck.isEffDonut(onesDonutImg))
 
     def testIsEffDonutWithRandImg(self):
 

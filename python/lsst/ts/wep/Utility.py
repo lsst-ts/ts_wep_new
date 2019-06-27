@@ -94,6 +94,11 @@ class ImageType(Enum):
     Eimg = 2
 
 
+class CentroidFindType(Enum):
+    RandomWalk = 1
+    Otsu = 2
+
+
 def getModulePath():
     """Get the path of module.
 

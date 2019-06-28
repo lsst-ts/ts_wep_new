@@ -31,6 +31,7 @@ This module is a high-level module to use other modules.
 * **Utility**: Utility functions used in WEP.
 * **PlotUtil**: Plot utility functions used in WEP.
 * **ParamReader**: Parameter reader class to read the yaml configuration files used in the calculation.
+* **DonutImageCheck**: Donut image check class to judge the donut image is effective or not.
 
 .. _lsst.ts.wep-modules_wep_bsc:
 
@@ -97,6 +98,10 @@ This module calculates the wavefront error by solving the TIE.
 * **Image**: Image class to have the function to get the donut center.
 * **Instrument**: Instrument class to have the instrument information used in the Algorithm class to solve the TIE.
 * **Tool**: Annular Zernike polynomials related functions.
+* **CentroidFindFactory**: Factory for creating the centroid find object to calculate the centroid of donut.
+* **CentroidDefault**: Default centroid class.
+* **CentroidRandomWalk**: CentroidDefault child class to get the centroid of donut by the random walk model.
+* **CentroidOtsu**: CentroidDefault child class to get the centroid of donut by the Otsu's method.
 
 .. _lsst.ts.wep-modules_wep_deblend:
 

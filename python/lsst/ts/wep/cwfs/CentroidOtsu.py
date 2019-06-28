@@ -6,7 +6,7 @@ from lsst.ts.wep.cwfs.CentroidDefault import CentroidDefault
 class CentroidOtsu(CentroidDefault):
 
     def __init__(self):
-        """Centroid random walk class to get the centroid of donut by the
+        """CentroidDefault child class to get the centroid of donut by the
         Otsu's method."""
 
         # Number of bins in the histogram

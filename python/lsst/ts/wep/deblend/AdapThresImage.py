@@ -46,7 +46,10 @@ class AdapThresImage(Image):
             return -1
 
         # Get the center and radius of self-donut
-        selfX, selfY, selfR, imgBinary = self.getCenterAndR_ef(checkEntropy=True)
+        centroidFind = self.getCentroidFind()
+        imgBinary = centroidFind.getImgBinary(self.getImg())
+        selfX, selfY, selfR = centroidFind.getCenterAndRfromImgBinary(
+            imgBinary)
 
         # Get the position of new donut based on spaceCoef and theta
         newX = selfX + spaceCoef*selfR*np.cos(theta)

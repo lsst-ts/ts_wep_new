@@ -3,6 +3,7 @@ from scipy.ndimage import center_of_mass
 
 
 class CentroidDefault(object):
+    """Default Centroid class."""
 
     def getCenterAndR(self, imgDonut):
         """Get the centroid data and effective weighting radius.

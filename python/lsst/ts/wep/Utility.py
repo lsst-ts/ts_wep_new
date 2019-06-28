@@ -373,12 +373,12 @@ def mapFilterRefToG(filterType):
 
     Parameters
     ----------
-    filterType : FilterType
+    filterType : enum 'FilterType'
         Filter type.
 
     Returns
     -------
-    FilterType
+    enum 'FilterType'
         Mapped filter type.
     """
 
@@ -440,6 +440,33 @@ def getImageType(imageType):
         return ImageType.Eimg
     else:
         raise ValueError("The %s is not supported." % imageType)
+
+
+def getCentroidFindType(centroidFindType):
+    """Get the centroid find type.
+
+    Parameters
+    ----------
+    centroidFindType : str
+        Centroid find algorithm to use (randomWalk or otsu).
+
+    Returns
+    -------
+    enum 'CentroidFindType'
+        Centroid find type algorithm.
+
+    Raises
+    ------
+    ValueError
+        The centroid find type is not supported.
+    """
+
+    if (centroidFindType == "randomWalk"):
+        return CentroidFindType.RandomWalk
+    elif (centroidFindType == "otsu"):
+        return CentroidFindType.Otsu
+    else:
+        raise ValueError("The %s is not supported." % centroidFindType)
 
 
 if __name__ == "__main__":

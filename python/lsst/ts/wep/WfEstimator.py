@@ -1,7 +1,7 @@
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
-from lsst.ts.wep.Utility import DefocalType, CamType
+from lsst.ts.wep.Utility import DefocalType, CamType, CentroidFindType
 
 
 class WfEstimator(object):
@@ -102,8 +102,8 @@ class WfEstimator(object):
         self.algo.reset()
 
     def config(self, solver="exp", camType=CamType.LsstCam,
-               opticalModel="offAxis", defocalDisInMm=None, sizeInPix=120,
-               debugLevel=0):
+               opticalModel="offAxis", defocalDisInMm=1.5, sizeInPix=120,
+               centroidFindType=CentroidFindType.RandomWalk, debugLevel=0):
         """Configure the TIE solver.
 
         Parameters
@@ -112,15 +112,18 @@ class WfEstimator(object):
             Algorithm to solve the Poisson's equation in the transport of
             intensity equation (TIE). It can be "fft" or "exp" here. (the
             default is "exp".)
-        camType : enum 'CamType'
+        camType : enum 'CamType', optional
             Camera type. (the default is CamType.LsstCam.)
         opticalModel : str, optional
             Optical model. It can be "paraxial", "onAxis", or "offAxis". (the
             default is "offAxis".)
         defocalDisInMm : float, optional
-            Defocal distance in mm. (the default is None.)
+            Defocal distance in mm. (the default is 1.5.)
         sizeInPix : int, optional
             Wavefront image pixel size. (the default is 120.)
+        centroidFindType : enum 'CentroidFindType', optional
+            Algorithm to find the centroid of donut. (the default is
+            CentroidFindType.RandomWalk.)
         debugLevel : int, optional
             Show the information under the running. If the value is higher,
             the information shows more. It can be 0, 1, 2, or 3. (the default
@@ -142,15 +145,17 @@ class WfEstimator(object):
         else:
             self.opticalModel = opticalModel
 
-        # Update the isnstrument name
-        if (defocalDisInMm is None):
-            defocalDisInMm = 1.5
-
+        # Update the instrument name
         self.sizeInPix = int(sizeInPix)
         self.inst.config(camType, self.sizeInPix,
                          announcedDefocalDisInMm=defocalDisInMm)
 
         self.algo.config(solver, self.inst, debugLevel=debugLevel)
+
+        # Reset the centroid find algorithm if not the default one
+        if (centroidFindType != CentroidFindType.RandomWalk):
+            self.imgIntra = CompensableImage(centroidFindType=centroidFindType)
+            self.imgExtra = CompensableImage(centroidFindType=centroidFindType)
 
     def setImg(self, fieldXY, defocalType, image=None, imageFile=None):
         """Set the wavefront image.

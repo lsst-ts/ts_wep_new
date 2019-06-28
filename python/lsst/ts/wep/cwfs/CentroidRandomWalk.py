@@ -58,11 +58,8 @@ class CentroidRandomWalk(CentroidDefault):
         stepsize = int(0.06 * self.numOfBins)
         nwalk = int(1.56 * self.numOfBins)
 
-        # Copy the image
-        tempImage = imgDonut.copy()
-
         # Reshape the image to 1D array
-        array1d = tempImage.flatten()
+        array1d = imgDonut.flatten()
 
         # Generate the histogram of intensity
         hist, binEdges = np.histogram(array1d, bins=self.numOfBins)

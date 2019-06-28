@@ -11,15 +11,22 @@ from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularGrad, \
     ZernikeAnnularJacobian
 from lsst.ts.wep.cwfs.lib.cyMath import poly10_2D, poly10Grad
 from lsst.ts.wep.cwfs.Image import Image
-from lsst.ts.wep.Utility import DefocalType
+from lsst.ts.wep.Utility import DefocalType, CentroidFindType
 
 
 class CompensableImage(object):
 
-    def __init__(self):
-        """Instantiate the class of CompensableImage."""
+    def __init__(self, centroidFindType=CentroidFindType.RandomWalk):
+        """Instantiate the class of CompensableImage.
 
-        self._image = Image()
+        Parameters
+        ----------
+        centroidFindType : enum 'CentroidFindType', optional
+            Algorithm to find the centroid of donut. (the default is
+            CentroidFindType.RandomWalk.)
+        """
+
+        self._image = Image(centroidFindType=centroidFindType)
         self.defocalType = DefocalType.Intra
 
         # Field coordinate in degree
@@ -252,7 +259,7 @@ class CompensableImage(object):
         """
 
         # Calculate the weighting center (x, y) and radius
-        x1, y1 = self._image.getCenterAndR_ef()[0:2]
+        x1, y1 = self._image.getCenterAndR()[0:2]
 
         # Show the co-center information
         if (debugLevel >= 3):
@@ -380,7 +387,7 @@ class CompensableImage(object):
             return
 
         # Calculate the weighting center (x, y) and radius
-        realcx, realcy = self._image.getCenterAndR_ef()[0:2]
+        realcx, realcy = self._image.getCenterAndR()[0:2]
 
         # Extend the dimension of image by 20 pixel in x and y direction
         show_lutxyp = padArray(show_lutxyp, projSamples+20)
@@ -396,7 +403,7 @@ class CompensableImage(object):
         show_lutxyp = extractArray(show_lutxyp, projSamples)
 
         # Calculate the weighting center (x, y) and radius
-        projcx, projcy = self._image.getCenterAndR_ef(image=show_lutxyp.astype(float))[0:2]
+        projcx, projcy = self._image.getCenterAndR(image=show_lutxyp.astype(float))[0:2]
 
         # Shift the image to center of projection on pupil
         # +(-) means we need to move image to the right (left)

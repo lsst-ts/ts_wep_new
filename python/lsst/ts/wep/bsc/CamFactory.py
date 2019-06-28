@@ -12,7 +12,7 @@ class CamFactory(object):
 
         Parameters
         ----------
-        camType : CamType
+        camType : enum 'CamType'
             Camera type.
 
         Returns

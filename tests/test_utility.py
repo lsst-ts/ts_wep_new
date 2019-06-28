@@ -4,7 +4,7 @@ import unittest
 from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
     mapFilterRefToG, FilterType, getModulePath, getConfigDir, \
     getObsLsstCmdTaskConfigDir, ImageType, getImageType, getBscDbType, \
-    BscDbType
+    BscDbType, getCentroidFindType, CentroidFindType
 
 
 class TestUtility(unittest.TestCase):
@@ -78,6 +78,17 @@ class TestUtility(unittest.TestCase):
     def testGetImageTypeWithWrongInput(self):
 
         self.assertRaises(ValueError, getImageType, "wrongType")
+
+    def testGetCentroidFindType(self):
+
+        self.assertEqual(getCentroidFindType("randomWalk"),
+                         CentroidFindType.RandomWalk)
+        self.assertEqual(getCentroidFindType("otsu"),
+                         CentroidFindType.Otsu)
+
+    def testGetCentroidFindTypeWithWrongInput(self):
+
+        self.assertRaises(ValueError, getCentroidFindType, "wrongType")
 
 
 if __name__ == "__main__":

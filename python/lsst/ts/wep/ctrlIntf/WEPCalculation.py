@@ -2,7 +2,8 @@ import os
 import warnings
 
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, BscDbType, \
-    FilterType, abbrevDectectorName, getBscDbType, getImageType, ImageType
+    FilterType, abbrevDectectorName, getBscDbType, getImageType, \
+    getCentroidFindType, ImageType
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -152,10 +153,15 @@ class WEPCalculation(object):
         opticalModel = self.settingFile.getSetting("opticalModel")
         defocalDistInMm = self.settingFile.getSetting("defocalDistInMm")
         donutImgSizeInPixel = self.settingFile.getSetting("donutImgSizeInPixel")
+
+        centroidFind = self.settingFile.getSetting("centroidFindAlgo")
+        centroidFindType = getCentroidFindType(centroidFind)
+
         wfsEsti.config(solver=solver, camType=camType,
                        opticalModel=opticalModel,
                        defocalDisInMm=defocalDistInMm,
-                       sizeInPix=donutImgSizeInPixel)
+                       sizeInPix=donutImgSizeInPixel,
+                       centroidFindType=centroidFindType)
 
         return wfsEsti
 

@@ -13,7 +13,7 @@ class CentroidFindFactory(object):
 
         Parameters
         ----------
-        centroidFindType : CentroidFindType
+        centroidFindType : enum 'CentroidFindType'
             Algorithm to find the centroid.
 
         Returns

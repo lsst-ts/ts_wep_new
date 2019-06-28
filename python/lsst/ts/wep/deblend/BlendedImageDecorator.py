@@ -57,7 +57,10 @@ class BlendedImageDecorator(object):
         # Postion of centroid
 
         # Get the initial guess of brightest donut
-        realcx, realcy, realR, imgBinary = self.getCenterAndR_ef(checkEntropy=True)
+        centroidFind = self.getCentroidFind()
+        imgBinary = centroidFind.getImgBinary(self.getImg())
+        realcx, realcy, realR = centroidFind.getCenterAndRfromImgBinary(
+            imgBinary)
 
         # Remove the salt and pepper noise noise of resImgBinary
         imgBinary = binary_opening(imgBinary).astype(float)

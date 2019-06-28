@@ -3,6 +3,7 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Image import Image
+from lsst.ts.wep.cwfs.CentroidRandomWalk import CentroidRandomWalk
 from lsst.ts.wep.Utility import getModulePath
 
 
@@ -17,6 +18,11 @@ class TestImage(unittest.TestCase):
 
         self.img = Image()
         self.img.setImg(imageFile=self.imgFile)
+
+    def testGetCentroidFind(self):
+
+        centroidFind = self.img.getCentroidFind()
+        self.assertTrue(isinstance(centroidFind, CentroidRandomWalk))
 
     def testGetImg(self):
 
@@ -64,28 +70,10 @@ class TestImage(unittest.TestCase):
 
     def testGetCenterAndR_ef(self):
 
-        realcx, realcy, realR, imgBinary = \
-            self.img.getCenterAndR_ef(checkEntropy=True)
+        realcx, realcy, realR = self.img.getCenterAndR()
         self.assertEqual(int(realcx), 61)
         self.assertEqual(int(realcy), 61)
         self.assertGreater(int(realR), 35)
-
-    def testGetCenterAndR_ef_withEntropyCheck(self):
-
-        # Creat a zero image
-        zeroImg = Image()
-        zeroImg.setImg(image=np.ones([4, 4]))
-
-        realcx, realcy, realR, imgBinary = \
-            zeroImg.getCenterAndR_ef(checkEntropy=True)
-
-        self.assertEqual(realcx, [])
-
-        # update to the random image
-        zeroImg.updateImage(np.random.rand(100, 100))
-        realcx, realcy, realR, imgBinary = \
-            zeroImg.getCenterAndR_ef(checkEntropy=True)
-        self.assertEqual(realcx, [])
 
     def testGetSNR(self):
 

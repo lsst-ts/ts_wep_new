@@ -25,12 +25,6 @@ class TestBlendedImageDecorator(unittest.TestCase):
         self.adapImage = AdapThresImage()
         self.adapImage.setImg(imageFile=imageFile)
 
-        self.zeroImage = BlendedImageDecorator()
-        self.zeroImage.setImg(image=np.zeros([120, 120]))
-
-        self.randImage = BlendedImageDecorator()
-        self.randImage.setImg(image=np.random.rand(120, 120))
-
     def testBlendedImage(self):
 
         # Generate the blended image
@@ -48,14 +42,6 @@ class TestBlendedImageDecorator(unittest.TestCase):
         delta = np.sum(np.abs(imageMain-imgDeblend))
         diffRatio = delta/np.sum(np.abs(imageMain))
         self.assertLess(diffRatio, 0.01)
-
-        # Test the zero image that can not be pass entropy test
-        imgDeblend, realcx, realcy = self.zeroImage.deblendDonut((10, 10))
-        self.assertEqual(imgDeblend, [])
-
-        # Test the random image that can not be pass entropy test
-        imgDeblend, realcx, realcy = self.randImage.deblendDonut((10, 10))
-        self.assertEqual(imgDeblend, [])
 
 
 if __name__ == "__main__":

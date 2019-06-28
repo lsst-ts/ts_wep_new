@@ -24,12 +24,6 @@ class TestAdapThresImage(unittest.TestCase):
         self.adapImage = AdapThresImage()
         self.adapImage.setImg(imageFile=imageFile)
 
-        self.zeroImage = AdapThresImage()
-        self.zeroImage.setImg(image=np.zeros([120, 120]))
-
-        self.randImage = AdapThresImage()
-        self.randImage.setImg(image=np.random.rand(120, 120))
-
     def testFunc(self):
 
         # Answer of centroid
@@ -46,18 +40,9 @@ class TestAdapThresImage(unittest.TestCase):
         delta = self._calcSqrtDelta(realCx, realCy, realR, ansCx, ansCy, ansR)
         self.assertLess(delta, tor)
 
-        realCx, realCy, realR, imgBinary = \
-            self.adapImage.getCenterAndR_ef(checkEntropy=True)
+        realCx, realCy, realR = self.adapImage.getCenterAndR()
         delta = self._calcSqrtDelta(realCx, realCy, realR, ansCx, ansCy, ansR)
         self.assertLess(delta, tor)
-
-        realCx, realCy, realR, imgBinary = \
-            self.zeroImage.getCenterAndR_ef(checkEntropy=True)
-        self.assertEqual(realCx, [])
-
-        realCx, realCy, realR, imgBinary = \
-            self.randImage.getCenterAndR_ef(checkEntropy=True)
-        self.assertEqual(realCx, [])
 
     def _calcSqrtDelta(self, realCx, realCy, realR, ansCx, ansCy, ansR):
 

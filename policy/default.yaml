@@ -50,6 +50,9 @@ defocalDistInMm: 1.5
 # Donut image size in pixel (default value at 1.5 mm)
 donutImgSizeInPixel: 160
 
+# Centroid find algorithm. It can be "randomWalk" or "otsu"
+centroidFindAlgo: randomWalk
+
 # Camera mapper for the data butler to use
 camMapper: phosim
 

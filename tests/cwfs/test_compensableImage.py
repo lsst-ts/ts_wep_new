@@ -5,6 +5,7 @@ import unittest
 from lsst.ts.wep.cwfs.Image import Image
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
+from lsst.ts.wep.cwfs.CentroidRandomWalk import CentroidRandomWalk
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
@@ -161,7 +162,7 @@ class TestCompensableImage(unittest.TestCase):
 
         self.wfsImg.imageCoCenter(self.inst)
 
-        xc, yc = self.wfsImg.getImgObj().getCenterAndR_ef()[0:2]
+        xc, yc = self.wfsImg.getImgObj().getCenterAndR()[0:2]
         self.assertEqual(int(xc), 63)
         self.assertEqual(int(yc), 63)
 
@@ -190,15 +191,18 @@ class TestCompensableImage(unittest.TestCase):
             wfsImg.compensate(self.inst, algo, zcCol, self.opticalModel)
 
         # Get the common region
-        binaryImgIntra = wfsImgIntra.getImgObj().getCenterAndR_ef()[3]
-        binaryImgExtra = wfsImgExtra.getImgObj().getCenterAndR_ef()[3]
+        intraImg = wfsImgIntra.getImg()
+        extraImg = wfsImgExtra.getImg()
+
+        centroid = CentroidRandomWalk()
+        binaryImgIntra = centroid.getImgBinary(intraImg)
+        binaryImgExtra = centroid.getImgBinary(extraImg)
+
         binaryImg = binaryImgIntra + binaryImgExtra
         binaryImg[binaryImg < 2] = 0
         binaryImg = binaryImg / 2
 
         # Calculate the difference
-        intraImg = wfsImgIntra.getImg()
-        extraImg = wfsImgExtra.getImg()
         res = np.sum(np.abs(intraImg - extraImg) * binaryImg)
         self.assertLess(res, 500)
 

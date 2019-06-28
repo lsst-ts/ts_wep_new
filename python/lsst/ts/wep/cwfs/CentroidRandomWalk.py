@@ -6,7 +6,7 @@ from lsst.ts.wep.cwfs.CentroidDefault import CentroidDefault
 class CentroidRandomWalk(CentroidDefault):
 
     def __init__(self):
-        """Centroid random walk class to get the centroid of donut by the
+        """CentroidDefault child class to get the centroid of donut by the
         random walk model."""
 
         # Minimum effective signal

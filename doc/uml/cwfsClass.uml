@@ -3,4 +3,10 @@ Algorithm *-- Instrument
 CompensableImage *-- Image
 Algorithm --> CompensableImage
 CompensableImage ..> Instrument
+CentroidDefault <|-- CentroidRandomWalk
+CentroidDefault <|-- CentroidOtsu
+CentroidFindFactory ..> CentroidRandomWalk
+CentroidFindFactory ..> CentroidOtsu
+Image ..> CentroidFindFactory
+Image *-- CentroidDefault
 @enduml

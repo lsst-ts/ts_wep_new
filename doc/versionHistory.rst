@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.3.1:
+
+-------------
+1.3.1
+-------------
+
+Use the factory pattern for centroid find algorithms. 
+
 .. _lsst.ts.wep-1.3.0:
 
 -------------

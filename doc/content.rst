@@ -76,7 +76,8 @@ This module provides the interface classes to the main telescope active optics s
 * **WEPCalculationOfLsstCam**: The concrete child class of WEPCalculation of the LSST camera (corner wavefront sensor).
 * **WEPCalculationOfComCam**: The concrete child class of WEPCalculationOfPiston of the commionning camera (ComCam).
 * **WEPCalculationOfLsstFamCam**: The concrete child class of WEPCalculationOfPiston of the LSST full-array mode (FAM) camera.
-* **SensorWavefrontData**: Sensor wavefront data class that has the information of sensor Id, list of donut, master donut, and wavefront error.
+* **SensorWavefrontError**: Sensor wavefront error class. This class contains the information of sensor Id and related wavefront error.
+* **SensorWavefrontData**: Sensor wavefront data class that has the information of sensor Id, list of donut, master donut, and wavefront error. This is the child class of SensorWavefrontError class.
 * **WcsData**: Contains the world coordinate system (WCS) data of a camera.
 * **AstWcsSol**: AST world coordinate system (WCS) solution provided by DM team.
 * **RawExpData**: Raw exposure data class to populate the information of visit, snap, and data directory.

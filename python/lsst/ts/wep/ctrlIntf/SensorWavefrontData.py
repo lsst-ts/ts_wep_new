@@ -1,52 +1,25 @@
-import numpy as np
-
+from lsst.ts.wep.ctrlIntf.SensorWavefrontError import SensorWavefrontError
 from lsst.ts.wep.DonutImage import DonutImage
 
 
-class SensorWavefrontData(object):
+class SensorWavefrontData(SensorWavefrontError):
     """Sensor wavefront data class that has the information of sensor Id, list
     of donut, master donut, and wavefront error.
     """
 
-    NUM_OF_ZER = 19
-
-    def __init__(self):
-        """Construct a sensor wavefront data object."""
-        super().__init__()
-
-        self.sensorId = 999
-        self.listOfDonut = []
-        self.masterDonut = DonutImage(0, 0, 0, 0, 0)
-        self.effWfErr = np.zeros(self.NUM_OF_ZER)
-
-    def setSensorId(self, sensorId):
-        """Set the sensor Id.
+    def __init__(self, numOfZk=19):
+        """Construct a sensor wavefront data object.
 
         Parameters
         ----------
-        sensorId : int
-            The Id of the sensor this wavefront error is for.
-
-        Raises
-        ------
-        ValueError
-            sensorId must be >= 0.
+        numOfZk : int, optional
+            Number of annular Zernike polynomials. (the default is 19.)
         """
 
-        if (sensorId < 0):
-            raise ValueError("sensorId must be >= 0.")
-        self.sensorId = int(sensorId)
+        super(SensorWavefrontData, self).__init__(numOfZk=numOfZk)
 
-    def getSensorId(self):
-        """Get the sensor Id.
-
-        Returns
-        -------
-        int
-            The Id of the sensor this wavefront error is for.
-        """
-
-        return self.sensorId
+        self.listOfDonut = []
+        self.masterDonut = DonutImage(0, 0, 0, 0, 0)
 
     def setMasterDonut(self, masterDonut):
         """Set the master donut.
@@ -91,36 +64,6 @@ class SensorWavefrontData(object):
         """
 
         return self.listOfDonut
-
-    def setAnnularZernikePoly(self, annularZernikePoly):
-        """Set the effective annular zernike poly.
-
-        Parameters
-        ----------
-        annularZernikePoly : numpy.ndarray[19] (float)
-            The poly describing the effective wavefront error.
-
-        Raises
-        ------
-        ValueError
-            annularZernikePoly must be an array of 19 floats.
-        """
-
-        if (len(annularZernikePoly) != self.NUM_OF_ZER):
-            raise ValueError("annularZernikePoly must be an array of %d floats."
-                             % self.NUM_OF_ZER)
-        self.effWfErr = np.array(annularZernikePoly)
-
-    def getAnnularZernikePoly(self):
-        """Get the effective annular zernike poly.
-
-        Returns
-        -------
-        numpy.ndarray[19] (float)
-            The poly describing the effective wavefront error.
-        """
-
-        return self.effWfErr
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ Version History
 1.3.1
 -------------
 
-Use the factory pattern for centroid find algorithms. 
+Use the factory pattern for centroid find algorithms. Move the SensorWavefrontError class of ts_ofc to here.
 
 .. _lsst.ts.wep-1.3.0:
 

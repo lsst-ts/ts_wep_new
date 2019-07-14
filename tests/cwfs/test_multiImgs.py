@@ -6,7 +6,7 @@ import unittest
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
-from lsst.ts.wep.cwfs.Tool import plotImage
+from lsst.ts.wep.PlotUtil import plotImage
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 

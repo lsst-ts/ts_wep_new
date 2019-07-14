@@ -167,33 +167,69 @@ class TestAlgorithm(unittest.TestCase):
         self.assertAlmostEqual(self.algoFft.getMaskScalingFactor(), 1.0939,
                                places=4)
 
-    def testRunItOfExp(self):
+    def testItr0(self):
 
-        # Test functions: itr0() and nextItr()
+        self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
+        zer4UpNm = self.algoExp.getZer4UpInNm()
+
+        ansRint = [75, -22, -5, 19, 16, -62, 59, -146, 1, 11, 12, -2, 12, 12,
+                   -7, 7, 2, 0, 9]
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
+
+    def testNextItrWithOneIter(self):
+
+        self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=1)
+        zer4UpNm = self.algoExp.getZer4UpInNm()
+
+        ansRint = [75, -22, -5, 19, 16, -62, 59, -146, 1, 11, 12, -2, 12, 12,
+                   -7, 7, 2, 0, 9]
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
+
+    def testNextItrWithTwoIter(self):
+
+        self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=2)
+        zer4UpNm = self.algoExp.getZer4UpInNm()
+
+        ansRint = [85, -37, -5, 40, 39, -44, 41, -145, 1, 4, 22, -1, 9, 9, -4,
+                   5, 2, 1, 9]
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
+
+    def testIter0AndNextIterToCheckReset(self):
+
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
         tmp1 = self.algoExp.getZer4UpInNm()
+
         self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=2)
+
+        # iter() should rest the images and ignore the effect from nextItr()
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
         tmp2 = self.algoExp.getZer4UpInNm()
 
         difference = np.sum(np.abs(tmp1-tmp2))
         self.assertEqual(difference, 0)
 
-        # Run it
+    def testRunItOfExp(self):
+
         self.algoExp.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
 
         # Check the value
-        Zk = self.algoExp.getZer4UpInNm()
-        self.assertEqual(int(Zk[7]), -192)
+        zk = self.algoExp.getZer4UpInNm()
+        self.assertEqual(int(zk[7]), -192)
+
+    def testResetAfterFullCalc(self):
+
+        self.algoExp.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
 
         # Reset and check the calculation again
         fieldXY = [self.I1.fieldX, self.I1.fieldY]
         self.I1.setImg(fieldXY, self.I1.getDefocalType(), image=self.I1.getImgInit())
         self.I2.setImg(fieldXY, self.I2.getDefocalType(), image=self.I2.getImgInit())
         self.algoExp.reset()
+
         self.algoExp.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
-        Zk = self.algoExp.getZer4UpInNm()
-        self.assertEqual(int(Zk[7]), -192)
+
+        zk = self.algoExp.getZer4UpInNm()
+        self.assertEqual(int(zk[7]), -192)
 
     def testRunItOfFft(self):
 

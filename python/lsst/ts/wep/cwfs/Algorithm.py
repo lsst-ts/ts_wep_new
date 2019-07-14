@@ -1061,13 +1061,13 @@ class Algorithm(object):
         """
 
         # Get the overlap region of images and do the normalization.
-        if (I1.fieldX != I2.fieldX or I1.fieldY != I2.fieldY):
+        if (I1.getFieldXY() != I2.getFieldXY()):
 
             # Get the overlap region of image
             I1.updateImage(I1.getImg()*self.pMask)
 
-            # Rotate the image by 180 degree through rotating two times of 90
-            # degree
+            # Rotate the pMask by 180 degree through rotating two times of 90
+            # degree because I2 has been rotated by 180 degree already.
             I2.updateImage(I2.getImg()*np.rot90(self.pMask, 2))
 
             # Do the normalization of image.

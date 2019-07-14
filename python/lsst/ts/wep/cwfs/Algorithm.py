@@ -581,7 +581,7 @@ class Algorithm(object):
             if (compMode == "zer"):
 
                 # Zk coefficient from the previous iteration
-                ztmp = self.zc
+                ztmp = self.zc.copy()
 
                 # Do the feedback of Zk from the lower terms first based on the
                 # sequence defined in compSequence
@@ -648,9 +648,8 @@ class Algorithm(object):
 
         # Show the Zk coefficients in interger in each iteration
         if (self.debugLevel >= 2):
-            tmp = self.zer4UpNm
             print("itr = %d, z4-z%d" % (jj, self.getNumOfZernikes()))
-            print(np.rint(tmp))
+            print(np.rint(self.zer4UpNm))
 
         return stopItr
 

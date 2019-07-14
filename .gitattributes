@@ -56,3 +56,11 @@
 /tests/testData/phosimOutput/realComCam/repackagedFiles/intra/lsst_a_9005001_f1_R22_S10_E000.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/phosimOutput/realComCam/repackagedFiles/intra/lsst_a_9005001_f1_R22_S11_E000.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/repackagedFiles/lsst_a_9005000_f1_R22_S10_E000.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeEval.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeGradDx.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeGradDx2.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeGradDxy.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeGradDy.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeGradDy2.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeJaco1st.txt filter=lfs diff=lfs merge=lfs -text
+/tests/testData/cwfsZernike/annularZernikeJaco2nd.txt filter=lfs diff=lfs merge=lfs -text

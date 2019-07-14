@@ -1,8 +1,12 @@
+import os
 import numpy as np
 from scipy.integrate import nquad
+from astropy.io import fits
 import unittest
 
-from lsst.ts.wep.cwfs.Tool import ZernikeAnnularEval, padArray, extractArray
+from lsst.ts.wep.cwfs.Tool import ZernikeAnnularEval, ZernikeAnnularGrad, \
+    ZernikeAnnularJacobian, ZernikeAnnularFit, padArray, extractArray
+from lsst.ts.wep.Utility import getModulePath
 
 
 class TestTool(unittest.TestCase):
@@ -10,14 +14,18 @@ class TestTool(unittest.TestCase):
 
     def setUp(self):
 
-        # Create the mesh of x, y-coordinate
+        self.testDataDir = os.path.join(getModulePath(), "tests", "testData",
+                                        "cwfsZernike")
+
+        # Generate the mesh of x, y-coordinate
         point = 400
         ratio = 0.9
-        xx, yy = self._genGridXy(point, ratio)
+        self.xx, self.yy = self._genGridXy(point, ratio)
 
-        # Define the attributes
-        self.xx = xx
-        self.yy = yy
+        self.obscuration = 0.61
+
+        numOfZk = 22
+        self.zerCoef = np.arange(1, 1+numOfZk)*0.1
 
     def _genGridXy(self, point, ratio):
 
@@ -31,67 +39,129 @@ class TestTool(unittest.TestCase):
 
     def testZernikeAnnularEval(self):
 
-        # Obscuration
-        e = 0.61
+        surface = ZernikeAnnularEval(self.zerCoef, self.xx, self.yy,
+                                     self.obscuration)
 
-        # Calculate the radius
-        dd = np.sqrt(self.xx**2 + self.yy**2)
+        self._checkAnsWithFile(surface, "annularZernikeEval.txt")
 
-        # Define the invalid range
-        idx = (dd > 1) | (dd < e)
+    def _checkAnsWithFile(self, value, ansFileName):
 
-        # Create the Zernike terms
-        Z = np.zeros(22)
+        ansFilePath = os.path.join(self.testDataDir, ansFileName)
+        ans = np.loadtxt(ansFilePath)
 
-        # Generate the map of Z12
-        Z[11] = 1
+        delta = np.sum(np.abs(value - ans))
+        self.assertLess(delta, 1e-10)
 
-        # Calculate the map of Zernike polynomial
-        Zmap = ZernikeAnnularEval(Z, self.xx, self.yy, e)
-        Zmap[idx] = np.nan
+    def testZernikeAnnularNormality(self):
 
-        # Put the elements to be 0 in the invalid region
-        Zmap[np.isnan(Zmap)] = 0
-
-        # Check the normalization for Z1 - Z28
-        e = 0.61
-        ansValue = np.pi*(1-e**2)
+        ansValue = np.pi*(1-self.obscuration**2)
         for ii in range(28):
-            Z = np.zeros(28)
-            Z[ii] = 1
+            z = np.zeros(28)
+            z[ii] = 1
 
             normalization = nquad(self._genNormalizedFunc,
-                                  [[e, 1], [0, 2*np.pi]], args=(Z, e))[0]
+                                  [[self.obscuration, 1], [0, 2*np.pi]],
+                                  args=(z, self.obscuration))[0]
 
             self.assertAlmostEqual(normalization, ansValue)
 
+    def _genNormalizedFunc(self, r, theta, z, e):
+
+        func = r * ZernikeAnnularEval(z, r*np.cos(theta), r*np.sin(theta), e)**2
+
+        return func
+
+    def testZernikeAnnularOrthogonality(self):
+
         # Check the orthogonality for Z1 - Z28
         for jj in range(28):
-            Z1 = np.zeros(28)
-            Z1[jj] = 1
+            z1 = np.zeros(28)
+            z1[jj] = 1
             for ii in range(28):
                 if (ii != jj):
-                    Z2 = np.zeros(28)
-                    Z2[ii] = 1
+                    z2 = np.zeros(28)
+                    z2[ii] = 1
 
                     orthogonality = nquad(self._genOrthogonalFunc,
-                                          [[e, 1], [0, 2*np.pi]],
-                                          args=(Z1, Z2, e))[0]
+                                          [[self.obscuration, 1], [0, 2*np.pi]],
+                                          args=(z1, z2, self.obscuration))[0]
 
                     self.assertAlmostEqual(orthogonality, 0)
 
-    def _genNormalizedFunc(self, r, theta, Z, e):
+    def _genOrthogonalFunc(self, r, theta, z1, z2, e):
 
-        func = r * ZernikeAnnularEval(Z, r*np.cos(theta), r*np.sin(theta), e)**2
-
-        return func
-
-    def _genOrthogonalFunc(self, r, theta, Z1, Z2, e):
-
-        func = r * ZernikeAnnularEval(Z1, r*np.cos(theta), r*np.sin(theta), e) * \
-            ZernikeAnnularEval(Z2, r*np.cos(theta), r*np.sin(theta), e)
+        func = r * ZernikeAnnularEval(z1, r*np.cos(theta), r*np.sin(theta), e) * \
+            ZernikeAnnularEval(z2, r*np.cos(theta), r*np.sin(theta), e)
 
         return func
+
+    def testZernikeAnnularGradDx(self):
+
+        surfGrad = ZernikeAnnularGrad(self.zerCoef, self.xx, self.yy,
+                                      self.obscuration, "dx")
+
+        self._checkAnsWithFile(surfGrad, "annularZernikeGradDx.txt")
+
+    def testZernikeAnnularGradDy(self):
+
+        surfGrad = ZernikeAnnularGrad(self.zerCoef, self.xx, self.yy,
+                                      self.obscuration, "dy")
+
+        self._checkAnsWithFile(surfGrad, "annularZernikeGradDy.txt")
+
+    def testZernikeAnnularGradDx2(self):
+
+        surfGrad = ZernikeAnnularGrad(self.zerCoef, self.xx, self.yy,
+                                      self.obscuration, "dx2")
+
+        self._checkAnsWithFile(surfGrad, "annularZernikeGradDx2.txt")
+
+    def testZernikeAnnularGradDy2(self):
+
+        surfGrad = ZernikeAnnularGrad(self.zerCoef, self.xx, self.yy,
+                                      self.obscuration, "dy2")
+
+        self._checkAnsWithFile(surfGrad, "annularZernikeGradDy2.txt")
+
+    def testZernikeAnnularGradDxy(self):
+
+        surfGrad = ZernikeAnnularGrad(self.zerCoef, self.xx, self.yy,
+                                      self.obscuration, "dxy")
+
+        self._checkAnsWithFile(surfGrad, "annularZernikeGradDxy.txt")
+
+    def testZernikeAnnularJacobian1st(self):
+
+        annuZerJacobian = ZernikeAnnularJacobian(
+            self.zerCoef, self.xx, self.yy, self.obscuration, "1st")
+
+        self._checkAnsWithFile(annuZerJacobian, "annularZernikeJaco1st.txt")
+
+    def testZernikeAnnularJacobian2nd(self):
+
+        annuZerJacobian = ZernikeAnnularJacobian(
+            self.zerCoef, self.xx, self.yy, self.obscuration, "2nd")
+
+        self._checkAnsWithFile(annuZerJacobian, "annularZernikeJaco2nd.txt")
+
+    def testZernikeAnnularFit(self):
+
+        opdFitsFile = os.path.join(self.testDataDir, "sim6_iter0_opd0.fits.gz")
+        opd = fits.getdata(opdFitsFile)
+
+        # x-, y-coordinate in the OPD image
+        opdSize = opd.shape[0]
+        opdGrid1d = np.linspace(-1, 1, opdSize)
+        opdx, opdy = np.meshgrid(opdGrid1d, opdGrid1d)
+
+        idx = (opd != 0)
+        coef = ZernikeAnnularFit(opd[idx], opdx[idx], opdy[idx], 22,
+                                 self.obscuration)
+
+        ansOpdFileName = "sim6_iter0_opd.zer"
+        ansOpdFilePath = os.path.join(self.testDataDir, ansOpdFileName)
+        allOpdAns = np.loadtxt(ansOpdFilePath)
+        self.assertLess(np.sum(np.abs(coef-allOpdAns[0, :])), 1e-10)
 
     def testPadArray(self):
 

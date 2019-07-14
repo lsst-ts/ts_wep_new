@@ -3,7 +3,7 @@ import numpy as np
 
 from lsst.ts.wep.deblend.AdapThresImage import AdapThresImage
 from lsst.ts.wep.deblend.BlendedImageDecorator import BlendedImageDecorator
-from lsst.ts.wep.cwfs.Tool import plotImage
+from lsst.ts.wep.PlotUtil import plotImage
 from lsst.ts.wep.Utility import getModulePath
 
 

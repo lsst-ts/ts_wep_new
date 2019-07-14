@@ -39,7 +39,6 @@ pipeline {
                         source /opt/rh/devtoolset-6/enable
                         source ${env.LSST_STACK}/loadLSST.bash
                         conda install -y ipython scikit-image
-                        conda list
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
                         git checkout c1f2391

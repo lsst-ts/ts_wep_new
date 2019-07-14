@@ -274,5 +274,57 @@ def _collectDonutImgList(imgList, titleList, pixelXyList, img, starId, aType,
     return imgList, titleList, pixelXyList
 
 
+def plotImage(imageDonut, title=None, mask=None, show=True, fitParameters=[],
+              saveFilePath=None):
+    """Show the wavefront (donut) image.
+
+    Parameters
+    ----------
+    imageDonut : numpy.ndarray[float]
+        Input donut Image.
+    title : str, optional
+        Title of image. (the default is None.)
+    mask : numpy.ndarray[int], optional
+        Mask. (the default is None.)
+    show : bool, optional
+        Show the figure or not. (the default is True.)
+    fitParameters : list, optional
+        Fitting parameter of circle (center position and radius) (the default
+        is [].)
+    saveFilePath : str, optional
+        File path to save the image. (the default is None.)
+    """
+
+    if mask is not None:
+        image = np.where(mask == 0, np.nan, imageDonut)
+    else:
+        image = imageDonut
+
+    plt.figure()
+
+    # Plot the fitted circle
+    if (fitParameters):
+        if (len(fitParameters) == 3):
+            theta = np.linspace(0, 2*np.pi, 101)
+            x = fitParameters[0] + fitParameters[2]*np.cos(theta)
+            y = fitParameters[1] + fitParameters[2]*np.sin(theta)
+            plt.plot(x, y, "b")
+        else:
+            print("fitParameters should have 3 elements.")
+
+    # Plot the wavefront image
+    plt.imshow(image, origin="lower")
+    plt.colorbar()
+    if title:
+        plt.title(title)
+
+    if (saveFilePath is not None):
+        plt.savefig(saveFilePath, bbox_inches="tight")
+        plt.close()
+
+    if show:
+        plt.show()
+
+
 if __name__ == "__main__":
     pass

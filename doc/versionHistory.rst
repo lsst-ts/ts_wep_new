@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.3.2:
+
+-------------
+1.3.2
+-------------
+
+Use the sims_w_2019_29. Add the unit tests of cwfs module to check the outputs of cython related code. Move the plotImage() from Tool.py to PlotUtil.py. Install the ipython in Jenkinsfile to make the test environment to be consistent with the development.
+
 .. _lsst.ts.wep-1.3.1:
 
 -------------

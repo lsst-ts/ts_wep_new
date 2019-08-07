@@ -8,7 +8,7 @@ pipeline {
         // The nodes in T&S teams is 'jenkins-el7-1'.
         // It is recommended by SQUARE team do not add the label.
         docker {
-            image 'lsstts/aos:w_2019_29'
+            image 'lsstts/aos:w_2019_31'
             args '-u root'
         }
     }
@@ -21,7 +21,7 @@ pipeline {
         // Position of LSST stack directory
         LSST_STACK="/opt/lsst/software/stack"
         // Pipeline Sims Version
-        SIMS_VERSION="sims_w_2019_29"
+        SIMS_VERSION="sims_w_2019_31"
         // XML report path
         XML_REPORT="jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
@@ -38,7 +38,6 @@ pipeline {
                     sh """
                         source /opt/rh/devtoolset-6/enable
                         source ${env.LSST_STACK}/loadLSST.bash
-                        conda install -y ipython scikit-image
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
                         git checkout c1f2391
@@ -69,6 +68,16 @@ pipeline {
                         setup -k -r .
                         pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.XML_REPORT} tests/
                     """
+                }
+            }
+        }
+
+        stage('Change Ownership to Jenkins') {
+            steps {
+                // Change the ownership of workspace to Jenkins for the clean up
+                // This is a "work around" method
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    sh 'chown -R 1003:1003 ${HOME}/'
                 }
             }
         }

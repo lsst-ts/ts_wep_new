@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.3.3:
+
+-------------
+1.3.3
+-------------
+
+Use the sims_w_2019_31. Remove the conda package installation in Jenkinsfile. Update the permission of workspace after the unit test.
+
 .. _lsst.ts.wep-1.3.2:
 
 -------------

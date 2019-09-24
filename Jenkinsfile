@@ -5,10 +5,10 @@ pipeline {
     agent {
         // Use the docker to assign the Python version.
         // Use the label to assign the node to run the test.
-        // The nodes in T&S teams is 'jenkins-el7-1'.
-        // It is recommended by SQUARE team do not add the label.
+        // It is recommended by SQUARE team do not add the label to let the
+        // sytem decide.
         docker {
-            image 'lsstts/aos:w_2019_31'
+            image 'lsstts/aos:w_2019_38'
             args '-u root'
         }
     }
@@ -21,7 +21,7 @@ pipeline {
         // Position of LSST stack directory
         LSST_STACK="/opt/lsst/software/stack"
         // Pipeline Sims Version
-        SIMS_VERSION="sims_w_2019_31"
+        SIMS_VERSION="sims_w_2019_38"
         // XML report path
         XML_REPORT="jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
@@ -51,13 +51,13 @@ pipeline {
             }
         }
 
-        stage('Unit Tests and Coverage Analysis') { 
+        stage('Unit Tests and Coverage Analysis') {
             steps {
                 // Direct the HOME to WORKSPACE for pip to get the
                 // installed library.
                 // 'PATH' can only be updated in a single shell block.
                 // We can not update PATH in 'environment' block.
-                // Pytest needs to export the junit report. 
+                // Pytest needs to export the junit report.
                 withEnv(["HOME=${env.WORKSPACE}"]) {
                     sh """
                         source /opt/rh/devtoolset-6/enable
@@ -71,20 +71,16 @@ pipeline {
                 }
             }
         }
-
-        stage('Change Ownership to Jenkins') {
-            steps {
-                // Change the ownership of workspace to Jenkins for the clean up
-                // This is a "work around" method
-                withEnv(["HOME=${env.WORKSPACE}"]) {
-                    sh 'chown -R 1003:1003 ${HOME}/'
-                }
-            }
-        }
     }
 
-    post {        
+    post {
         always {
+            // Change the ownership of workspace to Jenkins for the clean up
+            // This is a "work around" method
+            withEnv(["HOME=${env.WORKSPACE}"]) {
+                sh 'chown -R 1003:1003 ${HOME}/'
+            }
+
             // The path of xml needed by JUnit is relative to
             // the workspace.
             junit 'jenkinsReport/*.xml'
@@ -103,6 +99,6 @@ pipeline {
         cleanup {
             // clean up the workspace
             deleteDir()
-        }  
+        }
     }
 }

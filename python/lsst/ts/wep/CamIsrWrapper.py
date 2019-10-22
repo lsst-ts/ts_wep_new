@@ -101,7 +101,7 @@ class CamIsrWrapper(object):
 
         argstring = "%s --id --rerun=%s" % (inputDir, rerunName)
         if (self.isrConfigFilePath is not None):
-            argstring += " --configfile %s" % self.isrConfigFilePath
+            argstring += " --configfile %s --no-versions" % self.isrConfigFilePath
 
         runProgram(command, argstring=argstring)
 

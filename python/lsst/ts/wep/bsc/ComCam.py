@@ -1,5 +1,5 @@
 from lsst.obs.lsstSim import LsstSimMapper
-from lsst.afw.cameraGeom import SCIENCE
+from lsst.afw.cameraGeom.detector.detector import DetectorType
 
 from lsst.ts.wep.bsc.CameraData import CameraData
 
@@ -12,7 +12,7 @@ class ComCam(CameraData):
         # The comcam's configuration here is approximated by taking the central
         # raft of lsst camera.
         super(ComCam, self).__init__(LsstSimMapper().camera)
-        self._initDetectors(SCIENCE)
+        self._initDetectors(DetectorType.SCIENCE)
 
         # Remove the ccd data that are not belong to ComCam
         detectorList = ["R:2,2 S:0,2", "R:2,2 S:1,2", "R:2,2 S:2,2",

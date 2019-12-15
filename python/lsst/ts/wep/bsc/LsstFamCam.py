@@ -1,5 +1,5 @@
 from lsst.obs.lsstSim import LsstSimMapper
-from lsst.afw.cameraGeom import SCIENCE
+from lsst.afw.cameraGeom.detector.detector import DetectorType
 
 from lsst.ts.wep.bsc.CameraData import CameraData
 
@@ -10,7 +10,7 @@ class LsstFamCam(CameraData):
         """Initialize the LSST full-array mode (FAM) camera class."""
 
         super(LsstFamCam, self).__init__(LsstSimMapper().camera)
-        self._initDetectors(SCIENCE)
+        self._initDetectors(DetectorType.SCIENCE)
 
 
 if __name__ == "__main__":

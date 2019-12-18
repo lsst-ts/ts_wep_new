@@ -12,7 +12,7 @@
 
 - *lsst_sims (tag: sims_w_2019_50)*
 - *lsst_distrib (tag: w_2019_50)*
-- *phosim_utils - master branch (commit: c1f2391)*
+- *phosim_utils - master branch (commit: 8744592)*
 - *scikit-image*
 - *[documenteer](https://github.com/lsst-sqre/documenteer) (optional)*
 - *[plantuml](http://plantuml.com) (optional)*

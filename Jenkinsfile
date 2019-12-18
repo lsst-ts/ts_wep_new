@@ -42,7 +42,7 @@ pipeline {
                         source ${env.LSST_STACK}/loadLSST.bash
                         git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
-                        git checkout c1f2391
+                        git checkout 8744592
                         setup -k -r . -t ${env.SIMS_VERSION}
                         scons
                         cd ..

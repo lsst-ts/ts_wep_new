@@ -8,7 +8,7 @@ pipeline {
         // It is recommended by SQUARE team do not add the label to let the
         // sytem decide.
         docker {
-            image 'lsstts/aos:w_2019_50'
+            image 'lsstts/aos:w_2020_04'
             args '-u root'
         }
     }
@@ -23,7 +23,7 @@ pipeline {
         // Position of LSST stack directory
         LSST_STACK="/opt/lsst/software/stack"
         // Pipeline Sims Version
-        SIMS_VERSION="sims_w_2019_50"
+        SIMS_VERSION="sims_w_2020_04"
         // XML report path
         XML_REPORT="jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
@@ -85,7 +85,7 @@ pipeline {
 
             // The path of xml needed by JUnit is relative to
             // the workspace.
-            junit 'jenkinsReport/*.xml'
+            junit "${env.XML_REPORT}"
 
             // Publish the HTML report
             publishHTML (target: [

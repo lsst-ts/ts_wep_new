@@ -135,7 +135,12 @@ class TestCamIsrWrapper(unittest.TestCase):
 
         return numOfDir
 
+    @unittest.skip
     def testDoIsrContinuous(self):
+
+        # In lsst_distrib w_2020_06
+        # There is the bug in upstream that the user can not do the ISR
+        # continuous. Report this bug to DM team and wait for the reply.
 
         # Get the camDataCollector and ingest the calibs
         detector = "R00_S22 R22_S10"

@@ -22,3 +22,6 @@ pytest_session.txt
 
 # Cython related file
 *.c
+
+# Mac metadata
+.DS_Store

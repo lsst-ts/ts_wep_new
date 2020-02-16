@@ -75,12 +75,11 @@ class ButlerWrapper(object):
             Raw exposure object.
         """
 
-        # Data Id keys in w_2019_24:
-        # {'run': str, 'raftName': str, 'visit': int, 'detectorName': str,
-        #  'detector': int, 'snap': int}
+        # Data Id keys in w_2020_06:
+        # {'run': str, 'raftName': str, 'expId': int, 'detectorName': str,
+        #  'detector': int}
 
         dataId = self._getDefaultDataId(visit, raft, sensor)
-        self._extendDataId(dataId, snap=snap)
 
         return self._butler.get("raw", dataId=dataId)
 
@@ -102,29 +101,9 @@ class ButlerWrapper(object):
             Default data Id.
         """
 
-        dataId = dict(visit=int(visit), raftName=raft, detectorName=sensor)
+        dataId = dict(expId=int(visit), raftName=raft, detectorName=sensor)
 
         return dataId
-
-    def _extendDataId(self, dataId, snap=None, aFilter=None):
-        """Extend the data Id.
-
-        Parameters
-        ----------
-        dataId : dict
-            Data Id.
-        snap : int, optional
-            Snap time (0 or 1) means first/ second exposure. (the default is
-            None.)
-        aFilter : str, optional
-            Active filter ("u", "g", "r", "i", "z", "y") (the default is None.)
-        """
-
-        if (snap is not None) and isinstance(snap, (int, float)):
-            dataId["snap"] = int(snap)
-
-        if (aFilter is not None) and isinstance(aFilter, str):
-            dataId["filter"] = aFilter
 
     def getPostIsrCcd(self, visit, raft, sensor, aFilter=None):
         """Get the post-ISR CCD exposure.
@@ -157,6 +136,26 @@ class ButlerWrapper(object):
         self._extendDataId(dataId, aFilter=aFilter)
 
         return self._butler.get("postISRCCD", dataId=dataId)
+
+    def _extendDataId(self, dataId, snap=None, aFilter=None):
+        """Extend the data Id.
+
+        Parameters
+        ----------
+        dataId : dict
+            Data Id.
+        snap : int, optional
+            Snap time (0 or 1) means first/ second exposure. (the default is
+            None.)
+        aFilter : str, optional
+            Active filter ("u", "g", "r", "i", "z", "y") (the default is None.)
+        """
+
+        if (snap is not None) and isinstance(snap, (int, float)):
+            dataId["snap"] = int(snap)
+
+        if (aFilter is not None) and isinstance(aFilter, str):
+            dataId["filter"] = aFilter
 
     def getEimage(self, visit, raft, sensor, snap=None):
         """Get the PhoSim eimage exposure.

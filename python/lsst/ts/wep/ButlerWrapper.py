@@ -75,10 +75,6 @@ class ButlerWrapper(object):
             Raw exposure object.
         """
 
-        # Data Id keys in w_2020_06:
-        # {'run': str, 'raftName': str, 'expId': int, 'detectorName': str,
-        #  'detector': int}
-
         dataId = self._getDefaultDataId(visit, raft, sensor)
 
         return self._butler.get("raw", dataId=dataId)
@@ -128,10 +124,6 @@ class ButlerWrapper(object):
             Post-ISR CCD object.
         """
 
-        # Data Id keys in w_2019_24:
-        # {'visit': int, 'filter': str, 'raftName': str, 'detectorName': str,
-        #  'detector': int}
-
         dataId = self._getDefaultDataId(visit, raft, sensor)
         self._extendDataId(dataId, aFilter=aFilter)
 
@@ -178,8 +170,6 @@ class ButlerWrapper(object):
             Eimage exposure object.
         """
 
-        # Data Id keys in w_2019_24:
-        # {'visit': int, 'snap': int, 'raftName': str, 'detectorName': str}
         dataId = self._getDefaultDataId(visit, raft, sensor)
         self._extendDataId(dataId, snap=snap)
 

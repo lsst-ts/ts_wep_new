@@ -15,13 +15,7 @@ class TestButlerWrapper(unittest.TestCase):
                                    "repackagedPhoSimData")
         self.butlerWrapper = ButlerWrapper(self.inputs)
 
-    @unittest.skip
     def testGetRawExp(self):
-
-        # In lsst_distrib w_2020_06
-        # There is the bug in upstream that the data set type in butler
-        # uses the 'raw_amp' instead of 'raw' ('raw is the input')
-        # Report this bug to DM and wait for the reply
 
         exposure = self._getRawExp()
         self.assertEqual(exposure.getDimensions().getX(), 4176)

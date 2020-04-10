@@ -6,13 +6,21 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.3.9:
+
+-------------
+1.3.9
+-------------
+
+Use the sims_w_2020_14.
+
 .. _lsst.ts.wep-1.3.8:
 
 -------------
 1.3.8
 -------------
 
-Use the sims_w_2020_07. 
+Use the sims_w_2020_07.
 
 .. _lsst.ts.wep-1.3.7:
 
@@ -20,7 +28,7 @@ Use the sims_w_2020_07.
 1.3.7
 -------------
 
-Use the sims_w_2020_06. Skip two tests in test_butlerWrapper.py and test_camIsrWrapper.py for the bugs in upstream. Feedback to DM team. 
+Use the sims_w_2020_06. Skip two tests in test_butlerWrapper.py and test_camIsrWrapper.py for the bugs in upstream. Feedback to DM team.
 
 .. _lsst.ts.wep-1.3.6:
 

@@ -1,6 +1,6 @@
 import os
-import shutil
 import numpy as np
+import tempfile
 import unittest
 
 from lsst.ts.wep.ParamReader import ParamReader
@@ -19,17 +19,11 @@ class TestParamReader(unittest.TestCase):
         filePath = os.path.join(self.configDir, self.fileName)
         self.paramReader = ParamReader(filePath=filePath)
 
-        self.testTempDir = os.path.join(testDir, "tmp")
-        self._makeDir(self.testTempDir)
-
-    def _makeDir(self, directory):
-
-        if (not os.path.exists(directory)):
-            os.makedirs(directory)
+        self.testTempDir = tempfile.TemporaryDirectory(dir=testDir)
 
     def tearDown(self):
 
-        shutil.rmtree(self.testTempDir)
+        self.testTempDir.cleanup()
 
     def testGetSetting(self):
 
@@ -70,13 +64,13 @@ class TestParamReader(unittest.TestCase):
 
         self._writeMatToFile()
 
-        numOfFile = self._getNumOfFileInFolder(self.testTempDir)
+        numOfFile = self._getNumOfFileInFolder(self.testTempDir.name)
         self.assertEqual(numOfFile, 1)
 
     def _writeMatToFile(self):
 
         mat = np.random.rand(3, 4, 5)
-        filePath = os.path.join(self.testTempDir, "temp.yaml")
+        filePath = os.path.join(self.testTempDir.name, "temp.yaml")
         ParamReader.writeMatToFile(mat, filePath)
 
         return mat, filePath
@@ -88,7 +82,7 @@ class TestParamReader(unittest.TestCase):
 
     def testWriteMatToFileWithWrongFileFormat(self):
 
-        wrongFilePath = os.path.join(self.testTempDir, "temp.txt")
+        wrongFilePath = os.path.join(self.testTempDir.name, "temp.txt")
         self.assertRaises(ValueError, ParamReader.writeMatToFile,
                           np.ones(4), wrongFilePath)
 
@@ -142,7 +136,7 @@ class TestParamReader(unittest.TestCase):
 
     def _saveSettingFile(self):
 
-        filePath = os.path.join(self.testTempDir, "newConfigFile.yaml")
+        filePath = os.path.join(self.testTempDir.name, "newConfigFile.yaml")
         self.paramReader.saveSetting(filePath=filePath)
 
         return filePath

@@ -1,6 +1,6 @@
 import os
 import unittest
-import shutil
+import tempfile
 
 from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, \
     runProgram, ImageType, BscDbType
@@ -17,22 +17,19 @@ class TestWEPCalculation(unittest.TestCase):
     def setUp(self):
 
         self.modulePath = getModulePath()
-        self.testDataDir = os.path.join(self.modulePath, "tests", "testData")
-        self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
-        self.isrDir = os.path.join(self.dataDir, "input")
-        self._makeDir(self.isrDir)
+
+        testDir = os.path.join(self.modulePath, "tests")
+        self.testDataDir = os.path.join(testDir, "testData")
+
+        self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
+        self.isrDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
         self.wepCalculation = WEPCalculation(AstWcsSol(), CamType.ComCam,
-                                             self.isrDir)
-
-    def _makeDir(self, directory):
-
-        if (not os.path.exists(directory)):
-            os.makedirs(directory)
+                                             self.isrDir.name)
 
     def tearDown(self):
 
-        shutil.rmtree(self.dataDir)
+        self.dataDir.cleanup()
 
     def testGetSettingFile(self):
 
@@ -51,7 +48,7 @@ class TestWEPCalculation(unittest.TestCase):
     def testGetIsrDir(self):
 
         isrDir = self.wepCalculation.getIsrDir()
-        self.assertEqual(isrDir, self.isrDir)
+        self.assertEqual(isrDir, self.isrDir.name)
 
     def testGetSkyFile(self):
 
@@ -106,28 +103,24 @@ class TestWEPCalculation(unittest.TestCase):
 
     def testIngestCalibs(self):
 
-        self._genCalibsAndIngest()
+        fakeFlatDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
+        self._genCalibsAndIngest(fakeFlatDir.name)
 
-        calibRegistryPath = os.path.join(self.isrDir, "calibRegistry.sqlite3")
+        calibRegistryPath = os.path.join(self.isrDir.name, "calibRegistry.sqlite3")
         self.assertTrue(os.path.exists(calibRegistryPath))
 
-        ingestFlatDir = os.path.join(self.isrDir, "flat")
+        ingestFlatDir = os.path.join(self.isrDir.name, "flat")
         self.assertTrue(os.path.exists(ingestFlatDir))
 
-    def _genCalibsAndIngest(self):
+    def _genCalibsAndIngest(self, flatCalibsDir):
 
-        flatCalibsDir = self._genFlatCalibs()
+        self._genFlatCalibs(flatCalibsDir)
         self.wepCalculation.ingestCalibs(flatCalibsDir)
 
-    def _genFlatCalibs(self):
-
-        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
-        self._makeDir(fakeFlatDir)
+    def _genFlatCalibs(self, flatCalibsDir):
 
         detector = "R22_S11 R22_S10"
-        self._genFakeFlat(fakeFlatDir, detector)
-
-        return fakeFlatDir
+        self._genFakeFlat(flatCalibsDir, detector)
 
     def _genFakeFlat(self, fakeFlatDir, detector):
 
@@ -159,7 +152,8 @@ class TestWEPCalculation(unittest.TestCase):
 
     def testCalculateWavefrontErrors(self):
 
-        self._genCalibsAndIngest()
+        fakeFlatDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
+        self._genCalibsAndIngest(fakeFlatDir.name)
 
         self._calculateWavefrontErrorsAndCheck()
 

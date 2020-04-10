@@ -5,7 +5,7 @@ This module calculates the wavefront error in annular Zernike polynomials up to 
 ## 1. Platform
 
 - CentOS 7
-- python: 3.7.2
+- python: 3.7.6
 - scientific pipeline (newinstall.sh from master branch)
 
 ## 2. Needed Package

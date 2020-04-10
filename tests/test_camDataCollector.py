@@ -1,5 +1,5 @@
 import os
-import shutil
+import tempfile
 import unittest
 
 from lsst.ts.wep.CamDataCollector import CamDataCollector
@@ -11,26 +11,22 @@ class TestCamDataCollector(unittest.TestCase):
 
     def setUp(self):
 
-        self.dataDir = os.path.join(getModulePath(), "tests", "tmp")
-        self.isrDir = os.path.join(self.dataDir, "input")
-        self._makeDir(self.isrDir)
+        testDir = os.path.join(getModulePath(), "tests")
+        self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
 
-        self.camDataCollector = CamDataCollector(self.isrDir)
+        self.isrDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
-    def _makeDir(self, directory):
-
-        if (not os.path.exists(directory)):
-            os.makedirs(directory)
+        self.camDataCollector = CamDataCollector(self.isrDir.name)
 
     def tearDown(self):
 
-        shutil.rmtree(self.dataDir)
+        self.dataDir.cleanup()
 
     def testGenCamMapper(self):
 
         self._genMapper()
 
-        mapperFilePath = os.path.join(self.isrDir, "_mapper")
+        mapperFilePath = os.path.join(self.isrDir.name, "_mapper")
         self.assertTrue(os.path.isfile(mapperFilePath))
 
         numOfLine = self._getNumOfLineInFile(mapperFilePath)
@@ -48,25 +44,24 @@ class TestCamDataCollector(unittest.TestCase):
     def testIngestCalibs(self):
 
         # Make fake gain images
-        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
-        self._makeDir(fakeFlatDir)
+        fakeFlatDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
         detector = "R00_S22"
-        self._genFakeFlat(fakeFlatDir, detector)
+        self._genFakeFlat(fakeFlatDir.name, detector)
 
         # Generate the mapper
         self._genMapper()
 
         # Do the ingestion
-        calibFiles = os.path.join(fakeFlatDir, "*")
+        calibFiles = os.path.join(fakeFlatDir.name, "*")
         self.camDataCollector.ingestCalibs(calibFiles)
 
         # Check the ingested calibration products
-        calibRegistryFilePath = os.path.join(self.isrDir,
+        calibRegistryFilePath = os.path.join(self.isrDir.name,
                                              "calibRegistry.sqlite3")
         self.assertTrue(os.path.exists(calibRegistryFilePath))
 
-        flatDir = os.path.join(self.isrDir, "flat")
+        flatDir = os.path.join(self.isrDir.name, "flat")
         self.assertTrue(os.path.exists(flatDir))
 
     def _genFakeFlat(self, fakeFlatDir, detector):
@@ -105,10 +100,10 @@ class TestCamDataCollector(unittest.TestCase):
 
     def _checkIngestion(self, imgType):
 
-        registryFilePath = os.path.join(self.isrDir, "registry.sqlite3")
+        registryFilePath = os.path.join(self.isrDir.name, "registry.sqlite3")
         self.assertTrue(os.path.exists(registryFilePath))
 
-        rawDir = os.path.join(self.isrDir, imgType)
+        rawDir = os.path.join(self.isrDir.name, imgType)
         self.assertTrue(os.path.exists(rawDir))
 
     def testIngestEimages(self):

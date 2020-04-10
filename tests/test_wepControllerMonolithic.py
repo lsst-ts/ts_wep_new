@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from astropy.io import fits
-import shutil
+import tempfile
 import unittest
 
 from lsst.ts.wep.cwfs.Tool import ZernikeAnnularFit
@@ -22,16 +22,18 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def setUp(self):
 
         self.modulePath = getModulePath()
-        self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
-        self.isrDir = os.path.join(self.dataDir, "input")
+
+        testDir = os.path.join(self.modulePath, "tests")
+        self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
+
+        self.isrDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
+
         self.opdDir = os.path.join(self.modulePath, "tests", "testData",
                                    "opdOutput", "9005000")
 
-        self._makeDir(self.isrDir)
-
         # Configurate the WEP components
-        dataCollector = CamDataCollector(self.isrDir)
-        isrWrapper = CamIsrWrapper(self.isrDir)
+        dataCollector = CamDataCollector(self.isrDir.name)
+        isrWrapper = CamIsrWrapper(self.isrDir.name)
         sourSelc = self._configSourceSelector()
         sourProc = SourceProcessor()
         wfEsti = self._configWfEstimator()
@@ -50,11 +52,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wfsImgMap = dict()
         self.donutMap = dict()
         self.masterDonutMap = dict()
-
-    def _makeDir(self, directory):
-
-        if (not os.path.exists(directory)):
-            os.makedirs(directory)
 
     def _configSourceSelector(self):
 
@@ -92,8 +89,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def tearDown(self):
 
         self.wepCntlr.getSourSelc().disconnect()
-
-        shutil.rmtree(self.dataDir)
+        self.dataDir.cleanup()
 
     def testGetDataCollector(self):
 
@@ -151,17 +147,16 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def step1_genCalibsAndIngest(self):
 
         # Generate the fake flat images
-        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
-        self._makeDir(fakeFlatDir)
+        fakeFlatDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
         detector = "R22_S11 R22_S10"
-        self._genFakeFlat(fakeFlatDir, detector)
+        self._genFakeFlat(fakeFlatDir.name, detector)
 
         # Generate the PhoSim mapper
         self.wepCntlr.getDataCollector().genPhoSimMapper()
 
         # Do the ingestion
-        calibFiles = os.path.join(fakeFlatDir, "*")
+        calibFiles = os.path.join(fakeFlatDir.name, "*")
         self.wepCntlr.getDataCollector().ingestCalibs(calibFiles)
 
     def _genFakeFlat(self, fakeFlatDir, detector):
@@ -196,11 +191,11 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wepCntlr.getIsrWrapper().config(doFlat=True, fileName=fileName)
 
         rerunName = "run1"
-        self.wepCntlr.getIsrWrapper().doISR(self.isrDir, rerunName=rerunName)
+        self.wepCntlr.getIsrWrapper().doISR(self.isrDir.name, rerunName=rerunName)
 
     def step4_setButlerInputsPath(self):
 
-        inputs = os.path.join(self.isrDir, "rerun", "run1")
+        inputs = os.path.join(self.isrDir.name, "rerun", "run1")
         self.wepCntlr.setPostIsrCcdInputs(inputs)
 
     def step5_getTargetStar(self):

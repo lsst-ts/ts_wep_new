@@ -1,5 +1,5 @@
 import os
-import shutil
+import tempfile
 import unittest
 
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
@@ -13,28 +13,22 @@ class TestCamIsrWrapper(unittest.TestCase):
     def setUp(self):
 
         testDir = os.path.join(getModulePath(), "tests")
-        self.dataDir = os.path.join(testDir, "tmpIsr")
-        self.isrDir = os.path.join(self.dataDir, "input")
-        self._makeDir(self.isrDir)
+        self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
+        self.isrDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
         self.repackagedTestData = os.path.join(testDir, "testData",
                                                "repackagedFiles")
 
-        self.camIsrWrapper = CamIsrWrapper(self.isrDir)
-
-    def _makeDir(self, directory):
-
-        if (not os.path.exists(directory)):
-            os.makedirs(directory)
+        self.camIsrWrapper = CamIsrWrapper(self.isrDir.name)
 
     def tearDown(self):
 
-        shutil.rmtree(self.dataDir)
+        self.dataDir.cleanup()
 
     def testConfig(self):
 
         fileName = self._doIsrConfig()
-        isrConfigfilePath = os.path.join(self.isrDir, fileName)
+        isrConfigfilePath = os.path.join(self.isrDir.name, fileName)
 
         self.assertEqual(self.camIsrWrapper.doFlat, True)
         self.assertTrue(os.path.isfile(isrConfigfilePath))
@@ -68,7 +62,7 @@ class TestCamIsrWrapper(unittest.TestCase):
                                 doIsrConfig=True)
 
         # Check the condition
-        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName,
+        postIsrCcdDir = os.path.join(self.isrDir.name, "rerun", rerunName,
                                      "postISRCCD")
         self.assertTrue(os.path.exists(postIsrCcdDir))
 
@@ -78,17 +72,16 @@ class TestCamIsrWrapper(unittest.TestCase):
     def _getCamDataCollectorAndIngestCalibs(self, detector):
 
         # Generate the camera mapper
-        camDataCollector = CamDataCollector(self.isrDir)
+        camDataCollector = CamDataCollector(self.isrDir.name)
         camDataCollector.genPhoSimMapper()
 
         # Generate the fake flat images
-        fakeFlatDir = os.path.join(self.dataDir, "fake_flats")
-        self._makeDir(fakeFlatDir)
+        fakeFlatDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
-        self._genFakeFlat(fakeFlatDir, detector)
+        self._genFakeFlat(fakeFlatDir.name, detector)
 
         # Ingest the calibration images
-        calibFiles = os.path.join(fakeFlatDir, "*")
+        calibFiles = os.path.join(fakeFlatDir.name, "*")
         camDataCollector.ingestCalibs(calibFiles)
 
         return camDataCollector
@@ -126,7 +119,7 @@ class TestCamIsrWrapper(unittest.TestCase):
             self._doIsrConfig()
 
         # Do the ISR
-        self.camIsrWrapper.doISR(self.isrDir, rerunName=rerunName)
+        self.camIsrWrapper.doISR(self.isrDir.name, rerunName=rerunName)
 
     def _getNumOfDir(self, dirPath):
 
@@ -149,7 +142,7 @@ class TestCamIsrWrapper(unittest.TestCase):
                                 doIsrConfig=True)
 
         # Check the condition
-        postIsrCcdDir = os.path.join(self.isrDir, "rerun", rerunName,
+        postIsrCcdDir = os.path.join(self.isrDir.name, "rerun", rerunName,
                                      "postISRCCD")
         numOfDir = self._getNumOfDir(postIsrCcdDir)
         self.assertEqual(numOfDir, 1)

@@ -1,7 +1,7 @@
 import os
 import numpy as np
+import tempfile
 from astropy.io import fits
-import shutil
 import unittest
 
 from lsst.ts.wep.cwfs.Tool import ZernikeAnnularFit
@@ -21,15 +21,15 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def setUp(self):
 
         self.modulePath = getModulePath()
-        self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
-        self.butlerInput = os.path.join(self.dataDir, "input")
+
+        testDir = os.path.join(self.modulePath, "tests")
+        self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
+        self.butlerInput = tempfile.TemporaryDirectory(dir=self.dataDir.name)
         self.opdDir = os.path.join(self.modulePath, "tests", "testData",
                                    "opdOutput", "9005000")
 
-        self._makeDir(self.butlerInput)
-
         # Configurate the WEP components
-        dataCollector = CamDataCollector(self.butlerInput)
+        dataCollector = CamDataCollector(self.butlerInput.name)
         sourSelc = self._configSourceSelector()
         sourProc = SourceProcessor()
         wfEsti = self._configWfEstimator()
@@ -48,11 +48,6 @@ class TestWepControllerMonolithic(unittest.TestCase):
         self.wfsImgMap = dict()
         self.donutMap = dict()
         self.masterDonutMap = dict()
-
-    def _makeDir(self, directory):
-
-        if (not os.path.exists(directory)):
-            os.makedirs(directory)
 
     def _configSourceSelector(self):
 
@@ -90,8 +85,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def tearDown(self):
 
         self.wepCntlr.getSourSelc().disconnect()
-
-        shutil.rmtree(self.dataDir)
+        self.dataDir.cleanup()
 
     def testMonolithicSteps(self):
         """Do the test based on the steps defined in the child class."""
@@ -134,7 +128,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
     def step2_setButlerInputsPath(self):
 
-        self.wepCntlr.setPostIsrCcdInputs(self.butlerInput)
+        self.wepCntlr.setPostIsrCcdInputs(self.butlerInput.name)
 
     def step3_getTargetStar(self):
 

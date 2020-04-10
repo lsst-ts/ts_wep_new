@@ -1,7 +1,9 @@
 import os
 import numpy as np
+import tempfile
 import unittest
 
+from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.Utility import getModulePath
 
@@ -9,11 +11,38 @@ from lsst.ts.wep.Utility import getModulePath
 class TestButlerWrapper(unittest.TestCase):
     """Test the butler wrapper class."""
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
 
-        self.inputs = os.path.join(getModulePath(), "tests", "testData",
-                                   "repackagedPhoSimData")
-        self.butlerWrapper = ButlerWrapper(self.inputs)
+        dataDirPath = os.path.join(getModulePath(), "tests")
+        cls.dataDir = tempfile.TemporaryDirectory(dir=dataDirPath)
+        cls._ingestImages()
+
+        cls.butlerWrapper = ButlerWrapper(cls.dataDir.name)
+
+    @classmethod
+    def _ingestImages(cls):
+
+        # Generate the camera mapper
+        camDataCollector = CamDataCollector(cls.dataDir.name)
+        camDataCollector.genPhoSimMapper()
+
+        # Ingest the E image
+        imgFilesEimg = os.path.join(getModulePath(), "tests", "testData",
+                                    "repackagedFiles",
+                                    "lsst_e_9006001_f1_R22_S00_E000.fits.gz")
+        camDataCollector.ingestEimages(imgFilesEimg)
+
+        # Ingest the amplifier image
+        imgFilesRaw = os.path.join(getModulePath(), "tests", "testData",
+                                   "repackagedFiles",
+                                   "lsst_a_20_f5_R00_S22_E000.fits")
+        camDataCollector.ingestImages(imgFilesRaw)
+
+    @classmethod
+    def tearDownClass(cls):
+
+        cls.dataDir.cleanup()
 
     def testGetRawExp(self):
 
@@ -43,7 +72,7 @@ class TestButlerWrapper(unittest.TestCase):
 
     def testSetInputsAndOutputs(self):
 
-        self.butlerWrapper.setInputsAndOutputs(inputs=self.inputs)
+        self.butlerWrapper.setInputsAndOutputs(self.dataDir.name)
 
         eimg = self._getEimage()
         self.assertEqual(eimg.getDimensions().getX(), 4072)

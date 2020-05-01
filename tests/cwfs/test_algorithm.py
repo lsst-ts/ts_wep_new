@@ -91,13 +91,13 @@ class TestAlgorithm(unittest.TestCase):
     def testGetZernikeTerms(self):
 
         zTerms = self.algoExp.getZernikeTerms()
-        self.assertTrue(zTerms.dtype, int)
+        self.assertTrue(type(zTerms[0]), int)
         self.assertEqual(len(zTerms), self.algoExp.getNumOfZernikes())
-        self.assertEqual(zTerms[0], 1)
-        self.assertEqual(zTerms[-1], self.algoExp.getNumOfZernikes())
+        self.assertEqual(zTerms[1], 1)
+        self.assertEqual(zTerms[-1], self.algoExp.getNumOfZernikes()-1)
 
         zTerms = self.algoFft.getZernikeTerms()
-        self.assertTrue(zTerms.dtype, int)
+        self.assertTrue(type(zTerms[0]), int)
         self.assertEqual(len(zTerms), self.algoExp.getNumOfZernikes())
 
     def testGetObsOfZernikes(self):
@@ -170,28 +170,31 @@ class TestAlgorithm(unittest.TestCase):
     def testItr0(self):
 
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
-        zer4UpNm = self.algoExp.getZer4UpInNm()
 
-        ansRint = [75, -22, -5, 19, 16, -62, 59, -146, 1, 11, 12, -2, 12, 12,
-                   -7, 7, 2, 0, 9]
-        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
+        zer4UpNm = self.algoExp.getZer4UpInNm()
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) -
+                                       self._getAnsItr0())), 0)
+
+    def _getAnsItr0(self):
+
+        return [31, -69, -21, 84, 44, -53, 48, -146, 6, 10, 13, -5, 1, -12,
+                -8, 7, 0, -6, 11]
 
     def testNextItrWithOneIter(self):
 
         self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=1)
-        zer4UpNm = self.algoExp.getZer4UpInNm()
 
-        ansRint = [75, -22, -5, 19, 16, -62, 59, -146, 1, 11, 12, -2, 12, 12,
-                   -7, 7, 2, 0, 9]
-        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
+        zer4UpNm = self.algoExp.getZer4UpInNm()
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) -
+                                       self._getAnsItr0())), 0)
 
     def testNextItrWithTwoIter(self):
 
         self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=2)
         zer4UpNm = self.algoExp.getZer4UpInNm()
 
-        ansRint = [85, -37, -5, 40, 39, -44, 41, -145, 1, 4, 22, -1, 9, 9, -4,
-                   5, 2, 1, 9]
+        ansRint = [40, -80, -18, 92, 44., -52, 54, -146, 5, 10, 15, -3, -0, -12,
+                   -8, 7, 1, -3, 12]
         self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
 
     def testIter0AndNextIterToCheckReset(self):
@@ -201,7 +204,7 @@ class TestAlgorithm(unittest.TestCase):
 
         self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=2)
 
-        # iter() should rest the images and ignore the effect from nextItr()
+        # itr0() should reset the images and ignore the effect from nextItr()
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
         tmp2 = self.algoExp.getZer4UpInNm()
 

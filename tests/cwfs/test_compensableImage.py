@@ -66,9 +66,9 @@ class TestCompensableImage(unittest.TestCase):
         self.opticalModel = "offAxis"
 
         # Get the true Zk
-        zcAnsFilePath = os.path.join(modulePath, "tests", "testData",
-                                     "testImages", "validation",
-                                     "LSST_NE_SN25_z11_0.25_exp.txt")
+        zcAnsFilePath = os.path.join(
+            modulePath, "tests", "testData", "testImages", "validation",
+            "simulation", "LSST_NE_SN25_z11_0.25_exp.txt")
         self.zcCol = np.loadtxt(zcAnsFilePath)
 
         self.wfsImg = CompensableImage()
@@ -205,6 +205,30 @@ class TestCompensableImage(unittest.TestCase):
         # Calculate the difference
         res = np.sum(np.abs(intraImg - extraImg) * binaryImg)
         self.assertLess(res, 500)
+
+    def testCenterOnProjection(self):
+
+        template = self._prepareGaussian2D(100, 1)
+
+        dx = 2
+        dy = 8
+        img = np.roll(np.roll(template, dx, axis=1), dy, axis=0)
+        np.roll(np.roll(img, dx, axis=1), dy, axis=0)
+
+        self.assertGreater(np.sum(np.abs(img-template)), 29)
+
+        imgRecenter = self.wfsImg.centerOnProjection(img, template, window=20)
+        self.assertLess(np.sum(np.abs(imgRecenter-template)), 1e-7)
+
+    def _prepareGaussian2D(self, imgSize, sigma):
+
+        x = np.linspace(-10, 10, imgSize)
+        y = np.linspace(-10, 10, imgSize)
+
+        xx, yy = np.meshgrid(x, y)
+
+        return (1/(2*np.pi*sigma**2) * np.exp(-(xx**2/(2*sigma**2) +
+                                                yy**2/(2*sigma**2))))
 
     def testSetOffAxisCorr(self):
 

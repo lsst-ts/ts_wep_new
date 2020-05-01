@@ -18,7 +18,7 @@ class Instrument(object):
 
         self.instDir = instDir
         self.instName = ""
-        self.dimOfDonut = 0
+        self.dimOfDonutImg = 0
         self.announcedDefocalDisInMm = 0.0
 
         self.instParamFile = ParamReader()
@@ -30,7 +30,7 @@ class Instrument(object):
         self.xoSensor = np.array([])
         self.yoSensor = np.array([])
 
-    def config(self, camType, dimOfDonutOnSensor,
+    def config(self, camType, dimOfDonutImgOnSensor,
                announcedDefocalDisInMm=1.5,
                instParamFileName="instParam.yaml",
                maskMigrateFileName="maskMigrate.yaml"):
@@ -40,8 +40,8 @@ class Instrument(object):
         ----------
         camType : enum 'CamType'
             Camera type.
-        dimOfDonutOnSensor : int
-            Dimension of image on sensor in pixel.
+        dimOfDonutImgOnSensor : int
+            Dimension of donut image on sensor in pixel.
         announcedDefocalDisInMm : float
             Announced defocal distance in mm. It is noted that the defocal
             distance offset used in calculation might be different from this
@@ -54,7 +54,7 @@ class Instrument(object):
         """
 
         self.instName = self._getInstName(camType)
-        self.dimOfDonut = int(dimOfDonutOnSensor)
+        self.dimOfDonutImg = int(dimOfDonutImgOnSensor)
         self.announcedDefocalDisInMm = announcedDefocalDisInMm
 
         # Path of instrument param file
@@ -92,6 +92,8 @@ class Instrument(object):
             return "lsst"
         elif (camType == CamType.ComCam):
             return "comcam"
+        elif (camType == CamType.AuxTel):
+            return "auxTel"
         else:
             raise ValueError("Camera type (%s) is not supported." % camType)
 
@@ -109,12 +111,13 @@ class Instrument(object):
     def _setSensorCoor(self):
         """Set the sensor coordinate."""
 
+        # 0.5 is the half of single pixel
         ySensorGrid, xSensorGrid = np.mgrid[
-            -(self.dimOfDonut/2-0.5):(self.dimOfDonut/2 + 0.5),
-            -(self.dimOfDonut/2-0.5):(self.dimOfDonut/2 + 0.5)]
+            -(self.dimOfDonutImg/2-0.5):(self.dimOfDonutImg/2 + 0.5),
+            -(self.dimOfDonutImg/2-0.5):(self.dimOfDonutImg/2 + 0.5)]
 
         sensorFactor = self.getSensorFactor()
-        denominator = self.dimOfDonut / 2 / sensorFactor
+        denominator = self.dimOfDonutImg / 2 / sensorFactor
 
         self.xSensor = xSensorGrid / denominator
         self.ySensor = ySensorGrid / denominator
@@ -179,7 +182,7 @@ class Instrument(object):
         return self.maskParamFile.getMatContent()
 
     def getDimOfDonutOnSensor(self):
-        """Get the dimension of donut's size on sensor in pixel.
+        """Get the dimension of donut image size on sensor in pixel.
 
         Returns
         -------
@@ -187,7 +190,7 @@ class Instrument(object):
             Dimension of donut's size on sensor in pixel.
         """
 
-        return self.dimOfDonut
+        return self.dimOfDonutImg
 
     def getObscuration(self):
         """Get the obscuration.
@@ -231,6 +234,10 @@ class Instrument(object):
             Defocal distance offset in meter.
         """
 
+        # Use this way to differentiate the announced defocal distance
+        # and the used defocal distance in the fitting of parameters by ZEMAX
+        # For example, in the ComCam's instParam.yaml file, they are a little
+        # different
         offset = self.instParamFile.getSetting("offset")
         defocalDisInMm = "%.1fmm" % self.announcedDefocalDisInMm
 
@@ -277,7 +284,7 @@ class Instrument(object):
         apertureDiameter = self.getApertureDiameter()
         focalLength = self.getFocalLength()
         pixelSize = self.getCamPixelSize()
-        sensorFactor = self.dimOfDonut / (
+        sensorFactor = self.dimOfDonutImg / (
             offset * apertureDiameter / focalLength / pixelSize)
 
         return sensorFactor
@@ -307,6 +314,21 @@ class Instrument(object):
         """
 
         return self.xoSensor, self.yoSensor
+
+    def calcSizeOfDonutExpected(self):
+        """Calculate the size of expected donut (diameter).
+
+        Returns
+        -------
+        float
+            Size of expected donut (diameter) in pixel.
+        """
+
+        offset = self.getDefocalDisOffset()
+        fNumber = self.getFocalLength() / self.getApertureDiameter()
+        pixelSize = self.getCamPixelSize()
+
+        return offset / fNumber / pixelSize
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import numpy as np
 from scipy.ndimage import generate_binary_structure, iterate_structure
 from scipy.ndimage.morphology import binary_dilation, binary_erosion
 from scipy.interpolate import RectBivariateSpline
+from scipy.signal import correlate
 
 from lsst.ts.wep.ParamReader import ParamReader
 from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularGrad, \
@@ -201,7 +202,7 @@ class CompensableImage(object):
             Number of pixels cannot be odd numbers.
         """
 
-        img = self._image.getImg()
+        img = self.getImg()
         if (img.shape[0] != img.shape[1]):
             raise RuntimeError("Only square image stamps are accepted.")
         elif (img.shape[0] % 2 == 1):
@@ -240,7 +241,7 @@ class CompensableImage(object):
         """
 
         # Update the initial image for future use
-        self.image0 = self._image.getImg().copy()
+        self.image0 = self.getImg().copy()
 
     def imageCoCenter(self, inst, fov=3.5, debugLevel=0):
         """Shift the weighting center of donut to the center of reference
@@ -296,10 +297,10 @@ class CompensableImage(object):
         stampCentery1 = stampCentery1 + radialShift*I1s
 
         # Shift the image to the projected position
-        self._image.updateImage(
-            np.roll(self._image.getImg(), int(np.round(stampCentery1 - y1)), axis=0))
-        self._image.updateImage(
-            np.roll(self._image.getImg(), int(np.round(stampCenterx1 - x1)), axis=1))
+        self.updateImage(
+            np.roll(self.getImg(), int(np.round(stampCentery1 - y1)), axis=0))
+        self.updateImage(
+            np.roll(self.getImg(), int(np.round(stampCenterx1 - x1)), axis=1))
 
     def _getFieldDistFromOrigin(self, fieldX=None, fieldY=None, minDist=1e-8):
         """Get the field distance from the origin.
@@ -363,7 +364,7 @@ class CompensableImage(object):
                                "zcCol in compensate needs to be a %d row column vector. \n" % numTerms)
 
         # Dimension of image
-        sm, sn = self._image.getImg().shape
+        sm, sn = self.getImg().shape
 
         # Dimenstion of projected image on focal plane
         projSamples = sm
@@ -386,9 +387,6 @@ class CompensableImage(object):
             self.caustic = True
             return
 
-        # Calculate the weighting center (x, y) and radius
-        realcx, realcy = self._image.getCenterAndR()[0:2]
-
         # Extend the dimension of image by 20 pixel in x and y direction
         show_lutxyp = padArray(show_lutxyp, projSamples+20)
 
@@ -402,17 +400,10 @@ class CompensableImage(object):
         # Extract the region from the center of image and get the original one
         show_lutxyp = extractArray(show_lutxyp, projSamples)
 
-        # Calculate the weighting center (x, y) and radius
-        projcx, projcy = self._image.getCenterAndR(image=show_lutxyp.astype(float))[0:2]
-
-        # Shift the image to center of projection on pupil
-        # +(-) means we need to move image to the right (left)
-        shiftx = projcx - realcx
-        # +(-) means we need to move image upward (downward)
-        shifty = projcy - realcy
-
-        self._image.updateImage(np.roll(self._image.getImg(), int(np.round(shifty)), axis=0))
-        self._image.updateImage(np.roll(self._image.getImg(), int(np.round(shiftx)), axis=1))
+        # Recenter the image
+        imgRecenter = self.centerOnProjection(
+            self.getImg(), show_lutxyp.astype(float), window=20)
+        self.updateImage(imgRecenter)
 
         # Construct the interpolant to get the intensity on (x', p') plane
         # that corresponds to the grid points on (x,y)
@@ -426,7 +417,7 @@ class CompensableImage(object):
         lutyp[np.isnan(lutyp)] = 0
 
         # Construct the function for interpolation
-        ip = RectBivariateSpline(yp[:, 0], xp[0, :], self._image.getImg(), kx=1, ky=1)
+        ip = RectBivariateSpline(yp[:, 0], xp[0, :], self.getImg(), kx=1, ky=1)
 
         # Construct the projected image by the interpolation
         lutIp = np.zeros(lutxp.shape[0]*lutxp.shape[1])
@@ -437,26 +428,24 @@ class CompensableImage(object):
         # Calaculate the image on focal plane with compensation based on flux
         # conservation
         # I(x, y)/I'(x', y') = J = (dx'/dx)*(dy'/dy) - (dx'/dy)*(dy'/dx)
-        self._image.updateImage(lutIp * J)
+        self.updateImage(lutIp * J)
 
         if (self.defocalType == DefocalType.Extra):
-            self._image.updateImage(np.rot90(self._image.getImg(), k=2))
+            self.updateImage(np.rot90(self.getImg(), k=2))
 
         # Put NaN to be 0
-        holdedImg = self._image.getImg()
-        holdedImg[np.isnan(holdedImg)] = 0
-        self._image.updateImage(holdedImg)
+        imgCompensate = self.getImg()
+        imgCompensate[np.isnan(imgCompensate)] = 0
 
         # Check the compensated image has the problem or not.
         # The negative value means the over-compensation from wavefront error
-        if (np.any(self._image.getImg() < 0) and np.all(self.image0 >= 0)):
+        if (np.any(imgCompensate < 0) and np.all(self.image0 >= 0)):
             print("WARNING: negative scale parameter, image is within caustic, zcCol (in um)=\n")
             self.caustic = True
 
         # Put the overcompensated part to be 0
-        holdedImg = self._image.getImg()
-        holdedImg[holdedImg < 0] = 0
-        self._image.updateImage(holdedImg)
+        imgCompensate[imgCompensate < 0] = 0
+        self.updateImage(imgCompensate)
 
     def _aperture2image(self, inst, algo, zcCol, lutx, luty, projSamples,
                         model):
@@ -963,6 +952,56 @@ class CompensableImage(object):
 
         return cax, cay, cbx, cby
 
+    def centerOnProjection(self, img, template, window=20):
+        """Center the image to the template's center.
+
+        Parameters
+        ----------
+        img : numpy.array
+            Image to be centered with the template. The input image needs to
+            be a n-by-n matrix.
+        template : numpy.array
+            Template image to have the same dimention as the input image
+            ('img'). The center of template is the position of input image
+            tries to align with.
+        window : int, optional
+            Size of window in pixel. Assume the difference of centers of input
+            image and template is in this range (e.g. [-window/2, window/2] if
+            1D). (the default is 20.)
+
+        Returns
+        -------
+        numpy.array
+            Recentered image.
+        """
+
+        # Calculate the cross-correlate
+        corr = correlate(img, template, mode="same")
+
+        # Calculate the shifts of center
+
+        # Only consider the shifts in a cetrain window (range)
+        # Align the input image to the center of template
+        length = template.shape[0]
+        center = length // 2
+
+        r = window // 2
+
+        mask = np.zeros(corr.shape)
+        mask[center-r:center+r, center-r:center+r] = 1
+        idx = np.argmax(corr * mask)
+
+        # The above 'idx' is an interger. Need to rematch it to the
+        # two-dimention position (x and y)
+        xmatch = (idx % length)
+        ymatch = (idx // length)
+
+        dx = center - xmatch
+        dy = center - ymatch
+
+        # Shift/ recenter the input image
+        return np.roll(np.roll(img, dx, axis=1), dy, axis=0)
+
     def setOffAxisCorr(self, inst, order):
         """Set the coefficients of off-axis correction for x, y-projection of
         intra- and extra-image.
@@ -1178,7 +1217,7 @@ class CompensableImage(object):
         if (model in ("paraxial", "onAxis")):
 
             if (obscuration == 0):
-                masklist = np.array([0, 0, 1, 1])
+                masklist = np.array([[0, 0, 1, 1]])
             else:
                 masklist = np.array([[0, 0, 1, 1],
                                     [0, 0, obscuration, 0]])
@@ -1230,27 +1269,40 @@ class CompensableImage(object):
         # Construct the binary matrix on pupil. It is noted that if the
         # raytrace is true, the value of element is allowed to be greater
         # than 1.
-        show_lutxyp = np.zeros([n1, n2])
+        show_lutxyp = np.zeros((n1, n2))
 
         # Get the index in pupil. If a point's value is NaN, this point is
         # outside the pupil.
-        idx = (~np.isnan(lutxp)).nonzero()
-        for ii, jj in zip(idx[0], idx[1]):
-            # Calculate the projected x, y-coordinate in pixel
-            # x=0.5 is center of pixel#1
-            xR = int(np.round((lutxp[ii, jj]+sensorFactor)*projSamples/sensorFactor/2 + 0.5))
-            yR = int(np.round((lutyp[ii, jj]+sensorFactor)*projSamples/sensorFactor/2 + 0.5))
+        idx = (~np.isnan(lutxp))
 
-            # Check the projected coordinate is in the range of image or not.
-            # If the check passes, the times will be recorded.
-            if (xR > 0 and xR < n2 and yR > 0 and yR < n1):
-                # Aggregate the times
-                if raytrace:
-                    show_lutxyp[yR-1, xR-1] += 1
-                # No aggragation of times
-                else:
-                    if (show_lutxyp[yR-1, xR-1] < 1):
-                        show_lutxyp[yR-1, xR-1] = 1
+        # Calculate the projected x, y-coordinate in pixel
+        # x=0.5 is center of pixel#1
+        xR = np.zeros((n1, n2))
+        yR = np.zeros((n1, n2))
+
+        xR[idx] = np.round((lutxp[idx] + sensorFactor) *
+                           (projSamples / sensorFactor) / 2 + 0.5)
+        yR[idx] = np.round((lutyp[idx] + sensorFactor) *
+                           (projSamples / sensorFactor) / 2 + 0.5)
+
+        # Check the projected coordinate is in the range of image or not.
+        # If the check passes, the times will be recorded.
+        mask = np.bitwise_and(
+            np.bitwise_and(
+                np.bitwise_and(xR > 0,
+                               xR < n2),
+                yR > 0),
+            yR < n1)
+
+        # Check the projected coordinate is in the range of image or not.
+        # If the check passes, the times will be recorded.
+        if raytrace:
+            for ii, jj in zip(np.array(yR - 1, dtype=int)[mask],
+                              np.array(xR - 1, dtype=int)[mask]):
+                show_lutxyp[ii, jj] += 1
+        else:
+            show_lutxyp[np.array(yR - 1, dtype=int)[mask],
+                        np.array(xR - 1, dtype=int)[mask]] = 1
 
         return show_lutxyp
 

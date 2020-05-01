@@ -2,8 +2,6 @@ import os
 import sys
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from scipy.ndimage import generate_binary_structure, iterate_structure
 from scipy.ndimage.filters import laplace
 from scipy.ndimage.morphology import binary_dilation, binary_erosion
@@ -12,8 +10,7 @@ from lsst.ts.wep.ParamReader import ParamReader
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularEval, \
     ZernikeMaskedFit, ZernikeAnnularGrad
-
-plt.switch_backend('Agg')
+from lsst.ts.wep.PlotUtil import plotZernike
 
 
 class Algorithm(object):
@@ -210,14 +207,13 @@ class Algorithm(object):
 
         Returns
         -------
-        numpy.ndarray
-            Zernkie terms in using.
+        list[int]
+            Zernike terms in using.
         """
 
         numTerms = self.getNumOfZernikes()
-        zTerms = np.arange(numTerms) + 1
 
-        return zTerms
+        return list(range(numTerms))
 
     def getObsOfZernikes(self):
         """Get the obscuration of annular Zernike polynomials.
@@ -592,10 +588,7 @@ class Algorithm(object):
                 # Add partial feedback of residual estimated wavefront in Zk
                 self.zcomp = self.zcomp + ztmp*feedbackGain
 
-                # Remove the image distortion if the optical model is not
-                # "paraxial"
-                # Only the optical model of "onAxis" or "offAxis" is considered
-                # here
+                # Remove the image distortion by forwarding the image to pupil
                 I1.compensate(self._inst, self, self.zcomp, model)
                 I2.compensate(self._inst, self, self.zcomp, model)
 
@@ -853,7 +846,7 @@ class Algorithm(object):
             zc = np.zeros(numTerms)
 
             # Consider specific Zk terms only
-            idx = (self.getZernikeTerms() - 1).tolist()
+            idx = self.getZernikeTerms()
 
             # Solve the equation: M*W = F => W = M^(-1)*F
             zc_tmp = np.linalg.lstsq(Mij[:, idx][idx], F[idx], rcond=None)[0]/dz
@@ -1164,14 +1157,8 @@ class Algorithm(object):
 
         # Show the plot
         if (showPlot):
-            plt.figure()
-
-            x = range(4, len(z) + 4)
-            plt.plot(x, z, marker="o", color="r", markersize=10)
-            plt.xlabel("Zernike Index")
-            plt.ylabel("Zernike coefficient (%s)" % unit)
-            plt.grid()
-            plt.show()
+            zkIdx = range(4, len(z) + 4)
+            plotZernike(zkIdx, z, unit)
 
 
 if __name__ == "__main__":

@@ -57,11 +57,11 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None,
     plt.colorbar()
     plt.title(name)
 
-    if (saveFilePath is not None):
+    if (saveFilePath is None):
+        plt.show()
+    else:
         plt.savefig(saveFilePath, bbox_inches="tight")
         plt.close()
-    else:
-        plt.show()
 
 
 def plotHist(exposure, name="", numOfBin=1000, log=False, saveFilePath=None):
@@ -90,11 +90,11 @@ def plotHist(exposure, name="", numOfBin=1000, log=False, saveFilePath=None):
     plt.hist(img.flatten(), bins=int(numOfBin), log=log)
     plt.title(name)
 
-    if (saveFilePath is not None):
+    if (saveFilePath is None):
+        plt.show()
+    else:
         plt.savefig(saveFilePath, bbox_inches="tight")
         plt.close()
-    else:
-        plt.show()
 
 
 def plotDonutImg(donutMap, saveToDir=None, dpi=None):
@@ -324,6 +324,34 @@ def plotImage(imageDonut, title=None, mask=None, show=True, fitParameters=[],
 
     if show:
         plt.show()
+
+
+def plotZernike(zkIdx, zk, unit, saveFilePath=None):
+    """Plot the Zernike polynomials (zk).
+
+    Parameters
+    ----------
+    zkIdx : list[int] or numpy.array[int]
+        Index of zk.
+    zk : numpy.array
+        Zernike polynomials.
+    unit : str
+        Unit of Zernike polynomials.
+    saveFilePath : str, optional
+        File path to save the image. (the default is None.)
+    """
+
+    plt.plot(zkIdx, zk, marker="o", color="r", markersize=10)
+
+    plt.xlabel("Zernike Index")
+    plt.ylabel("Zernike coefficient (%s)" % unit)
+    plt.grid()
+
+    if (saveFilePath is None):
+        plt.show()
+    else:
+        plt.savefig(saveFilePath, bbox_inches="tight")
+        plt.close()
 
 
 if __name__ == "__main__":

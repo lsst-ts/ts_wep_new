@@ -99,7 +99,6 @@ setup -k -r .
 ## 7. Example Script
 
 - **mapSensorAndFieldIdx.py**: Map the sensor name to the field point index based on the sensor's position on the ideal focal plane.
-- **deblendEimg.py**: Do the deblending of eimage. The deblending algorithm now can only work on the eimage.
 
 ## 8. Build the Document
 

@@ -1,3 +1,6 @@
 @startuml
-BlendedImageDecorator *-- AdapThresImage
+class nelderMeadModify << (F,orchid) >>
+DeblendDefault <|-- DeblendAdapt
+DeblendDonutFactory ..> DeblendAdapt
+DeblendAdapt ..> nelderMeadModify
 @enduml

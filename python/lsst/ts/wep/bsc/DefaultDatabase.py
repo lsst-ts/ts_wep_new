@@ -116,12 +116,17 @@ class DefaultDatabase(object):
 
         raise NotImplementedError("Child class should implemented this.")
 
-    def connect(self):
+    def connect(self, *args):
         """Connect the database.
 
         The child class needs to concrete the connection and cursor attributes
         with the Connection and Cursor objects. For example, the SQLite
         Connection and Cursor objects.
+
+        Parameters
+        ----------
+        *args : str or *list
+            Information to connect to the database.
 
         Raises
         ------

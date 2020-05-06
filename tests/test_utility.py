@@ -4,7 +4,8 @@ import unittest
 from lsst.ts.wep.Utility import abbrevDectectorName, expandDetectorName, \
     mapFilterRefToG, FilterType, getModulePath, getConfigDir, \
     getObsLsstCmdTaskConfigDir, ImageType, getImageType, getBscDbType, \
-    BscDbType, getCentroidFindType, CentroidFindType
+    BscDbType, getCentroidFindType, CentroidFindType, getDeblendDonutType, \
+    DeblendDonutType
 
 
 class TestUtility(unittest.TestCase):
@@ -89,6 +90,15 @@ class TestUtility(unittest.TestCase):
     def testGetCentroidFindTypeWithWrongInput(self):
 
         self.assertRaises(ValueError, getCentroidFindType, "wrongType")
+
+    def testGetDeblendDonutType(self):
+
+        self.assertEqual(getDeblendDonutType("adapt"),
+                         DeblendDonutType.Adapt)
+
+    def testGetDeblendDonutTypeWithWrongInput(self):
+
+        self.assertRaises(ValueError, getDeblendDonutType, "wrongType")
 
 
 if __name__ == "__main__":

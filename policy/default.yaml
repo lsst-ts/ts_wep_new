@@ -68,6 +68,9 @@ camDimOffset: 0
 # algorithm yet)
 doDeblending: False
 
+# Deblending donut algorithm to use.
+deblendDonutAlgo: adapt
+
 # Number of processor for the parallel calculation (should be >=1)
 # This is just a placeholder at this moment
 # This will begin to work when the super task is implemented

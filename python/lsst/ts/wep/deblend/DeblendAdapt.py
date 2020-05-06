@@ -1,0 +1,315 @@
+import numpy as np
+
+from scipy.ndimage.morphology import binary_opening, binary_closing, binary_erosion
+from scipy.ndimage.interpolation import shift
+from scipy.optimize import minimize_scalar
+from scipy.ndimage.measurements import center_of_mass
+from skimage.filters import threshold_local
+
+from lsst.ts.wep.Utility import CentroidFindType
+from lsst.ts.wep.cwfs.CentroidFindFactory import CentroidFindFactory
+from lsst.ts.wep.deblend.DeblendDefault import DeblendDefault
+from lsst.ts.wep.deblend.nelderMeadModify import nelderMeadModify
+
+
+class DeblendAdapt(DeblendDefault):
+
+    def __init__(self):
+        """DeblendDefault child class to do the deblending by the adaptive
+        threshold method."""
+        super(DeblendAdapt, self).__init__()
+
+        # Method to find the centroid of donut
+        self._centroidFind = CentroidFindFactory.createCentroidFind(
+            CentroidFindType.RandomWalk)
+
+        # Initial guess of block size used in the adaptive threshold mothod
+        self.blockSizeInit = 33
+
+    def deblendDonut(self, imgToDeblend, iniGuessXY):
+        """Deblend the donut image.
+
+        Parameters
+        ----------
+        imgToDeblend : numpy.ndarray
+            Image to deblend.
+        iniGuessXY : list[tuple]
+            The list contains the initial guess of (x, y) positions of
+            neighboring stars as [star 1, star 2, etc.].
+
+        Returns
+        -------
+        numpy.ndarray
+            Deblended donut image.
+        float
+            Position x of donut in pixel.
+        float
+            Position y of donut in pixel.
+
+        Raises
+        ------
+        ValueError
+            Only support to deblend single neighboring star.
+        """
+
+        # Check the number of neighboring star
+        if len(iniGuessXY) != 1:
+            raise ValueError("Only support to deblend single neighboring star.")
+
+        # Get the initial guess of the brightest donut
+        imgBinary = self._centroidFind.getImgBinary(imgToDeblend)
+        realcx, realcy, realR = self._centroidFind.getCenterAndRfromImgBinary(
+            imgBinary)
+
+        # Check the image quality
+        if (not realcx):
+            return np.array([]), realcx, realcy
+
+        # Remove the salt and pepper noise
+        imgBinary = binary_opening(imgBinary).astype(float)
+        imgBinary = binary_closing(imgBinary).astype(float)
+
+        # Get the binary image by the adaptive threshold method
+        imgBinaryAdapt = self._getImgBinaryAdapt(imgToDeblend)
+
+        # Calculate the system error by only taking the background signal
+        bg1D = imgToDeblend.flatten()
+        bgImgBinary1D = imgBinaryAdapt.flatten()
+        background = bg1D[bgImgBinary1D == 0]
+        bgPhist, binEdges = np.histogram(background, bins=256)
+        sysError = np.mean(binEdges[0:2])
+
+        # Remove the system error
+        noSysErrImage = imgToDeblend - sysError
+        noSysErrImage[noSysErrImage < 0] = 0
+
+        # Get the residure map
+        resImgBinary = imgBinaryAdapt - imgBinary
+
+        # Compensate the zero element for subtraction
+        resImgBinary[np.where(resImgBinary < 0)] = 0
+
+        # Remove the salt and pepper noise noise of resImgBinary
+        resImgBinary = binary_opening(resImgBinary).astype(float)
+
+        # Calculate the shifts of x and y
+        # Only support to deblend single neighboring star at this moment
+        starXyNbr = iniGuessXY[0]
+        x0 = int(starXyNbr[0] - realcx)
+        y0 = int(starXyNbr[1] - realcy)
+
+        xoptNeighbor = nelderMeadModify(self._funcResidue, np.array([x0, y0]),
+                                        args=(imgBinary, resImgBinary), step=15)
+
+        # Shift the main donut image to fitted position of neighboring star
+        fitImgBinary = shift(imgBinary, [int(xoptNeighbor[0][1]), int(xoptNeighbor[0][0])])
+
+        # Handle the numerical error of shift. Regenerate a binary image.
+        fitImgBinary[fitImgBinary > 0.5] = 1
+        fitImgBinary[fitImgBinary < 0.5] = 0
+
+        # Get the overlap region between main donut and neighboring donut
+        imgOverlapBinary = imgBinary + fitImgBinary
+        imgOverlapBinary[imgOverlapBinary < 1.5] = 0
+        imgOverlapBinary[imgOverlapBinary > 1.5] = 1
+
+        # Get the overall binary image
+        imgAllBinary = imgBinary + fitImgBinary
+        imgAllBinary[imgAllBinary > 1] = 1
+
+        # Get the reference image for the fitting
+        imgRef = noSysErrImage * imgAllBinary
+
+        # Calculate the magnitude ratio of image
+        imgMainDonut = noSysErrImage * imgBinary
+        imgFit = shift(imgMainDonut,
+                       [int(xoptNeighbor[0][1]), int(xoptNeighbor[0][0])])
+
+        xoptMagNeighbor = minimize_scalar(
+            self._funcMag, bounds=(0, 1), method="bounded",
+            args=(imgMainDonut, imgOverlapBinary, imgFit, imgRef, xoptNeighbor[0]))
+
+        imgDeblend = imgMainDonut - xoptMagNeighbor.x * imgFit * imgOverlapBinary
+
+        # Repair the boundary of image
+        imgDeblend = self._repairBoundary(imgOverlapBinary, imgBinary, imgDeblend)
+
+        # Calculate the centroid position of donut
+        realcy, realcx = center_of_mass(imgBinary)
+
+        return imgDeblend, realcx, realcy
+
+    def _getImgBinaryAdapt(self, imgInit):
+        """Get the binary image by the adaptive threshold method.
+
+        Parameters
+        ----------
+        imgInit : numpy.ndarray
+            Initial image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Binary image.
+        """
+
+        # Adaptive threshold
+        delta = 1
+        times = 0
+
+        blockSize = self.blockSizeInit
+        while (delta > 1e-2) and (times < 10):
+            img = imgInit.copy()
+            imgBinary = (img > threshold_local(img, blockSize)).astype(float)
+
+            # Calculate the weighting radius
+            realR = np.sqrt(np.sum(imgBinary) / np.pi)
+
+            # Calculte the nearest odd number of radius for the blockSize
+            if (int(realR)%2 == 0):
+                oddRearR = int(realR+1)
+            else:
+                oddRearR = int(realR)
+
+            # Critera check of while loop
+            delta = abs(blockSize - oddRearR)
+            times += 1
+
+            # New value of blockSize
+            blockSize = oddRearR
+
+        return imgBinary
+
+    def _funcResidue(self, posShift, imgBinary, resImgBinary):
+        """Use the least square method to decide the position of neighboring
+        star.
+
+        Parameters
+        ----------
+        posShift : tuple or list
+            (x, y) shift from the main star position to neighboring star.
+        imgBinary : numpy.ndarray
+            Binary image of the main star.
+        resImgBinary : numpy.ndarray[int]
+            Binary image of residue of neighboring star.
+
+        Returns
+        -------
+        float
+            The difference between fitted binary image and residue image.
+        """
+
+        # Shift the image
+        fitImgBinary = shift(imgBinary, [int(posShift[1]), int(posShift[0])])
+
+        # Handle the numerical error of shift. Regenerate a binary image.
+        fitImgBinary[fitImgBinary > 0.5] = 1
+        fitImgBinary[fitImgBinary < 0.5] = 0
+
+        # Take the least square difference
+        delta = np.sum((fitImgBinary-resImgBinary)**2)
+
+        return delta
+
+    def _funcMag(self, magRatio, imgMainDonut, imgOverlapBinary, imgFit,
+                 imgRef, xyShiftNeighbor):
+        """Use the least square method to decide the magnitude ratio of
+        neighboring star.
+
+        Parameters
+        ----------
+        magRatio : float
+            Magnitude ratio between the main star and neighboring star.
+        imgMainDonut : numpy.ndarray
+            Image of the main star.
+        imgOverlapBinary : numpy.ndarray
+            Binary image of overlap between the main star and neighboring star.
+        imgFit : numpy.ndarray
+            Fitted image of neighboring star by the shifting of image of main
+            star.
+        imgRef : numpy.ndarray
+            Reference image for the fitting.
+        xyShiftNeighbor : tuple or list
+            Fitted image of neighboring star by the shifting of image of main
+            star.
+
+        Returns
+        -------
+        float
+            The difference between synthesized image and blended image.
+        """
+
+        # Synthesize the image
+        imgNew = imgMainDonut - magRatio * imgFit * imgOverlapBinary
+        imgNew = imgNew + magRatio * shift(
+            imgNew, [int(xyShiftNeighbor[1]), int(xyShiftNeighbor[0])])
+
+        # Take the least square difference
+        delta = np.sum((imgNew-imgRef)**2)
+
+        return delta
+
+    def _repairBoundary(self, imgOverlapBinary, imgBinary, imgDeblend):
+        """Compensate the values on boundary of overlap region between the
+        bright star and neighboring star.
+
+        Parameters
+        ----------
+        imgOverlapBinary : numpy.ndarray[int]
+            Binary impage of overlap between bright star and neighboring star.
+        imgBinary : numpy.ndarray[int]
+            Binary image of bright star.
+        imgDeblend : numpy.ndarray
+            Deblended donut image.
+
+        Returns
+        -------
+        numpy.ndarray
+            Repaired deblended donut image.
+        """
+
+        # Copy the original data
+        repairImgDeblend = imgDeblend.copy()
+
+        # Get the boundary of overlap region
+        boundaryOverlap = imgOverlapBinary - binary_erosion(imgOverlapBinary)
+
+        # Find all boundary points
+        m, n = np.where(boundaryOverlap == 1)
+
+        for ii in range(len(m)):
+
+            # Correct values that are not on the boundary next to environment
+            if (imgBinary[m[ii]-1:m[ii]+2, n[ii]-1:n[ii]+2].all()):
+
+                # Modify the value in column
+                neighborValues = repairImgDeblend[m[ii], n[ii]-4:n[ii]+5]
+                temp = neighborValues[neighborValues != 0]
+                stdTemp = np.std(temp)
+                meanTemp = np.mean(temp)
+
+                for kk in range(9):
+                    testValue = repairImgDeblend[m[ii], n[ii]-4+kk]
+                    if (testValue != 0):
+                        if (testValue >= meanTemp + 2*stdTemp) or \
+                           (testValue <= meanTemp - 2*stdTemp):
+                            repairImgDeblend[m[ii], n[ii]-4+kk] = \
+                                (repairImgDeblend[m[ii], n[ii]-5+kk] +
+                                 repairImgDeblend[m[ii], n[ii]-3+kk])/2
+
+                # Modify the value in row
+                neighborValues = repairImgDeblend[m[ii]-4:m[ii]+5, n[ii]]
+                temp = neighborValues[neighborValues != 0]
+                stdTemp = np.std(temp)
+                meanTemp = np.mean(temp)
+
+                for kk in range(9):
+                    testValue = repairImgDeblend[m[ii]-4+kk, n[ii]]
+                    if (testValue != 0):
+                        if (testValue >= meanTemp + 2*stdTemp) or \
+                           (testValue <= meanTemp - 2*stdTemp):
+                            repairImgDeblend[m[ii]-4+kk, n[ii]] = \
+                                (repairImgDeblend[m[ii]-5+kk, n[ii]] +
+                                 repairImgDeblend[m[ii]-3+kk, n[ii]])/2
+
+        return repairImgDeblend

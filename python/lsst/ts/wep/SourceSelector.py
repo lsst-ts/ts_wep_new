@@ -59,16 +59,16 @@ class SourceSelector(object):
         self.maxDistance = starRadiusInPixel * spacingCoefficient
         self.maxNeighboringStar = int(maxNeighboringStar)
 
-    def connect(self, *kwargs):
+    def connect(self, *args):
         """Connect the database.
 
         Parameters
         ----------
-        *kwargs : str or *list
+        *args : str or *list
             Information to connect to the database.
         """
 
-        self.db.connect(*kwargs)
+        self.db.connect(*args)
 
     def disconnect(self):
         """Disconnect the database."""

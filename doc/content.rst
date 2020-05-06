@@ -115,6 +115,7 @@ This module does the image deblending.
 .. uml:: uml/deblendClass.uml
     :caption: Class diagram of wep.deblend
 
-* **AdapThresImage**: Adapted threshold image class to get the donut centor according to the binary image by the adapted threshold method.
-* **BlendedImageDecorator**: Blended image decorator class to do the donut deblending.
+* **DeblendDonutFactory**: Factory for creating the deblend donut object to deblend the bright star donut from neighboring stars.
+* **DeblendDefault**: Default deblend class.
+* **DeblendAdapt**: DeblendDefault child class to do the deblending by the adaptive threshold method.
 * **nelderMeadModify**: Do the numerical optimation according to the Nelder-Mead algorithm.

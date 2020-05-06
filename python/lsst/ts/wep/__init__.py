@@ -19,5 +19,5 @@ except ImportError:
 # use.
 try:
     from .version import *
-except ModuleNotFoundError:
-    pass
+except ImportError:
+    __version__ = "?"

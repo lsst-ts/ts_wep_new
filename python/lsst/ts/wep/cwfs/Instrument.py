@@ -329,7 +329,3 @@ class Instrument(object):
         pixelSize = self.getCamPixelSize()
 
         return offset / fNumber / pixelSize
-
-
-if __name__ == "__main__":
-    pass

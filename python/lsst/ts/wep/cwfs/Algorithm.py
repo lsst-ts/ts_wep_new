@@ -414,6 +414,63 @@ class Algorithm(object):
 
         return maskScalingFactor
 
+    def getWavefrontMapEsti(self):
+        """Get the estimated wavefront map.
+
+        Returns
+        -------
+        numpy.ndarray
+            Estimated wavefront map.
+        """
+
+        return self._getWavefrontMapWithMaskApplied(self.wcomp)
+
+    def getWavefrontMapResidual(self):
+        """Get the residual wavefront map.
+
+        Returns
+        -------
+        numpy.ndarray
+            Residual wavefront map.
+        """
+
+        return self._getWavefrontMapWithMaskApplied(self.West)
+
+    def _getWavefrontMapWithMaskApplied(self, wfMap):
+        """Get the wavefront map with mask applied.
+
+        Parameters
+        ----------
+        wfMap : numpy.ndarray
+            Wavefront map.
+
+        Returns
+        -------
+        numpy.ndarray
+            Wavefront map with mask applied.
+        """
+
+        self._checkNotItr0()
+
+        wfMapWithMask = wfMap.copy()
+        wfMapWithMask[self.pMask == 0] = np.nan
+
+        return wfMapWithMask
+
+    def _checkNotItr0(self):
+        """Check not in the iteration 0.
+
+        TIE: Transport of intensity equation.
+
+        Raises
+        ------
+        RuntimeError
+            Need to solve the TIE first.
+        """
+
+        if self.currentItr == 0:
+            raise RuntimeError("Need to solve the TIE first.")
+
     def itr0(self, I1, I2, model):
         """Calculate the wavefront and coefficients of normal/ annular Zernike
         polynomials in the first iteration time.
@@ -783,9 +840,6 @@ class Algorithm(object):
 
                 # Need to recheck this condition
                 S = Sest
-
-            # Define the estimated wavefront
-            # self.West = West.copy()
 
             # Calculate the coefficient of normal/ annular Zernike polynomials
             if (self.getCompensatorMode() == "zer"):
@@ -1159,7 +1213,3 @@ class Algorithm(object):
         if (showPlot):
             zkIdx = range(4, len(z) + 4)
             plotZernike(zkIdx, z, unit)
-
-
-if __name__ == "__main__":
-    pass

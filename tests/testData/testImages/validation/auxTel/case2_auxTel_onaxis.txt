@@ -1,5 +1,5 @@
-# Case 1 of test images of auxiliary telescope
-# Use images: 
+# Case 2 of test images of auxiliary telescope
+# Use images:
 # 1579925833-16Pup_intra-0-1.fits and 1579925882-16Pup_extra-0-1.fits
 # From z4 - z22 in nm
 # The result here is by Bo's cwfs code with onAxis model

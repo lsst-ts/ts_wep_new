@@ -1381,7 +1381,3 @@ class CompensableImage(object):
             self.pMask = self.pMask * pMaskii
             # non-padded mask corresponding to aperture
             self.cMask = self.cMask * cMaskii
-
-
-if __name__ == "__main__":
-    pass

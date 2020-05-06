@@ -33,7 +33,3 @@ class CentroidFindFactory(object):
             return CentroidOtsu()
         else:
             raise ValueError("The %s is not supported." % centroidFindType)
-
-
-if __name__ == "__main__":
-    pass

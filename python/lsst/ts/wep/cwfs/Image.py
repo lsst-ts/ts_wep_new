@@ -179,7 +179,3 @@ class Image(object):
         snr = signal / noise
 
         return snr
-
-
-if __name__ == "__main__":
-    pass

@@ -137,7 +137,3 @@ class CentroidRandomWalk(CentroidDefault):
         threshold = binEdges[int(minind)]
 
         return threshold
-
-
-if __name__ == "__main__":
-    pass

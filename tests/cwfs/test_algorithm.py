@@ -167,6 +167,22 @@ class TestAlgorithm(unittest.TestCase):
         self.assertAlmostEqual(self.algoFft.getMaskScalingFactor(), 1.0939,
                                places=4)
 
+    def testGetWavefrontMapEstiInIter0(self):
+
+        self.assertRaises(RuntimeError, self.algoExp.getWavefrontMapEsti)
+
+    def testGetWavefrontMapEstiAndResidual(self):
+
+        self.algoExp.runIt(self.I1, self.I2, self.opticalModel, tol=1e-3)
+
+        wavefrontMapEsti = self.algoExp.getWavefrontMapEsti()
+        wavefrontMapEsti[np.isnan(wavefrontMapEsti)] = 0
+        self.assertGreater(np.sum(np.abs(wavefrontMapEsti)), 4.8e-4)
+
+        wavefrontMapResidual = self.algoExp.getWavefrontMapResidual()
+        wavefrontMapResidual[np.isnan(wavefrontMapResidual)] = 0
+        self.assertLess(np.sum(np.abs(wavefrontMapResidual)), 2.5e-6)
+
     def testItr0(self):
 
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)

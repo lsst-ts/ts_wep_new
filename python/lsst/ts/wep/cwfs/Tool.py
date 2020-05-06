@@ -423,7 +423,3 @@ def extractArray(inArray, dim):
     out = inArray[ii:ii+dim, ii:ii+dim]
 
     return out
-
-
-if __name__ == "__main__":
-    pass

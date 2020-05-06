@@ -30,7 +30,3 @@ class DeblendDonutFactory(object):
             return DeblendAdapt()
         else:
             raise ValueError("The %s is not supported." % deblendDonutType)
-
-
-if __name__ == "__main__":
-    pass

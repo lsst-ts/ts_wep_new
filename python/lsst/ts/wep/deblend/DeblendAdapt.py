@@ -313,7 +313,3 @@ class DeblendAdapt(DeblendDefault):
                                  repairImgDeblend[m[ii]-3+kk, n[ii]])/2
 
         return repairImgDeblend
-
-
-if __name__ == "__main__":
-    pass

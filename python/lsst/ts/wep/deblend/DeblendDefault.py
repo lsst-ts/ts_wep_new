@@ -126,7 +126,3 @@ class DeblendDefault(object):
             Child class should implement this.
         """
         raise NotImplementedError("Child class should implement this.")
-
-
-if __name__ == "__main__":
-    pass

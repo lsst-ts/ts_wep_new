@@ -165,7 +165,3 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
 
             nres.append([redx, score])
         res = nres
-
-
-if __name__ == "__main__":
-    pass

@@ -56,8 +56,8 @@ class TestWfEsitmator(unittest.TestCase):
                     -192.839, 0.978, 1.568, 4.197, -0.391, 1.551, 1.235,
                     -1.699, 2.140, -0.296, -2.113, 1.188]
         zer4UpNm = self.wfsEst.calWfsErr()
-        self.assertAlmostEqual(np.sum(np.abs(zer4UpNm-np.array(wfsError))), 0,
-                               places=1)
+        self.assertAlmostEqual(np.sum(np.abs(zer4UpNm-np.array(wfsError))),
+                               0.66984026, places=7)
 
     def testCalWfsErrOfFft(self):
 
@@ -77,8 +77,8 @@ class TestWfEsitmator(unittest.TestCase):
                     -192.382, 0.195, 4.074, 9.577, -1.930, 3.538, 3.420,
                     -3.610, 3.547, -0.679, -2.943, 1.101]
         zer4UpNm = self.wfsEst.calWfsErr()
-        self.assertAlmostEqual(np.sum(np.abs(zer4UpNm-np.array(wfsError))), 0,
-                               places=1)
+        self.assertAlmostEqual(np.sum(np.abs(zer4UpNm-np.array(wfsError))),
+                               6.95092306, places=7)
 
         # Test to reset the data
         self.wfsEst.reset()

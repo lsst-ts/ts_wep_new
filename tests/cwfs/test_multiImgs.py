@@ -10,88 +10,6 @@ from lsst.ts.wep.PlotUtil import plotImage
 from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, CamType
 
 
-def runWEP(instDir, algoFolderPath, useAlgorithm, imageFolderPath,
-           intra_image_name, extra_image_name, fieldXY, opticalModel,
-           showFig=False):
-    """Calculate the coefficients of normal/ annular Zernike polynomials based
-    on the provided instrument, algorithm, and optical model.
-
-    Parameters
-    ----------
-    instDir : str
-        Path to instrument folder.
-    algoFolderPath : str
-        Path to algorithm folder.
-    useAlgorithm : str
-        Algorithm to solve the Poisson's equation in the transport of intensity
-        equation (TIE). It can be "fft" or "exp" here.
-    imageFolderPath : str
-        Path to image folder.
-    intra_image_name : str
-        File name of intra-focal image.
-    extra_image_name : str
-        File name of extra-focal image.
-    fieldXY : tuple
-        Position of donut on the focal plane in degree for intra- and
-        extra-focal images.
-    opticalModel : str
-        Optical model. It can be "paraxial", "onAxis", or "offAxis".
-    showFig : bool, optional
-        Show the wavefront image and compenstated image or not. (the default is
-        False.)
-
-    Returns
-    -------
-    numpy.ndarray
-        Coefficients of Zernike polynomials (z4 - z22).
-    """
-
-    # Image files Path
-    intra_image_file = os.path.join(imageFolderPath, intra_image_name)
-    extra_image_file = os.path.join(imageFolderPath, extra_image_name)
-
-    # There is the difference between intra and extra images
-    # I1: intra_focal images, I2: extra_focal Images
-    I1 = CompensableImage()
-    I2 = CompensableImage()
-
-    I1.setImg(fieldXY, DefocalType.Intra, imageFile=intra_image_file)
-    I2.setImg(fieldXY, DefocalType.Extra, imageFile=extra_image_file)
-
-    # Set the instrument
-    inst = Instrument(instDir)
-    inst.config(CamType.LsstCam, I1.getImgSizeInPix(),
-                announcedDefocalDisInMm=1.0)
-
-    # Define the algorithm to be used.
-    algo = Algorithm(algoFolderPath)
-    algo.config(useAlgorithm, inst, debugLevel=0)
-
-    # Plot the original wavefront images
-    if (showFig):
-        plotImage(I1.image, title="intra image")
-        plotImage(I2.image, title="extra image")
-
-    # Run it
-    algo.runIt(I1, I2, opticalModel, tol=1e-3)
-
-    # Show the Zernikes Zn (n>=4)
-    algo.outZer4Up(showPlot=False)
-
-    # Plot the final conservated images and wavefront
-    if (showFig):
-        plotImage(I1.image, title="Compensated intra image")
-        plotImage(I2.image, title="Compensated extra image")
-
-        # Plot the Wavefront
-        plotImage(algo.wcomp, title="Final wavefront")
-        plotImage(algo.wcomp, title="Final wavefront with pupil mask applied",
-                  mask=algo.pMask)
-
-    # Return the Zernikes Zn (n>=4)
-    return algo.getZer4UpInNm()
-
-
 class WepFile(object):
 
     def __init__(self, imageFolderName, imageName, fieldXY, useAlgorithm,
@@ -138,13 +56,14 @@ class TestWepWithMultiImgs(unittest.TestCase):
                                             "testImages")
 
         # Set the tolerance
-        self.tor = 3
+        self.tor = 4
 
         # Restart time
         self.startTime = time.time()
         self.difference = 0
         self.validationDir = os.path.join(modulePath, "tests", "testData",
-                                          "testImages", "validation")
+                                          "testImages", "validation",
+                                          "simulation")
 
     def tearDown(self):
 
@@ -166,16 +85,16 @@ class TestWepWithMultiImgs(unittest.TestCase):
     def _compareCalculation(self, dataWEP, tor):
 
         # Run WEP to get Zk
-        zer4UpNm = runWEP(dataWEP.instFolder, dataWEP.algoFolderPath,
-                          dataWEP.useAlgorithm, dataWEP.imageFolderPath,
-                          dataWEP.intra_image_name, dataWEP.extra_image_name,
-                          dataWEP.fieldXY, dataWEP.orientation)
+        zer4UpNm = self._runWEP(dataWEP.instFolder, dataWEP.algoFolderPath,
+                                dataWEP.useAlgorithm, dataWEP.imageFolderPath,
+                                dataWEP.intra_image_name, dataWEP.extra_image_name,
+                                dataWEP.fieldXY, dataWEP.orientation)
 
         # Load the reference data
         refZer4UpNm = np.loadtxt(dataWEP.refFilePath)
 
         # Compare the result
-        difference = np.sum((zer4UpNm-refZer4UpNm)**2)
+        difference = np.max(np.abs(zer4UpNm-refZer4UpNm))
 
         if difference <= tor:
             result = "true"
@@ -185,6 +104,55 @@ class TestWepWithMultiImgs(unittest.TestCase):
         self.difference = difference
 
         return result
+
+    def _runWEP(self, instDir, algoFolderPath, useAlgorithm, imageFolderPath,
+                intra_image_name, extra_image_name, fieldXY, opticalModel,
+                showFig=False):
+
+        # Image files Path
+        intra_image_file = os.path.join(imageFolderPath, intra_image_name)
+        extra_image_file = os.path.join(imageFolderPath, extra_image_name)
+
+        # There is the difference between intra and extra images
+        # I1: intra_focal images, I2: extra_focal Images
+        I1 = CompensableImage()
+        I2 = CompensableImage()
+
+        I1.setImg(fieldXY, DefocalType.Intra, imageFile=intra_image_file)
+        I2.setImg(fieldXY, DefocalType.Extra, imageFile=extra_image_file)
+
+        # Set the instrument
+        inst = Instrument(instDir)
+        inst.config(CamType.LsstCam, I1.getImgSizeInPix(),
+                    announcedDefocalDisInMm=1.0)
+
+        # Define the algorithm to be used.
+        algo = Algorithm(algoFolderPath)
+        algo.config(useAlgorithm, inst, debugLevel=0)
+
+        # Plot the original wavefront images
+        if (showFig):
+            plotImage(I1.image, title="intra image")
+            plotImage(I2.image, title="extra image")
+
+        # Run it
+        algo.runIt(I1, I2, opticalModel, tol=1e-3)
+
+        # Show the Zernikes Zn (n>=4)
+        algo.outZer4Up(showPlot=False)
+
+        # Plot the final conservated images and wavefront
+        if (showFig):
+            plotImage(I1.image, title="Compensated intra image")
+            plotImage(I2.image, title="Compensated extra image")
+
+            # Plot the Wavefront
+            plotImage(algo.wcomp, title="Final wavefront")
+            plotImage(algo.wcomp, title="Final wavefront with pupil mask applied",
+                      mask=algo.pMask)
+
+        # Return the Zernikes Zn (n>=4)
+        return algo.getZer4UpInNm()
 
     def testCase1(self):
 

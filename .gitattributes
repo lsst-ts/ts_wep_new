@@ -65,3 +65,7 @@
 /tests/testData/cwfsZernike/annularZernikeJaco1st.txt filter=lfs diff=lfs merge=lfs -text
 /tests/testData/cwfsZernike/annularZernikeJaco2nd.txt filter=lfs diff=lfs merge=lfs -text
 /tests/testData/repackagedPhoSimData/raw/20/R00/00000020-R00-S22-det197.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/testImages/auxTel/1579925613-16Pup_intra-0-1.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/testImages/auxTel/1579925662-16Pup_extra-0-1.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/testImages/auxTel/1579925833-16Pup_intra-0-1.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/testImages/auxTel/1579925882-16Pup_extra-0-1.fits filter=lfs diff=lfs merge=lfs -text

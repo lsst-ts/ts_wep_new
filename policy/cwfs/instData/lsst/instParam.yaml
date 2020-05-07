@@ -1,6 +1,6 @@
 ---
 
-#lsst telescope parameters:
+# LSST telescope parameters:
 
 # Obscuration (inner_radius / outer_radius of M1M3)
 obscuration: 0.61

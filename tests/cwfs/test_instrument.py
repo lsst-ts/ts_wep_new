@@ -125,6 +125,24 @@ class TestInstrument(unittest.TestCase):
         self.assertTrue(np.isnan(yoSensor[0, 0]))
         self.assertTrue(np.isnan(yoSensor[60, 60]))
 
+    def testCalcSizeOfDonutExpected(self):
+
+        self.assertAlmostEqual(self.inst.calcSizeOfDonutExpected(),
+                               121.60589604, places=7)
+
+    def testDataAuxTel(self):
+
+        inst = Instrument(self.instDir)
+        inst.config(CamType.AuxTel, 160, announcedDefocalDisInMm=0.8)
+
+        self.assertEqual(inst.getObscuration(), 0.3525)
+        self.assertEqual(inst.getFocalLength(), 21.6)
+        self.assertEqual(inst.getApertureDiameter(), 1.2)
+        self.assertEqual(inst.getDefocalDisOffset(), 0.0205)
+        self.assertEqual(inst.getCamPixelSize(), 14.4e-6)
+        self.assertAlmostEqual(inst.calcSizeOfDonutExpected(),
+                               79.08950617, places=7)
+
 
 if __name__ == "__main__":
 

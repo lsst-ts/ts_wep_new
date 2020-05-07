@@ -201,6 +201,36 @@ class ParamReader(object):
 
         self._writeDataToFile(self._content, filePath)
 
+    @staticmethod
+    def getAbsPath(filePath, rootPath):
+        """Get the absolute file path based on the root.
 
-if __name__ == "__main__":
-    pass
+        Parameters
+        ----------
+        filePath : str
+            File path.
+        rootPath : str
+            Root path.
+
+        Returns
+        -------
+        str
+            Absolute file path based on the root if the input file path is not
+            absolute.
+
+        Raises
+        ------
+        ValueError
+            Input file does not exist.
+        """
+
+        filePathAbs = ""
+        if os.path.isabs(filePath):
+            filePathAbs = filePath
+        else:
+            filePathAbs = os.path.join(rootPath, filePath)
+
+        if os.path.exists(filePathAbs):
+            return filePathAbs
+
+        raise ValueError("Input file (%s) does not exist." % filePath)

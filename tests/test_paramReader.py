@@ -158,6 +158,19 @@ class TestParamReader(unittest.TestCase):
 
         self.assertEqual(paramReader.getSetting("zn3Idx"), [1]*19)
 
+    def testGetAbsPathNotExist(self):
+
+        self.assertRaises(ValueError, self.paramReader.getAbsPath,
+                          "testFile.txt", getModulePath())
+
+    def testGetAbsPath(self):
+
+        filePath = "README.md"
+        self.assertFalse(os.path.isabs(filePath))
+
+        filePathAbs = ParamReader.getAbsPath(filePath, getModulePath())
+        self.assertTrue(os.path.isabs(filePathAbs))
+
 
 if __name__ == "__main__":
 

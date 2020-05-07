@@ -232,9 +232,5 @@ class ParamReader(object):
 
         if os.path.exists(filePathAbs):
             return filePathAbs
-        else:
-            raise ValueError("Input file (%s) does not exist." % filePath)
 
-
-if __name__ == "__main__":
-    pass
+        raise ValueError("Input file (%s) does not exist." % filePath)

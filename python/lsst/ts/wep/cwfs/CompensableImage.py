@@ -430,7 +430,7 @@ class CompensableImage(object):
         # I(x, y)/I'(x', y') = J = (dx'/dx)*(dy'/dy) - (dx'/dy)*(dy'/dx)
         self.updateImage(lutIp * J)
 
-        if (self.defocalType == DefocalType.Extra):
+        if self.defocalType == DefocalType.Extra:
             self.updateImage(np.rot90(self.getImg(), k=2))
 
         # Put NaN to be 0
@@ -439,7 +439,7 @@ class CompensableImage(object):
 
         # Check the compensated image has the problem or not.
         # The negative value means the over-compensation from wavefront error
-        if (np.any(imgCompensate < 0) and np.all(self.image0 >= 0)):
+        if np.any(imgCompensate < 0) and np.all(self.image0 >= 0):
             print("WARNING: negative scale parameter, image is within caustic, zcCol (in um)=\n")
             self.caustic = True
 

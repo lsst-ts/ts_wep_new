@@ -42,9 +42,9 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None,
         return
 
     # Decide the norm in imshow for the ploting
-    if (scale == "linear"):
+    if scale == "linear":
         plotNorm = None
-    elif (scale == "log"):
+    elif scale == "log":
         if (img.min()) < 0:
             plotNorm = SymLogNorm(linthresh=0.03)
         else:
@@ -57,7 +57,7 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None,
     plt.colorbar()
     plt.title(name)
 
-    if (saveFilePath is None):
+    if saveFilePath is None:
         plt.show()
     else:
         plt.savefig(saveFilePath, bbox_inches="tight")
@@ -90,7 +90,7 @@ def plotHist(exposure, name="", numOfBin=1000, log=False, saveFilePath=None):
     plt.hist(img.flatten(), bins=int(numOfBin), log=log)
     plt.title(name)
 
-    if (saveFilePath is None):
+    if saveFilePath is None:
         plt.show()
     else:
         plt.savefig(saveFilePath, bbox_inches="tight")
@@ -132,16 +132,16 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
             for ii in range(2):
 
                 # Assign the image (0: intra, 1: extra)
-                if (ii == 0):
+                if ii == 0:
                     img = donutImg.intraImg
                 else:
                     img = donutImg.extraImg
 
-                if (img is not None):
+                if img is not None:
 
                     pixelXy = (donutImg.pixelX, donutImg.pixelY)
 
-                    if (ii == 0):
+                    if ii == 0:
                         intraImgList, intraTitleList, intraPixelXYList = _collectDonutImgList(
                             intraImgList, intraTitleList, intraPixelXYList,
                             img, donutImg.starId, intraType, pixelXy)
@@ -172,7 +172,7 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
         # Plot the extra-focal donut
 
         # Update the location of column if necessary
-        if (numOfCol == 2):
+        if numOfCol == 2:
             locOfCol = 1
 
         for ii in range(len(extraImgList)):
@@ -183,7 +183,7 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
         plt.tight_layout()
 
         # Save the file or not
-        if (saveToDir is not None):
+        if saveToDir is not None:
             # Generate the filepath
             imgType = ".png"
             imgFilePath = os.path.join(saveToDir, imgTitle+imgType)
@@ -303,8 +303,8 @@ def plotImage(imageDonut, title=None, mask=None, show=True, fitParameters=[],
     plt.figure()
 
     # Plot the fitted circle
-    if (fitParameters):
-        if (len(fitParameters) == 3):
+    if fitParameters:
+        if len(fitParameters) == 3:
             theta = np.linspace(0, 2*np.pi, 101)
             x = fitParameters[0] + fitParameters[2]*np.cos(theta)
             y = fitParameters[1] + fitParameters[2]*np.sin(theta)
@@ -318,7 +318,7 @@ def plotImage(imageDonut, title=None, mask=None, show=True, fitParameters=[],
     if title:
         plt.title(title)
 
-    if (saveFilePath is not None):
+    if saveFilePath is not None:
         plt.savefig(saveFilePath, bbox_inches="tight")
         plt.close()
 
@@ -347,12 +347,8 @@ def plotZernike(zkIdx, zk, unit, saveFilePath=None):
     plt.ylabel("Zernike coefficient (%s)" % unit)
     plt.grid()
 
-    if (saveFilePath is None):
+    if saveFilePath is None:
         plt.show()
     else:
         plt.savefig(saveFilePath, bbox_inches="tight")
         plt.close()
-
-
-if __name__ == "__main__":
-    pass

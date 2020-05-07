@@ -6,14 +6,21 @@
 Version History
 ##################
 
-=======
+.. _lsst.ts.wep-1.4.1:
+
+-------------
+1.4.1
+-------------
+
+Add the function to recenter the donut image with the template. Add the instrument and test data of auxilirary telescope.
+
 .. _lsst.ts.wep-1.4.0:
 
 -------------
 1.4.0
 -------------
 
-Use the factory pattern for deblend module. 
+Use the sims_w_2020_15. Use the factory pattern for deblend module.
 
 .. _lsst.ts.wep-1.3.9:
 

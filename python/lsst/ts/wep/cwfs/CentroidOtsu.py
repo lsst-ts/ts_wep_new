@@ -30,7 +30,3 @@ class CentroidOtsu(CentroidDefault):
         imgBinary = (imgDonut > threshold).astype(int)
 
         return imgBinary
-
-
-if __name__ == "__main__":
-    pass

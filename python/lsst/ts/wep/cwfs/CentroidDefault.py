@@ -71,7 +71,3 @@ class CentroidDefault(object):
         """
 
         raise NotImplementedError("Child class should implement this.")
-
-
-if __name__ == "__main__":
-    pass

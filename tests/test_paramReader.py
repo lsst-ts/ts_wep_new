@@ -171,6 +171,11 @@ class TestParamReader(unittest.TestCase):
         filePathAbs = ParamReader.getAbsPath(filePath, getModulePath())
         self.assertTrue(os.path.isabs(filePathAbs))
 
+    def testNonexistentFile(self):
+
+        paramReader = ParamReader(filePath="thisFileDoesntExists")
+        self.assertEqual(len(paramReader.getContent().keys()), 0)
+
 
 if __name__ == "__main__":
 

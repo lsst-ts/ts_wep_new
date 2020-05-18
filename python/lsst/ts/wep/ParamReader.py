@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import yaml
 import warnings
@@ -36,13 +35,11 @@ class ParamReader(object):
             Content of file.
         """
 
-        if (os.path.exists(filePath)):
+        try:
             with open(filePath, "r") as yamlFile:
-                content = yaml.safe_load(yamlFile)
-        else:
-            content = dict()
-
-        return content
+                return yaml.safe_load(yamlFile)
+        except IOError:
+            return dict()
 
     def getFilePath(self):
         """Get the parameter file path.

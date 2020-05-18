@@ -16,10 +16,10 @@ class ParamReader(object):
 
         if (filePath is None):
             self.filePath = ""
+            self._content = dict()
         else:
             self.filePath = filePath
-
-        self._content = self._readContent(self.filePath)
+            self._content = self._readContent(self.filePath)
 
     def _readContent(self, filePath):
         """Read the content of file.
@@ -38,7 +38,9 @@ class ParamReader(object):
         try:
             with open(filePath, "r") as yamlFile:
                 return yaml.safe_load(yamlFile)
-        except IOError:
+        except IOError as err:
+            warnings.warn(f"Cannot open {filePath}: {str(err)}.",
+                          category=UserWarning)
             return dict()
 
     def getFilePath(self):

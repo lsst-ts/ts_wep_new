@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.2:
+
+-------------
+1.4.2
+-------------
+
+Improved handling of IO errors - catch more OS Errors instead of only file not exists.
+
 .. _lsst.ts.wep-1.4.1:
 
 -------------

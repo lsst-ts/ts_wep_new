@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import yaml
 import warnings
@@ -146,7 +147,7 @@ class ParamReader(object):
             Matrix content.
         """
 
-        if (self._content == dict()):
+        if self._content == dict():
             mat = np.array([])
         else:
             mat = np.array(self._content)
@@ -193,7 +194,7 @@ class ParamReader(object):
             default is None.)
         """
 
-        if (filePath is None):
+        if filePath is None:
             filePath = self.filePath
         else:
             self.filePath = filePath

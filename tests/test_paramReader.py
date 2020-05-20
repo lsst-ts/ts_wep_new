@@ -44,7 +44,8 @@ class TestParamReader(unittest.TestCase):
 
         fileName = "test.yaml"
         filePath = os.path.join(self.configDir, fileName)
-        self.paramReader.setFilePath(filePath)
+        with self.assertWarns(UserWarning):
+            self.paramReader.setFilePath(filePath)
 
         self.assertEqual(self.paramReader.getFilePath(), filePath)
 
@@ -170,6 +171,12 @@ class TestParamReader(unittest.TestCase):
 
         filePathAbs = ParamReader.getAbsPath(filePath, getModulePath())
         self.assertTrue(os.path.isabs(filePathAbs))
+
+    def testNonexistentFile(self):
+
+        with self.assertWarns(UserWarning):
+            paramReader = ParamReader(filePath="thisFileDoesntExists")
+        self.assertEqual(len(paramReader.getContent().keys()), 0)
 
 
 if __name__ == "__main__":

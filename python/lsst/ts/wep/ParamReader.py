@@ -17,10 +17,10 @@ class ParamReader(object):
 
         if (filePath is None):
             self.filePath = ""
+            self._content = dict()
         else:
             self.filePath = filePath
-
-        self._content = self._readContent(self.filePath)
+            self._content = self._readContent(self.filePath)
 
     def _readContent(self, filePath):
         """Read the content of file.
@@ -36,13 +36,13 @@ class ParamReader(object):
             Content of file.
         """
 
-        if (os.path.exists(filePath)):
+        try:
             with open(filePath, "r") as yamlFile:
-                content = yaml.safe_load(yamlFile)
-        else:
-            content = dict()
-
-        return content
+                return yaml.safe_load(yamlFile)
+        except IOError as err:
+            warnings.warn(f"Cannot open {filePath}: {str(err)}.",
+                          category=UserWarning)
+            return dict()
 
     def getFilePath(self):
         """Get the parameter file path.
@@ -147,7 +147,7 @@ class ParamReader(object):
             Matrix content.
         """
 
-        if (self._content == dict()):
+        if self._content == dict():
             mat = np.array([])
         else:
             mat = np.array(self._content)
@@ -194,7 +194,7 @@ class ParamReader(object):
             default is None.)
         """
 
-        if (filePath is None):
+        if filePath is None:
             filePath = self.filePath
         else:
             self.filePath = filePath

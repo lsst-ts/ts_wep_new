@@ -6,10 +6,9 @@ pipeline {
         // Use the docker to assign the Python version.
         // Use the label to assign the node to run the test.
         // It is recommended by SQUARE team do not add the label to let the
-        // sytem decide.
+        // system decide.
         docker {
             image 'lsstts/aos:w_2020_15'
-            args '-u root'
         }
     }
 
@@ -77,12 +76,6 @@ pipeline {
 
     post {
         always {
-            // Change the ownership of workspace to Jenkins for the clean up
-            // This is a "work around" method
-            withEnv(["HOME=${env.WORKSPACE}"]) {
-                sh 'chown -R 1003:1003 ${HOME}/'
-            }
-
             // The path of xml needed by JUnit is relative to
             // the workspace.
             junit "${env.XML_REPORT}"

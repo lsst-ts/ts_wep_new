@@ -23,5 +23,8 @@ pytest_session.txt
 # Cython related file
 *.c
 
+# Vscode setting
+.vscode/
+
 # Mac metadata
 .DS_Store

@@ -1,18 +1,50 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import re
 import numpy as np
 
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
-from lsst.ts.wep.Utility import abbrevDectectorName, searchDonutPos, \
-    DefocalType, ImageType
+from lsst.ts.wep.Utility import (
+    abbrevDectectorName,
+    searchDonutPos,
+    DefocalType,
+    ImageType,
+)
 
 
 class WepController(object):
 
-    CORNER_WFS_LIST = ["R:0,0 S:2,2,A", "R:0,0 S:2,2,B", "R:0,4 S:2,0,A",
-                       "R:0,4 S:2,0,B", "R:4,0 S:0,2,A", "R:4,0 S:0,2,B",
-                       "R:4,4 S:0,0,A", "R:4,4 S:0,0,B"]
+    CORNER_WFS_LIST = [
+        "R:0,0 S:2,2,A",
+        "R:0,0 S:2,2,B",
+        "R:0,4 S:2,0,A",
+        "R:0,4 S:2,0,B",
+        "R:4,0 S:0,2,A",
+        "R:4,0 S:0,2,B",
+        "R:4,4 S:0,0,A",
+        "R:4,4 S:0,0,B",
+    ]
 
     def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfEsti):
         """Initialize the wavefront estimation pipeline (WEP) controller class.
@@ -157,8 +189,7 @@ class WepController(object):
             (type: DefocalImage).
         """
 
-        return self._getImgMapByPistonDefocal(sensorNameList, obsIdList,
-                                              ImageType.Amp)
+        return self._getImgMapByPistonDefocal(sensorNameList, obsIdList, ImageType.Amp)
 
     def _getImgMapByPistonDefocal(self, sensorNameList, obsIdList, imageType):
         """Get the image map that the defocal images are by the pistion motion.
@@ -197,12 +228,10 @@ class WepController(object):
             for visit in obsIdList:
 
                 # Get the exposure image in ndarray
-                if (imageType == ImageType.Amp):
-                    exp = self.butlerWrapper.getPostIsrCcd(
-                        int(visit), raft, sensor)
-                elif (imageType == ImageType.Eimg):
-                    exp = self.butlerWrapper.getEimage(
-                        int(visit), raft, sensor)
+                if imageType == ImageType.Amp:
+                    exp = self.butlerWrapper.getPostIsrCcd(int(visit), raft, sensor)
+                elif imageType == ImageType.Eimg:
+                    exp = self.butlerWrapper.getEimage(int(visit), raft, sensor)
                 else:
                     raise ValueError("The %s is not supported." % imageType)
 
@@ -214,8 +243,9 @@ class WepController(object):
                 # Collect the image
                 imgList.append(camImg)
 
-            wfsImgMap[sensorName] = DefocalImage(intraImg=imgList[0],
-                                                 extraImg=imgList[1])
+            wfsImgMap[sensorName] = DefocalImage(
+                intraImg=imgList[0], extraImg=imgList[1]
+            )
 
         return wfsImgMap
 
@@ -241,7 +271,7 @@ class WepController(object):
 
         # Use the regular expression to analyze the input name
         m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
-        if (m is not None):
+        if m is not None:
             raft, sensor, channel = m.groups()[0:3]
 
         # This is for the phosim mapper use.
@@ -291,8 +321,7 @@ class WepController(object):
             DefocalImage).
         """
 
-        return self._getImgMapByPistonDefocal(sensorNameList, obsIdList,
-                                              ImageType.Eimg)
+        return self._getImgMapByPistonDefocal(sensorNameList, obsIdList, ImageType.Eimg)
 
     def getPostIsrImgMapOnCornerWfs(self, sensorNameList, obsId):
         """Get the post ISR image map of corner wavefront sensors.
@@ -313,8 +342,7 @@ class WepController(object):
         """
         pass
 
-    def getDonutMap(self, neighborStarMap, wfsImgMap, filterType,
-                    doDeblending=False):
+    def getDonutMap(self, neighborStarMap, wfsImgMap, filterType, doDeblending=False):
         """Get the donut map on each wavefront sensor (WFS).
 
         Parameters
@@ -350,8 +378,10 @@ class WepController(object):
             self.sourProc.config(sensorName=abbrevName)
 
             # Get the defocal images: [intra, extra]
-            defocalImgList = [wfsImgMap[sensorName].getIntraImg(),
-                              wfsImgMap[sensorName].getExtraImg()]
+            defocalImgList = [
+                wfsImgMap[sensorName].getIntraImg(),
+                wfsImgMap[sensorName].getExtraImg(),
+            ]
 
             # Get the bright star id list on specific sensor
             brightStarIdList = list(nbrStar.getId())
@@ -363,11 +393,17 @@ class WepController(object):
                     ccdImg = defocalImgList[jj]
 
                     # Get the segment of image
-                    if (ccdImg is not None):
-                        singleSciNeiImg, allStarPosX, allStarPosY, magRatio, \
-                            offsetX, offsetY = \
-                            self.sourProc.getSingleTargetImage(
-                                ccdImg, nbrStar, starIdIdx, filterType)
+                    if ccdImg is not None:
+                        (
+                            singleSciNeiImg,
+                            allStarPosX,
+                            allStarPosY,
+                            magRatio,
+                            offsetX,
+                            offsetY,
+                        ) = self.sourProc.getSingleTargetImage(
+                            ccdImg, nbrStar, starIdIdx, filterType
+                        )
 
                         # Only consider the single donut if no deblending
                         if (not doDeblending) and (len(magRatio) != 1):
@@ -377,18 +413,17 @@ class WepController(object):
                         if (len(magRatio) == 1) or (not doDeblending):
                             imgDeblend = singleSciNeiImg
 
-                            if (len(magRatio) == 1):
+                            if len(magRatio) == 1:
                                 realcx, realcy = searchDonutPos(imgDeblend)
                             else:
                                 realcx = allStarPosX[-1]
                                 realcy = allStarPosY[-1]
 
                         # Do the deblending or not
-                        elif (len(magRatio) == 2 and doDeblending):
-                            imgDeblend, realcx, realcy = \
-                                self.sourProc.doDeblending(
-                                    singleSciNeiImg, allStarPosX, allStarPosY,
-                                    magRatio)
+                        elif len(magRatio) == 2 and doDeblending:
+                            imgDeblend, realcx, realcy = self.sourProc.doDeblending(
+                                singleSciNeiImg, allStarPosX, allStarPosY, magRatio
+                            )
                             # Update the magnitude ratio
                             magRatio = [1]
 
@@ -396,29 +431,32 @@ class WepController(object):
                             continue
 
                         # Extract the image
-                        if (len(magRatio) == 1):
+                        if len(magRatio) == 1:
                             sizeInPix = self.wfEsti.getSizeInPix()
                             x0 = np.floor(realcx - sizeInPix / 2).astype("int")
                             y0 = np.floor(realcy - sizeInPix / 2).astype("int")
-                            imgDeblend = imgDeblend[y0:y0 + sizeInPix,
-                                                    x0:x0 + sizeInPix]
+                            imgDeblend = imgDeblend[
+                                y0 : y0 + sizeInPix, x0 : x0 + sizeInPix
+                            ]
 
                         # Rotate the image if the sensor is the corner
                         # wavefront sensor
                         if sensorName in self.CORNER_WFS_LIST:
 
                             # Get the Euler angle
-                            eulerZangle = round(self.sourProc.getEulerZinDeg(
-                                abbrevName))
+                            eulerZangle = round(
+                                self.sourProc.getEulerZinDeg(abbrevName)
+                            )
 
                             # Change the sign if the angle < 0
-                            while (eulerZangle < 0):
+                            while eulerZangle < 0:
                                 eulerZangle += 360
 
                             # Do the rotation of matrix
                             numOfRot90 = eulerZangle // 90
                             imgDeblend = np.flipud(
-                                np.rot90(np.flipud(imgDeblend), numOfRot90))
+                                np.rot90(np.flipud(imgDeblend), numOfRot90)
+                            )
 
                         # Put the deblended image into the donut map
                         if sensorName not in donutMap.keys():
@@ -427,26 +465,30 @@ class WepController(object):
                         # Check the donut exists in the list or not
                         starId = brightStarIdList[starIdIdx]
                         donutIndex = self._searchDonutListId(
-                            donutMap[sensorName], starId)
+                            donutMap[sensorName], starId
+                        )
 
                         # Create the donut object and put into the list if it
                         # is needed
-                        if (donutIndex < 0):
+                        if donutIndex < 0:
 
                             # Calculate the field X, Y
                             pixelX = realcx + offsetX
                             pixelY = realcy + offsetY
                             fieldX, fieldY = self.sourProc.camXYtoFieldXY(
-                                pixelX, pixelY)
+                                pixelX, pixelY
+                            )
 
                             # Instantiate the DonutImage class
-                            donutImg = DonutImage(starId, pixelX, pixelY,
-                                                  fieldX, fieldY)
+                            donutImg = DonutImage(
+                                starId, pixelX, pixelY, fieldX, fieldY
+                            )
                             donutMap[sensorName].append(donutImg)
 
                             # Search for the donut index again
                             donutIndex = self._searchDonutListId(
-                                donutMap[sensorName], starId)
+                                donutMap[sensorName], starId
+                            )
 
                         # Get the donut image list
                         donutList = donutMap[sensorName]
@@ -457,10 +499,10 @@ class WepController(object):
                         imgDeblend = np.abs(imgDeblend)
 
                         # Set the intra focal image
-                        if (jj == 0):
+                        if jj == 0:
                             donutList[donutIndex].setImg(intraImg=imgDeblend)
                         # Set the extra focal image
-                        elif (jj == 1):
+                        elif jj == 1:
                             donutList[donutIndex].setImg(extraImg=imgDeblend)
 
         return donutMap
@@ -483,7 +525,7 @@ class WepController(object):
 
         index = -1
         for ii in range(len(donutList)):
-            if (donutList[ii].getStarId() == int(starId)):
+            if donutList[ii].getStarId() == int(starId):
                 index = ii
                 break
 
@@ -523,7 +565,7 @@ class WepController(object):
 
                     # Get the donut list of extra-focal sensor
                     extraDonutList = donutMap[extraFocalSensorName]
-                    if (ii < len(extraDonutList)):
+                    if ii < len(extraDonutList):
                         extraDonut = extraDonutList[ii]
                     else:
                         continue
@@ -545,8 +587,9 @@ class WepController(object):
                 extraImg = extraDonut.getExtraImg()
 
                 # Calculate the wavefront error
-                zer4UpNm = self._calcSglWfErr(intraImg, extraImg, intraFieldXY,
-                                              extraFieldXY)
+                zer4UpNm = self._calcSglWfErr(
+                    intraImg, extraImg, intraFieldXY, extraFieldXY
+                )
 
                 # Put the value to the donut image
                 intraDonut.setWfErr(zer4UpNm)
@@ -616,7 +659,7 @@ class WepController(object):
             zer4UpNmArr = donut.getWfErr()
 
             # Assign the zer4UpNm
-            if (len(zer4UpNmArr) == 0):
+            if len(zer4UpNmArr) == 0:
                 zer4UpNm = 0
             else:
                 zer4UpNm = zer4UpNmArr
@@ -646,7 +689,7 @@ class WepController(object):
         # Check the available zk and give the ratio
         wgtRatio = []
         for donut in donutList:
-            if (len(donut.getWfErr()) == 0):
+            if len(donut.getWfErr()) == 0:
                 wgtRatio.append(0)
             else:
                 wgtRatio.append(1)
@@ -716,21 +759,19 @@ class WepController(object):
 
             # Set the image
             intraImg = donut.getIntraImg()
-            if (intraImg is not None):
+            if intraImg is not None:
 
                 # Get the projected image
-                projImg = self._getProjImg(fieldXY, DefocalType.Intra,
-                                           intraImg, zcCol)
+                projImg = self._getProjImg(fieldXY, DefocalType.Intra, intraImg, zcCol)
 
                 # Collect the projected donut
                 intraProjImgList.append(projImg)
 
             extraImg = donut.getExtraImg()
-            if (extraImg is not None):
+            if extraImg is not None:
 
                 # Get the projected image
-                projImg = self._getProjImg(fieldXY, DefocalType.Extra,
-                                           extraImg, zcCol)
+                projImg = self._getProjImg(fieldXY, DefocalType.Extra, extraImg, zcCol)
 
                 # Collect the projected donut
                 extraProjImgList.append(projImg)
@@ -741,8 +782,9 @@ class WepController(object):
 
         # Put the master donut to donut map
         pixelX, pixelY = searchDonutPos(stackIntraImg)
-        masterDonut = DonutImage(0, pixelX, pixelY, 0, 0,
-                                 intraImg=stackIntraImg, extraImg=stackExtraImg)
+        masterDonut = DonutImage(
+            0, pixelX, pixelY, 0, 0, intraImg=stackIntraImg, extraImg=stackExtraImg
+        )
 
         return masterDonut
 
@@ -771,9 +813,9 @@ class WepController(object):
         self.wfEsti.setImg(fieldXY, defocalType, image=defocalImg)
 
         # Get the image in the type of CompensationImageDecorator
-        if (defocalType == DefocalType.Intra):
+        if defocalType == DefocalType.Intra:
             img = self.wfEsti.getIntraImg()
-        elif (defocalType == DefocalType.Extra):
+        elif defocalType == DefocalType.Extra:
             img = self.wfEsti.getExtraImg()
 
         # Get the distortion correction (offaxis)
@@ -806,7 +848,7 @@ class WepController(object):
             Stacked image.
         """
 
-        if (len(imgList) == 0):
+        if len(imgList) == 0:
             stackImg = None
         else:
             # Get the minimun image dimension
@@ -820,8 +862,8 @@ class WepController(object):
             dimX = np.min(dimXlist)
             dimY = np.min(dimYlist)
 
-            deltaX = dimX//2
-            deltaY = dimY//2
+            deltaX = dimX // 2
+            deltaY = dimY // 2
 
             # Stack the image by summation directly
             stackImg = np.zeros([dimY, dimX])
@@ -829,8 +871,7 @@ class WepController(object):
                 dy, dx = img.shape
                 cy = int(dy / 2)
                 cx = int(dx / 2)
-                stackImg += img[cy - deltaY:cy + deltaY,
-                                cx - deltaX:cx + deltaX]
+                stackImg += img[cy - deltaY : cy + deltaY, cx - deltaX : cx + deltaX]
 
         return stackImg
 

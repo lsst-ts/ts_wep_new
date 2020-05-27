@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import unittest
@@ -29,13 +50,13 @@ class TestSourceProcessor(unittest.TestCase):
         self.assertEqual(len(self.sourProc.sensorFocaPlaneInDeg), 205)
         self.assertEqual(len(self.sourProc.sensorFocaPlaneInUm), 205)
 
-        self.assertEqual(self.sourProc.sensorDimList["R00_S22_C0"],
-                         (2000, 4072))
-        self.assertEqual(self.sourProc.sensorDimList["R22_S11"],
-                         (4000, 4072))
+        self.assertEqual(self.sourProc.sensorDimList["R00_S22_C0"], (2000, 4072))
+        self.assertEqual(self.sourProc.sensorDimList["R22_S11"], (4000, 4072))
         self.assertEqual(self.sourProc.sensorFocaPlaneInDeg["R22_S11"], (0, 0))
-        self.assertNotEqual(self.sourProc.sensorFocaPlaneInDeg["R00_S22_C0"],
-                            self.sourProc.sensorFocaPlaneInDeg["R00_S22_C1"])
+        self.assertNotEqual(
+            self.sourProc.sensorFocaPlaneInDeg["R00_S22_C0"],
+            self.sourProc.sensorFocaPlaneInDeg["R00_S22_C1"],
+        )
 
     def testConfig(self):
 
@@ -57,8 +78,9 @@ class TestSourceProcessor(unittest.TestCase):
         pixelY = 2036
         fieldX, fieldY = self.sourProc.camXYtoFieldXY(pixelX, pixelY)
 
-        ansFieldX, ansFieldY = \
-            self.sourProc.sensorFocaPlaneInDeg[self.sourProc.sensorName]
+        ansFieldX, ansFieldY = self.sourProc.sensorFocaPlaneInDeg[
+            self.sourProc.sensorName
+        ]
         self.assertEqual(fieldX, ansFieldX)
         self.assertEqual(fieldY, ansFieldY)
 
@@ -80,10 +102,8 @@ class TestSourceProcessor(unittest.TestCase):
         self.assertEqual(oxR04S20C0, oxR04S20C1)
 
         # Campare with different RXX_SYY
-        self.assertEqual((oxR00S22C0 + oxR44S00C0, oyR00S22C0 + oyR44S00C0),
-                         (0, 0))
-        self.assertEqual((oxR40S02C1 + oxR04S20C1, oyR40S02C1 + oyR04S20C1),
-                         (0, 0))
+        self.assertEqual((oxR00S22C0 + oxR44S00C0, oyR00S22C0 + oyR44S00C0), (0, 0))
+        self.assertEqual((oxR40S02C1 + oxR04S20C1, oyR40S02C1 + oyR04S20C1), (0, 0))
 
     def _camXYtoFieldXY(self, sensorName, pixelX, pixelY):
 
@@ -119,33 +139,43 @@ class TestSourceProcessor(unittest.TestCase):
 
     def _simulateImg(self):
 
-        imageFolderPath = os.path.join(self.modulePath, "tests", "testData",
-                                       "testImages", "LSST_C_SN26")
+        imageFolderPath = os.path.join(
+            self.modulePath, "tests", "testData", "testImages", "LSST_C_SN26"
+        )
         defocalDis = 0.25
         nbrStar = self._generateNbrStar()
         ccdImgIntra, ccdImgExtra = self.sourProc.simulateImg(
-            imageFolderPath, defocalDis, nbrStar, FilterType.REF,
-            noiseRatio=0)
+            imageFolderPath, defocalDis, nbrStar, FilterType.REF, noiseRatio=0
+        )
 
         return ccdImgIntra, ccdImgExtra
 
     def _generateNbrStar(self):
 
         nbrStar = NbrStar()
-        nbrStar.starId = {523572575: [],
-                          523572679: [523572671]}
-        nbrStar.lsstMagG = {523572575: 14.66652,
-                            523572671: 16.00000,
-                            523572679: 13.25217}
-        nbrStar.raDeclInPixel = {523572679: (3966.44, 1022.91),
-                                 523572671: (3968.77, 1081.02),
-                                 523572575: (3475.48, 479.33)}
+        nbrStar.starId = {523572575: [], 523572679: [523572671]}
+        nbrStar.lsstMagG = {
+            523572575: 14.66652,
+            523572671: 16.00000,
+            523572679: 13.25217,
+        }
+        nbrStar.raDeclInPixel = {
+            523572679: (3966.44, 1022.91),
+            523572671: (3968.77, 1081.02),
+            523572575: (3475.48, 479.33),
+        }
         return nbrStar
 
     def testGetSingleTargetImage(self):
 
-        sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-            self._getSingleTargetImage()
+        (
+            sglSciNeiImg,
+            allStarPosX,
+            allStarPosY,
+            magRatio,
+            offsetX,
+            offsetY,
+        ) = self._getSingleTargetImage()
 
         self.assertEqual(sglSciNeiImg.shape, (310, 310))
         self.assertAlmostEqual(allStarPosX[0], 126.98)
@@ -162,23 +192,37 @@ class TestSourceProcessor(unittest.TestCase):
         nbrStar = self._generateNbrStar()
         ccdImgIntra, ccdImgExtra = self._simulateImg()
         starIndex = list(nbrStar.getId()).index(523572679)
-        sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-            self.sourProc.getSingleTargetImage(ccdImgIntra, nbrStar,
-                                               starIndex, FilterType.REF)
+        (
+            sglSciNeiImg,
+            allStarPosX,
+            allStarPosY,
+            magRatio,
+            offsetX,
+            offsetY,
+        ) = self.sourProc.getSingleTargetImage(
+            ccdImgIntra, nbrStar, starIndex, FilterType.REF
+        )
 
         return sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY
 
     def testDoDeblending(self):
 
-        sglSciNeiImg, allStarPosX, allStarPosY, magRatio, offsetX, offsetY = \
-            self._getSingleTargetImage()
+        (
+            sglSciNeiImg,
+            allStarPosX,
+            allStarPosY,
+            magRatio,
+            offsetX,
+            offsetY,
+        ) = self._getSingleTargetImage()
 
         imgDeblend, realcx, realcy = self.sourProc.doDeblending(
-            sglSciNeiImg, allStarPosX, allStarPosY, magRatio)
+            sglSciNeiImg, allStarPosX, allStarPosY, magRatio
+        )
 
         self.assertEqual(imgDeblend.shape, (310, 310))
-        self.assertLess(np.abs(realcx-184.49), 3)
-        self.assertLess(np.abs(realcy-205.00), 3)
+        self.assertLess(np.abs(realcx - 184.49), 3)
+        self.assertLess(np.abs(realcy - 205.00), 3)
 
         # Get the real camera position x, y after the deblending
         realCameraX = realcx + offsetX
@@ -187,9 +231,10 @@ class TestSourceProcessor(unittest.TestCase):
         # Compared with DM prediction
         nbrStar = self._generateNbrStar()
         raDeclInPixel = nbrStar.getRaDeclInPixel()
-        camX, camY = self.sourProc.dmXY2CamXY(raDeclInPixel[523572679][0],
-                                              raDeclInPixel[523572679][1])
-        delta = np.sqrt((realCameraX-camX)**2 + (realCameraY-camY)**2)
+        camX, camY = self.sourProc.dmXY2CamXY(
+            raDeclInPixel[523572679][0], raDeclInPixel[523572679][1]
+        )
+        delta = np.sqrt((realCameraX - camX) ** 2 + (realCameraY - camY) ** 2)
         self.assertLess(delta, 10)
 
 

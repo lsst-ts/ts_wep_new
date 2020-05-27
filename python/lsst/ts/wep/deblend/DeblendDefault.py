@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from lsst.ts.wep.Utility import CentroidFindType
@@ -52,11 +73,9 @@ class DeblendDefault(object):
             raise ValueError("magRatio should be postive and less than 1.")
 
         # Get the center and radius of self-donut
-        centroidFind = CentroidFindFactory.createCentroidFind(
-            CentroidFindType.Otsu)
+        centroidFind = CentroidFindFactory.createCentroidFind(CentroidFindType.Otsu)
         imgBinary = centroidFind.getImgBinary(template)
-        selfX, selfY, selfR = centroidFind.getCenterAndRfromImgBinary(
-            imgBinary)
+        selfX, selfY, selfR = centroidFind.getCenterAndRfromImgBinary(imgBinary)
 
         # Get the position of new donut based on spaceCoef and theta
         thetaInRad = np.deg2rad(theta)
@@ -69,7 +88,7 @@ class DeblendDefault(object):
         length = int(max(lengthX, lengthY))
 
         # Enforce the length to be even for the symmetry
-        if (length % 2 == 1):
+        if length % 2 == 1:
             length += 1
 
         shiftX = length / 2 - (selfX + newX) / 2
@@ -88,10 +107,15 @@ class DeblendDefault(object):
 
         # Get the shifted main donut image
         m, n = template.shape
-        imageMain[int(selfY-m/2):int(selfY+m/2), int(selfX-n/2):int(selfX+n/2)] += template
+        imageMain[
+            int(selfY - m / 2) : int(selfY + m / 2),
+            int(selfX - n / 2) : int(selfX + n / 2),
+        ] += template
 
         # Get the shifted neighboring donut image
-        imageNeighbor[int(newY-m/2):int(newY+m/2), int(newX-n/2):int(newX+n/2)] += magRatio * template
+        imageNeighbor[
+            int(newY - m / 2) : int(newY + m / 2), int(newX - n / 2) : int(newX + n / 2)
+        ] += (magRatio * template)
 
         # Get the synthesized multi-donut image
         image = imageMain + imageNeighbor

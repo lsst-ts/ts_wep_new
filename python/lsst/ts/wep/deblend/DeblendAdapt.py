@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from scipy.ndimage.morphology import binary_opening, binary_closing, binary_erosion
@@ -13,7 +34,6 @@ from lsst.ts.wep.deblend.nelderMeadModify import nelderMeadModify
 
 
 class DeblendAdapt(DeblendDefault):
-
     def __init__(self):
         """DeblendDefault child class to do the deblending by the adaptive
         threshold method."""
@@ -21,7 +41,8 @@ class DeblendAdapt(DeblendDefault):
 
         # Method to find the centroid of donut
         self._centroidFind = CentroidFindFactory.createCentroidFind(
-            CentroidFindType.RandomWalk)
+            CentroidFindType.RandomWalk
+        )
 
         # Initial guess of block size used in the adaptive threshold mothod
         self.blockSizeInit = 33
@@ -58,11 +79,10 @@ class DeblendAdapt(DeblendDefault):
 
         # Get the initial guess of the brightest donut
         imgBinary = self._centroidFind.getImgBinary(imgToDeblend)
-        realcx, realcy, realR = self._centroidFind.getCenterAndRfromImgBinary(
-            imgBinary)
+        realcx, realcy, realR = self._centroidFind.getCenterAndRfromImgBinary(imgBinary)
 
         # Check the image quality
-        if (not realcx):
+        if not realcx:
             return np.array([]), realcx, realcy
 
         # Remove the salt and pepper noise
@@ -98,11 +118,17 @@ class DeblendAdapt(DeblendDefault):
         x0 = int(starXyNbr[0] - realcx)
         y0 = int(starXyNbr[1] - realcy)
 
-        xoptNeighbor = nelderMeadModify(self._funcResidue, np.array([x0, y0]),
-                                        args=(imgBinary, resImgBinary), step=15)
+        xoptNeighbor = nelderMeadModify(
+            self._funcResidue,
+            np.array([x0, y0]),
+            args=(imgBinary, resImgBinary),
+            step=15,
+        )
 
         # Shift the main donut image to fitted position of neighboring star
-        fitImgBinary = shift(imgBinary, [int(xoptNeighbor[0][1]), int(xoptNeighbor[0][0])])
+        fitImgBinary = shift(
+            imgBinary, [int(xoptNeighbor[0][1]), int(xoptNeighbor[0][0])]
+        )
 
         # Handle the numerical error of shift. Regenerate a binary image.
         fitImgBinary[fitImgBinary > 0.5] = 1
@@ -122,12 +148,14 @@ class DeblendAdapt(DeblendDefault):
 
         # Calculate the magnitude ratio of image
         imgMainDonut = noSysErrImage * imgBinary
-        imgFit = shift(imgMainDonut,
-                       [int(xoptNeighbor[0][1]), int(xoptNeighbor[0][0])])
+        imgFit = shift(imgMainDonut, [int(xoptNeighbor[0][1]), int(xoptNeighbor[0][0])])
 
         xoptMagNeighbor = minimize_scalar(
-            self._funcMag, bounds=(0, 1), method="bounded",
-            args=(imgMainDonut, imgOverlapBinary, imgFit, imgRef, xoptNeighbor[0]))
+            self._funcMag,
+            bounds=(0, 1),
+            method="bounded",
+            args=(imgMainDonut, imgOverlapBinary, imgFit, imgRef, xoptNeighbor[0]),
+        )
 
         imgDeblend = imgMainDonut - xoptMagNeighbor.x * imgFit * imgOverlapBinary
 
@@ -166,8 +194,8 @@ class DeblendAdapt(DeblendDefault):
             realR = np.sqrt(np.sum(imgBinary) / np.pi)
 
             # Calculte the nearest odd number of radius for the blockSize
-            if (int(realR)%2 == 0):
-                oddRearR = int(realR+1)
+            if int(realR) % 2 == 0:
+                oddRearR = int(realR + 1)
             else:
                 oddRearR = int(realR)
 
@@ -207,12 +235,13 @@ class DeblendAdapt(DeblendDefault):
         fitImgBinary[fitImgBinary < 0.5] = 0
 
         # Take the least square difference
-        delta = np.sum((fitImgBinary-resImgBinary)**2)
+        delta = np.sum((fitImgBinary - resImgBinary) ** 2)
 
         return delta
 
-    def _funcMag(self, magRatio, imgMainDonut, imgOverlapBinary, imgFit,
-                 imgRef, xyShiftNeighbor):
+    def _funcMag(
+        self, magRatio, imgMainDonut, imgOverlapBinary, imgFit, imgRef, xyShiftNeighbor
+    ):
         """Use the least square method to decide the magnitude ratio of
         neighboring star.
 
@@ -242,10 +271,11 @@ class DeblendAdapt(DeblendDefault):
         # Synthesize the image
         imgNew = imgMainDonut - magRatio * imgFit * imgOverlapBinary
         imgNew = imgNew + magRatio * shift(
-            imgNew, [int(xyShiftNeighbor[1]), int(xyShiftNeighbor[0])])
+            imgNew, [int(xyShiftNeighbor[1]), int(xyShiftNeighbor[0])]
+        )
 
         # Take the least square difference
-        delta = np.sum((imgNew-imgRef)**2)
+        delta = np.sum((imgNew - imgRef) ** 2)
 
         return delta
 
@@ -280,36 +310,40 @@ class DeblendAdapt(DeblendDefault):
         for ii in range(len(m)):
 
             # Correct values that are not on the boundary next to environment
-            if (imgBinary[m[ii]-1:m[ii]+2, n[ii]-1:n[ii]+2].all()):
+            if imgBinary[m[ii] - 1 : m[ii] + 2, n[ii] - 1 : n[ii] + 2].all():
 
                 # Modify the value in column
-                neighborValues = repairImgDeblend[m[ii], n[ii]-4:n[ii]+5]
+                neighborValues = repairImgDeblend[m[ii], n[ii] - 4 : n[ii] + 5]
                 temp = neighborValues[neighborValues != 0]
                 stdTemp = np.std(temp)
                 meanTemp = np.mean(temp)
 
                 for kk in range(9):
-                    testValue = repairImgDeblend[m[ii], n[ii]-4+kk]
-                    if (testValue != 0):
-                        if (testValue >= meanTemp + 2*stdTemp) or \
-                           (testValue <= meanTemp - 2*stdTemp):
-                            repairImgDeblend[m[ii], n[ii]-4+kk] = \
-                                (repairImgDeblend[m[ii], n[ii]-5+kk] +
-                                 repairImgDeblend[m[ii], n[ii]-3+kk])/2
+                    testValue = repairImgDeblend[m[ii], n[ii] - 4 + kk]
+                    if testValue != 0:
+                        if (testValue >= meanTemp + 2 * stdTemp) or (
+                            testValue <= meanTemp - 2 * stdTemp
+                        ):
+                            repairImgDeblend[m[ii], n[ii] - 4 + kk] = (
+                                repairImgDeblend[m[ii], n[ii] - 5 + kk]
+                                + repairImgDeblend[m[ii], n[ii] - 3 + kk]
+                            ) / 2
 
                 # Modify the value in row
-                neighborValues = repairImgDeblend[m[ii]-4:m[ii]+5, n[ii]]
+                neighborValues = repairImgDeblend[m[ii] - 4 : m[ii] + 5, n[ii]]
                 temp = neighborValues[neighborValues != 0]
                 stdTemp = np.std(temp)
                 meanTemp = np.mean(temp)
 
                 for kk in range(9):
-                    testValue = repairImgDeblend[m[ii]-4+kk, n[ii]]
-                    if (testValue != 0):
-                        if (testValue >= meanTemp + 2*stdTemp) or \
-                           (testValue <= meanTemp - 2*stdTemp):
-                            repairImgDeblend[m[ii]-4+kk, n[ii]] = \
-                                (repairImgDeblend[m[ii]-5+kk, n[ii]] +
-                                 repairImgDeblend[m[ii]-3+kk, n[ii]])/2
+                    testValue = repairImgDeblend[m[ii] - 4 + kk, n[ii]]
+                    if testValue != 0:
+                        if (testValue >= meanTemp + 2 * stdTemp) or (
+                            testValue <= meanTemp - 2 * stdTemp
+                        ):
+                            repairImgDeblend[m[ii] - 4 + kk, n[ii]] = (
+                                repairImgDeblend[m[ii] - 5 + kk, n[ii]]
+                                + repairImgDeblend[m[ii] - 3 + kk, n[ii]]
+                            ) / 2
 
         return repairImgDeblend

@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 import copy
 
@@ -6,7 +27,6 @@ from lsst.ts.wep.Utility import FilterType
 
 
 class CameraData(object):
-
     def __init__(self, camera):
         """Initialize the camera data class.
 
@@ -116,7 +136,7 @@ class CameraData(object):
 
         for detector in self._wcs.getCamera():
 
-            if (detector.getType() == detectorType):
+            if detector.getType() == detectorType:
 
                 # Collect the ccd name
                 detectorName = detector.getName()
@@ -128,9 +148,10 @@ class CameraData(object):
                 xmax = bbox.getMaxX()
                 ymin = bbox.getMinY()
                 ymax = bbox.getMaxY()
-                self._corners[detectorName] = \
-                    (np.array([xmin, xmin, xmax, xmax]),
-                     np.array([ymin, ymax, ymin, ymax]))
+                self._corners[detectorName] = (
+                    np.array([xmin, xmin, xmax, xmax]),
+                    np.array([ymin, ymax, ymin, ymax]),
+                )
 
                 # The CCD dimension here is an estimation.
                 # Based on LCA-13381, there are three types of sensors.
@@ -180,7 +201,8 @@ class CameraData(object):
         decl = populatedStar.getDecl()
         chipName = np.array([populatedStar.getDetector()] * len(ra))
         raInPixel, declInPixel = self._wcs.pixelCoordsFromRaDec(
-            ra, decl, chipName=chipName, epoch=2000.0, includeDistortion=True)
+            ra, decl, chipName=chipName, epoch=2000.0, includeDistortion=True
+        )
 
         populatedStar.setRaInPixel(raInPixel)
         populatedStar.setDeclInPixel(declInPixel)
@@ -215,8 +237,10 @@ class CameraData(object):
 
         keep = []
         for ii in range(len(starsRaInPixel)):
-            if (-offset <= starsRaInPixel[ii] <= ccdDim[0] + offset and
-               -offset <= starsDeclInPixel[ii] <= ccdDim[1] + offset):
+            if (
+                -offset <= starsRaInPixel[ii] <= ccdDim[0] + offset
+                and -offset <= starsDeclInPixel[ii] <= ccdDim[1] + offset
+            ):
                 keep.append(ii)
 
         # Remove the stars that are not on the detector
@@ -228,12 +252,11 @@ class CameraData(object):
 
         for filterType in FilterType:
 
-            if (filterType != FilterType.REF):
+            if filterType != FilterType.REF:
                 magArray = starsOnDet.getMag(filterType)
 
-                if (len(magArray) != 0):
-                    starsOnDet.setMag(filterType, self._getKeepItem(magArray,
-                                                                    keep))
+                if len(magArray) != 0:
+                    starsOnDet.setMag(filterType, self._getKeepItem(magArray, keep))
 
         return starsOnDet
 
@@ -298,10 +321,15 @@ class CameraData(object):
 
             chipName = np.array([detector] * len(xPix))
             ra, dec = self._wcs.raDecFromPixelCoords(
-                xPix, yPix, chipName, epoch=2000.0, includeDistortion=True)
+                xPix, yPix, chipName, epoch=2000.0, includeDistortion=True
+            )
 
-            ra_dec_out[detector] = [(ra[0], dec[0]), (ra[1], dec[1]),
-                                    (ra[2], dec[2]), (ra[3], dec[3])]
+            ra_dec_out[detector] = [
+                (ra[0], dec[0]),
+                (ra[1], dec[1]),
+                (ra[2], dec[2]),
+                (ra[3], dec[3]),
+            ]
 
         return ra_dec_out
 

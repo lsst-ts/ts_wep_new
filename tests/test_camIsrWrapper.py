@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import tempfile
 import unittest
@@ -16,8 +37,7 @@ class TestCamIsrWrapper(unittest.TestCase):
         self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
         self.isrDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
-        self.repackagedTestData = os.path.join(testDir, "testData",
-                                               "repackagedFiles")
+        self.repackagedTestData = os.path.join(testDir, "testData", "repackagedFiles")
 
         self.camIsrWrapper = CamIsrWrapper(self.isrDir.name)
 
@@ -52,18 +72,17 @@ class TestCamIsrWrapper(unittest.TestCase):
 
         # Get the camDataCollector and ingest the calibs
         detector = "R00_S22"
-        camDataCollector = self._getCamDataCollectorAndIngestCalibs(
-            detector)
+        camDataCollector = self._getCamDataCollectorAndIngestCalibs(detector)
 
         # Ingest the raw images and do the ISR
         imgFileName = "lsst_a_20_f5_R00_S22_E000.fits"
         rerunName = "run1"
-        self._ingestRawAndDoIsr(imgFileName, camDataCollector, rerunName,
-                                doIsrConfig=True)
+        self._ingestRawAndDoIsr(
+            imgFileName, camDataCollector, rerunName, doIsrConfig=True
+        )
 
         # Check the condition
-        postIsrCcdDir = os.path.join(self.isrDir.name, "rerun", rerunName,
-                                     "postISRCCD")
+        postIsrCcdDir = os.path.join(self.isrDir.name, "rerun", rerunName, "postISRCCD")
         self.assertTrue(os.path.exists(postIsrCcdDir))
 
         numOfDir = self._getNumOfDir(postIsrCcdDir)
@@ -108,14 +127,15 @@ class TestCamIsrWrapper(unittest.TestCase):
         argstring = "--detector_list %s" % detector
         runProgram(command, argstring=argstring)
 
-    def _ingestRawAndDoIsr(self, imgFileName, camDataCollector, rerunName,
-                           doIsrConfig=False):
+    def _ingestRawAndDoIsr(
+        self, imgFileName, camDataCollector, rerunName, doIsrConfig=False
+    ):
 
         imgFiles = os.path.join(self.repackagedTestData, imgFileName)
         camDataCollector.ingestImages(imgFiles)
 
         # Do the ISR configuration
-        if (doIsrConfig is True):
+        if doIsrConfig is True:
             self._doIsrConfig()
 
         # Do the ISR
@@ -123,8 +143,10 @@ class TestCamIsrWrapper(unittest.TestCase):
 
     def _getNumOfDir(self, dirPath):
 
-        numOfDir = sum(os.path.isdir(os.path.join(dirPath, aDir))
-                       for aDir in os.listdir(path=dirPath))
+        numOfDir = sum(
+            os.path.isdir(os.path.join(dirPath, aDir))
+            for aDir in os.listdir(path=dirPath)
+        )
 
         return numOfDir
 
@@ -132,25 +154,25 @@ class TestCamIsrWrapper(unittest.TestCase):
 
         # Get the camDataCollector and ingest the calibs
         detector = "R00_S22 R22_S10"
-        camDataCollector = self._getCamDataCollectorAndIngestCalibs(
-            detector)
+        camDataCollector = self._getCamDataCollectorAndIngestCalibs(detector)
 
         # Ingest the first raw images and do the ISR
         imgFileName = "lsst_a_20_f5_R00_S22_E000.fits"
         rerunName = "run1"
-        self._ingestRawAndDoIsr(imgFileName, camDataCollector, rerunName,
-                                doIsrConfig=True)
+        self._ingestRawAndDoIsr(
+            imgFileName, camDataCollector, rerunName, doIsrConfig=True
+        )
 
         # Check the condition
-        postIsrCcdDir = os.path.join(self.isrDir.name, "rerun", rerunName,
-                                     "postISRCCD")
+        postIsrCcdDir = os.path.join(self.isrDir.name, "rerun", rerunName, "postISRCCD")
         numOfDir = self._getNumOfDir(postIsrCcdDir)
         self.assertEqual(numOfDir, 1)
 
         # Ingest the second raw image and do the ISR again
         imgFileName = "lsst_a_9005000_f1_R22_S10_E000.fits"
-        self._ingestRawAndDoIsr(imgFileName, camDataCollector, rerunName,
-                                doIsrConfig=False)
+        self._ingestRawAndDoIsr(
+            imgFileName, camDataCollector, rerunName, doIsrConfig=False
+        )
 
         # Check the condition again
         numOfDir = self._getNumOfDir(postIsrCcdDir)

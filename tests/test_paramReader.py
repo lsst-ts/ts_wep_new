@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import tempfile
@@ -32,8 +53,7 @@ class TestParamReader(unittest.TestCase):
 
     def testGetSettingWithWrongParam(self):
 
-        self.assertRaises(ValueError, self.paramReader.getSetting,
-                          "wrongParam")
+        self.assertRaises(ValueError, self.paramReader.getSetting, "wrongParam")
 
     def testGetFilePath(self):
 
@@ -78,14 +98,20 @@ class TestParamReader(unittest.TestCase):
 
     def _getNumOfFileInFolder(self, folder):
 
-        return len([name for name in os.listdir(folder)
-                   if os.path.isfile(os.path.join(folder, name))])
+        return len(
+            [
+                name
+                for name in os.listdir(folder)
+                if os.path.isfile(os.path.join(folder, name))
+            ]
+        )
 
     def testWriteMatToFileWithWrongFileFormat(self):
 
         wrongFilePath = os.path.join(self.testTempDir.name, "temp.txt")
-        self.assertRaises(ValueError, ParamReader.writeMatToFile,
-                          np.ones(4), wrongFilePath)
+        self.assertRaises(
+            ValueError, ParamReader.writeMatToFile, np.ones(4), wrongFilePath
+        )
 
     def testGetMatContent(self):
 
@@ -125,8 +151,7 @@ class TestParamReader(unittest.TestCase):
 
     def testUpdateSettingWithWrongParam(self):
 
-        self.assertRaises(ValueError, self.paramReader.updateSetting,
-                          "wrongParam", -1)
+        self.assertRaises(ValueError, self.paramReader.updateSetting, "wrongParam", -1)
 
     def testSaveSettingWithFilePath(self):
 
@@ -157,12 +182,13 @@ class TestParamReader(unittest.TestCase):
         self.assertTrue("dofIdx" in keysInContent)
         self.assertTrue("zn3Idx" in keysInContent)
 
-        self.assertEqual(paramReader.getSetting("zn3Idx"), [1]*19)
+        self.assertEqual(paramReader.getSetting("zn3Idx"), [1] * 19)
 
     def testGetAbsPathNotExist(self):
 
-        self.assertRaises(ValueError, self.paramReader.getAbsPath,
-                          "testFile.txt", getModulePath())
+        self.assertRaises(
+            ValueError, self.paramReader.getAbsPath, "testFile.txt", getModulePath()
+        )
 
     def testGetAbsPath(self):
 

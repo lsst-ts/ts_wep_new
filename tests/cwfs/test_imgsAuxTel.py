@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import unittest
@@ -6,19 +27,23 @@ from lsst.ts.wep.cwfs.Image import Image
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.Utility import getModulePath, getConfigDir, DefocalType, \
-    CamType, CentroidFindType
+from lsst.ts.wep.Utility import (
+    getModulePath,
+    getConfigDir,
+    DefocalType,
+    CamType,
+    CentroidFindType,
+)
 
 
 class TestImgsAuxTel(unittest.TestCase):
-
     def setUp(self):
 
-        testImageDataDir = os.path.join(getModulePath(), "tests", "testData",
-                                        "testImages")
+        testImageDataDir = os.path.join(
+            getModulePath(), "tests", "testData", "testImages"
+        )
         self.testImgDir = os.path.join(testImageDataDir, "auxTel")
-        self.validationDir = os.path.join(testImageDataDir, "validation",
-                                          "auxTel")
+        self.validationDir = os.path.join(testImageDataDir, "validation", "auxTel")
 
         self.offset = 80
         self.tolMax = 6
@@ -40,13 +65,15 @@ class TestImgsAuxTel(unittest.TestCase):
 
         xIntra, yIntra, _ = imgIntra.getCenterAndR()
         imgIntraArray = imgIntra.getImg()[
-            int(yIntra)-offset:int(yIntra)+offset,
-            int(xIntra)-offset:int(xIntra)+offset]
+            int(yIntra) - offset : int(yIntra) + offset,
+            int(xIntra) - offset : int(xIntra) + offset,
+        ]
 
         xExtra, yExtra, _ = imgExtra.getCenterAndR()
         imgExtraArray = imgExtra.getImg()[
-            int(yExtra)-offset:int(yExtra)+offset,
-            int(xExtra)-offset:int(xExtra)+offset]
+            int(yExtra) - offset : int(yExtra) + offset,
+            int(xExtra) - offset : int(xExtra) + offset,
+        ]
 
         # Set the images
         fieldXY = (0, 0)
@@ -61,8 +88,9 @@ class TestImgsAuxTel(unittest.TestCase):
         # Set the instrument
         instDir = os.path.join(getConfigDir(), "cwfs", "instData")
         instAuxTel = Instrument(instDir)
-        instAuxTel.config(CamType.AuxTel, imgCompIntra.getImgSizeInPix(),
-                          announcedDefocalDisInMm=0.8)
+        instAuxTel.config(
+            CamType.AuxTel, imgCompIntra.getImgSizeInPix(), announcedDefocalDisInMm=0.8
+        )
 
         # Set the algorithm
         algoFolderPath = os.path.join(getConfigDir(), "cwfs", "algo")
@@ -75,8 +103,7 @@ class TestImgsAuxTel(unittest.TestCase):
     def testCase1paraxial(self):
 
         imgIntraName, imgExtraName = self._getImgsCase1()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset,
-                                "paraxial")
+        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "paraxial")
 
         ans = self._getDataVerify("case1_auxTel_paraxial.txt")
         self._compareDifferenceWithTol(zer4UpNm, ans)
@@ -105,16 +132,14 @@ class TestImgsAuxTel(unittest.TestCase):
     def testCase1onaxis(self):
 
         imgIntraName, imgExtraName = self._getImgsCase1()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset,
-                                "onAxis")
+        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "onAxis")
         ans = self._getDataVerify("case1_auxTel_onaxis.txt")
         self._compareDifferenceWithTol(zer4UpNm, ans)
 
     def testCase2paraxial(self):
 
         imgIntraName, imgExtraName = self._getImgsCase2()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset,
-                                "paraxial")
+        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "paraxial")
 
         ans = self._getDataVerify("case2_auxTel_paraxial.txt")
         self._compareDifferenceWithTol(zer4UpNm, ans)
@@ -129,8 +154,7 @@ class TestImgsAuxTel(unittest.TestCase):
     def testCase2onaxis(self):
 
         imgIntraName, imgExtraName = self._getImgsCase2()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset,
-                                "onAxis")
+        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "onAxis")
 
         ans = self._getDataVerify("case2_auxTel_onaxis.txt")
         self._compareDifferenceWithTol(zer4UpNm, ans)

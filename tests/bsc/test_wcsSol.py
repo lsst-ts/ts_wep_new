@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 import unittest
 
@@ -67,8 +88,7 @@ class TestWcsSol(unittest.TestCase):
     def testPixelCoordsFromRaDecWithChipName(self):
 
         chipName = "R:2,2 S:1,1"
-        xPix, yPix = self.wcs.pixelCoordsFromRaDec(self.ra, self.dec,
-                                                   chipName=chipName)
+        xPix, yPix = self.wcs.pixelCoordsFromRaDec(self.ra, self.dec, chipName=chipName)
 
         self.assertAlmostEqual(xPix, 2032, places=-1)
         self.assertAlmostEqual(yPix, 1994, places=-1)
@@ -83,7 +103,7 @@ class TestWcsSol(unittest.TestCase):
 
         # 0.2 arcsec = 10 um => 1 um = 0.02 arcsec => 1 mm = 20 arcsec
         # 1 arcsec = 1/3600 degree
-        xInMm, yInMm = self.wcs.focalPlaneCoordsFromRaDec(20.0/3600, 0)
+        xInMm, yInMm = self.wcs.focalPlaneCoordsFromRaDec(20.0 / 3600, 0)
 
         self.assertAlmostEqual(xInMm, 1.0, places=3)
         self.assertAlmostEqual(yInMm, 0.0, places=3)
@@ -94,10 +114,10 @@ class TestWcsSol(unittest.TestCase):
 
         # 0.2 arcsec = 10 um => 1 um = 0.02 arcsec => 1 mm = 20 arcsec
         # 1 arcsec = 1/3600 degree
-        xInMm, yInMm = self.wcs.focalPlaneCoordsFromRaDec(20.0/3600, 0)
+        xInMm, yInMm = self.wcs.focalPlaneCoordsFromRaDec(20.0 / 3600, 0)
 
-        self.assertAlmostEqual(xInMm, 1/np.sqrt(2), places=3)
-        self.assertAlmostEqual(yInMm, -1/np.sqrt(2), places=3)
+        self.assertAlmostEqual(xInMm, 1 / np.sqrt(2), places=3)
+        self.assertAlmostEqual(yInMm, -1 / np.sqrt(2), places=3)
 
 
 if __name__ == "__main__":

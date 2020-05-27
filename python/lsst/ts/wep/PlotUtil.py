@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 
@@ -6,11 +27,13 @@ from lsst.ts.wep.Utility import abbrevDectectorName
 from matplotlib.colors import LogNorm, SymLogNorm
 
 import matplotlib.pyplot as plt
-plt.switch_backend('Agg')
+
+plt.switch_backend("Agg")
 
 
-def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None,
-                      vmax=None, saveFilePath=None):
+def poltExposureImage(
+    exposure, name="", scale="log", cmap="gray", vmin=None, vmax=None, saveFilePath=None
+):
     """Plot the exposure image.
 
     Parameters
@@ -38,7 +61,9 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None,
 
     # Change the scale if needed
     if scale not in ("linear", "log"):
-        print("No %s scale to choose. Only 'linear' and 'log' scales are allowed." % scale)
+        print(
+            "No %s scale to choose. Only 'linear' and 'log' scales are allowed." % scale
+        )
         return
 
     # Decide the norm in imshow for the ploting
@@ -52,8 +77,7 @@ def poltExposureImage(exposure, name="", scale="log", cmap="gray", vmin=None,
 
     # Plot the image
     plt.figure()
-    plt.imshow(img, cmap=cmap, origin="lower", norm=plotNorm, vmin=vmin,
-               vmax=vmax)
+    plt.imshow(img, cmap=cmap, origin="lower", norm=plotNorm, vmin=vmin, vmax=vmax)
     plt.colorbar()
     plt.title(name)
 
@@ -142,13 +166,33 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
                     pixelXy = (donutImg.pixelX, donutImg.pixelY)
 
                     if ii == 0:
-                        intraImgList, intraTitleList, intraPixelXYList = _collectDonutImgList(
-                            intraImgList, intraTitleList, intraPixelXYList,
-                            img, donutImg.starId, intraType, pixelXy)
+                        (
+                            intraImgList,
+                            intraTitleList,
+                            intraPixelXYList,
+                        ) = _collectDonutImgList(
+                            intraImgList,
+                            intraTitleList,
+                            intraPixelXYList,
+                            img,
+                            donutImg.starId,
+                            intraType,
+                            pixelXy,
+                        )
                     else:
-                        extraImgList, extraTitleList, extraPixelXYList = _collectDonutImgList(
-                            extraImgList, extraTitleList, extraPixelXYList,
-                            img, donutImg.starId, extraType, pixelXy)
+                        (
+                            extraImgList,
+                            extraTitleList,
+                            extraPixelXYList,
+                        ) = _collectDonutImgList(
+                            extraImgList,
+                            extraTitleList,
+                            extraPixelXYList,
+                            img,
+                            donutImg.starId,
+                            extraType,
+                            pixelXy,
+                        )
 
         # Decide the figure grid shape
         numOfRow = np.max([len(intraImgList), len(extraImgList)])
@@ -166,8 +210,14 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
         # Plot the intra-focal donut
         locOfCol = 0
         for ii in range(len(intraImgList)):
-            _subPlot(plt, gridShape, (ii, locOfCol), intraImgList[ii],
-                     intraTitleList[ii], intraPixelXYList[ii])
+            _subPlot(
+                plt,
+                gridShape,
+                (ii, locOfCol),
+                intraImgList[ii],
+                intraTitleList[ii],
+                intraPixelXYList[ii],
+            )
 
         # Plot the extra-focal donut
 
@@ -176,8 +226,14 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
             locOfCol = 1
 
         for ii in range(len(extraImgList)):
-            _subPlot(plt, gridShape, (ii, locOfCol), extraImgList[ii],
-                     extraTitleList[ii], extraPixelXYList[ii])
+            _subPlot(
+                plt,
+                gridShape,
+                (ii, locOfCol),
+                extraImgList[ii],
+                extraTitleList[ii],
+                extraPixelXYList[ii],
+            )
 
         # Adjust the space between xlabel and title for neighboring sub-figures
         plt.tight_layout()
@@ -186,7 +242,7 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
         if saveToDir is not None:
             # Generate the filepath
             imgType = ".png"
-            imgFilePath = os.path.join(saveToDir, imgTitle+imgType)
+            imgFilePath = os.path.join(saveToDir, imgTitle + imgType)
             plt.savefig(imgFilePath, bbox_inches="tight", dpi=dpi)
             plt.close()
         else:
@@ -232,8 +288,7 @@ def _subPlot(plt, gridShape, loc, img, aTitle, pixelXy):
     plt.colorbar(axPlot, ax=ax)
 
 
-def _collectDonutImgList(imgList, titleList, pixelXyList, img, starId, aType,
-                         pixelXy):
+def _collectDonutImgList(imgList, titleList, pixelXyList, img, starId, aType, pixelXy):
     """Collect the donut data in list.
 
     Parameters
@@ -274,8 +329,9 @@ def _collectDonutImgList(imgList, titleList, pixelXyList, img, starId, aType,
     return imgList, titleList, pixelXyList
 
 
-def plotImage(imageDonut, title=None, mask=None, show=True, fitParameters=[],
-              saveFilePath=None):
+def plotImage(
+    imageDonut, title=None, mask=None, show=True, fitParameters=[], saveFilePath=None
+):
     """Show the wavefront (donut) image.
 
     Parameters
@@ -305,9 +361,9 @@ def plotImage(imageDonut, title=None, mask=None, show=True, fitParameters=[],
     # Plot the fitted circle
     if fitParameters:
         if len(fitParameters) == 3:
-            theta = np.linspace(0, 2*np.pi, 101)
-            x = fitParameters[0] + fitParameters[2]*np.cos(theta)
-            y = fitParameters[1] + fitParameters[2]*np.sin(theta)
+            theta = np.linspace(0, 2 * np.pi, 101)
+            x = fitParameters[0] + fitParameters[2] * np.cos(theta)
+            y = fitParameters[1] + fitParameters[2] * np.sin(theta)
             plt.plot(x, y, "b")
         else:
             print("fitParameters should have 3 elements.")

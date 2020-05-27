@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import tempfile
 import unittest
@@ -57,8 +78,7 @@ class TestCamDataCollector(unittest.TestCase):
         self.camDataCollector.ingestCalibs(calibFiles)
 
         # Check the ingested calibration products
-        calibRegistryFilePath = os.path.join(self.isrDir.name,
-                                             "calibRegistry.sqlite3")
+        calibRegistryFilePath = os.path.join(self.isrDir.name, "calibRegistry.sqlite3")
         self.assertTrue(os.path.exists(calibRegistryFilePath))
 
         flatDir = os.path.join(self.isrDir.name, "flat")
@@ -90,9 +110,13 @@ class TestCamDataCollector(unittest.TestCase):
 
         self._genMapper()
 
-        imgFiles = os.path.join(getModulePath(), "tests", "testData",
-                                "repackagedFiles",
-                                "lsst_a_20_f5_R00_S22_E000.fits")
+        imgFiles = os.path.join(
+            getModulePath(),
+            "tests",
+            "testData",
+            "repackagedFiles",
+            "lsst_a_20_f5_R00_S22_E000.fits",
+        )
         self.camDataCollector.ingestImages(imgFiles)
 
         # Check the ingested files
@@ -110,9 +134,13 @@ class TestCamDataCollector(unittest.TestCase):
 
         self._genMapper()
 
-        imgFiles = os.path.join(getModulePath(), "tests", "testData",
-                                "repackagedFiles",
-                                "lsst_e_9006001_f1_R22_S00_E000.fits.gz")
+        imgFiles = os.path.join(
+            getModulePath(),
+            "tests",
+            "testData",
+            "repackagedFiles",
+            "lsst_e_9006001_f1_R22_S00_E000.fits.gz",
+        )
         self.camDataCollector.ingestEimages(imgFiles)
 
         # Check the ingested files

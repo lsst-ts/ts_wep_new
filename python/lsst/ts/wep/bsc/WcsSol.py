@@ -1,13 +1,36 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from lsst.sims.utils import ObservationMetaData
 from lsst.obs.lsstSim import LsstSimMapper
-from lsst.sims.coordUtils.CameraUtils import raDecFromPixelCoords, \
-    pixelCoordsFromRaDec, focalPlaneCoordsFromRaDec
+from lsst.sims.coordUtils.CameraUtils import (
+    raDecFromPixelCoords,
+    pixelCoordsFromRaDec,
+    focalPlaneCoordsFromRaDec,
+)
 
 
 class WcsSol(object):
-
     def __init__(self, camera=None):
         """Initialize the world coordinate system (WCS) solution class.
 
@@ -20,7 +43,7 @@ class WcsSol(object):
 
         self._obs = ObservationMetaData()
 
-        if (camera is None):
+        if camera is None:
             self._camera = LsstSimMapper().camera
         else:
             self._camera = camera
@@ -64,11 +87,13 @@ class WcsSol(object):
             Camera MJD. (the default is 59580.0.)
         """
 
-        self._obs = ObservationMetaData(pointingRA=ra, pointingDec=dec,
-                                        rotSkyPos=rotSkyPos, mjd=mjd)
+        self._obs = ObservationMetaData(
+            pointingRA=ra, pointingDec=dec, rotSkyPos=rotSkyPos, mjd=mjd
+        )
 
-    def raDecFromPixelCoords(self, xPix, yPix, chipName, epoch=2000.0,
-                             includeDistortion=True):
+    def raDecFromPixelCoords(
+        self, xPix, yPix, chipName, epoch=2000.0, includeDistortion=True
+    ):
         """Convert pixel coordinates into RA, Dec.
 
         WARNING: This method does not account for apparent motion due to
@@ -111,13 +136,19 @@ class WcsSol(object):
         else:
             chipNameList = chipName
 
-        return raDecFromPixelCoords(xPix, yPix, chipNameList,
-                                    camera=self._camera,
-                                    obs_metadata=self._obs, epoch=epoch,
-                                    includeDistortion=includeDistortion)
+        return raDecFromPixelCoords(
+            xPix,
+            yPix,
+            chipNameList,
+            camera=self._camera,
+            obs_metadata=self._obs,
+            epoch=epoch,
+            includeDistortion=includeDistortion,
+        )
 
-    def pixelCoordsFromRaDec(self, ra, dec, chipName=None, epoch=2000.0,
-                             includeDistortion=True):
+    def pixelCoordsFromRaDec(
+        self, ra, dec, chipName=None, epoch=2000.0, includeDistortion=True
+    ):
         """Get the pixel positions (or nan if not on a chip) for objects based
         on their RA, and Dec (in degrees).
 
@@ -153,10 +184,15 @@ class WcsSol(object):
             and the second row is the y pixel coordinate.
         """
 
-        return pixelCoordsFromRaDec(ra, dec, obs_metadata=self._obs,
-                                    chipName=chipName, camera=self._camera,
-                                    epoch=epoch,
-                                    includeDistortion=includeDistortion)
+        return pixelCoordsFromRaDec(
+            ra,
+            dec,
+            obs_metadata=self._obs,
+            chipName=chipName,
+            camera=self._camera,
+            epoch=epoch,
+            includeDistortion=includeDistortion,
+        )
 
     def focalPlaneCoordsFromRaDec(self, ra, dec, epoch=2000.0):
         """Get the focal plane coordinates for all objects in the catalog.
@@ -179,8 +215,9 @@ class WcsSol(object):
             (both in millimeters).
         """
 
-        return focalPlaneCoordsFromRaDec(ra, dec, obs_metadata=self._obs,
-                                         epoch=epoch, camera=self._camera)
+        return focalPlaneCoordsFromRaDec(
+            ra, dec, obs_metadata=self._obs, epoch=epoch, camera=self._camera
+        )
 
 
 if __name__ == "__main__":

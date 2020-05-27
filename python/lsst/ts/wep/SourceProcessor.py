@@ -1,16 +1,41 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 
 from lsst.ts.wep.deblend.DeblendDonutFactory import DeblendDonutFactory
-from lsst.ts.wep.Utility import readPhoSimSettingData, mapFilterRefToG, \
-    getConfigDir, getDeblendDonutType
+from lsst.ts.wep.Utility import (
+    readPhoSimSettingData,
+    mapFilterRefToG,
+    getConfigDir,
+    getDeblendDonutType,
+)
 from lsst.ts.wep.ParamReader import ParamReader
 
 
 class SourceProcessor(object):
-
-    def __init__(self, settingFileName="default.yaml",
-                 focalPlaneFileName="focalplanelayout.txt"):
+    def __init__(
+        self, settingFileName="default.yaml", focalPlaneFileName="focalplanelayout.txt"
+    ):
         """Initialize the SourceProcessor class.
 
         Parameters
@@ -51,8 +76,7 @@ class SourceProcessor(object):
         """
 
         # Read the focal plane data by the delegation
-        ccdData = readPhoSimSettingData(folderPath, focalPlaneFileName,
-                                        "fieldCenter")
+        ccdData = readPhoSimSettingData(folderPath, focalPlaneFileName, "fieldCenter")
 
         # Collect the focal plane data
         sensorFocaPlaneInDeg = dict()
@@ -85,7 +109,8 @@ class SourceProcessor(object):
         self.sensorFocaPlaneInDeg = sensorFocaPlaneInDeg
         self.sensorFocaPlaneInUm = sensorFocaPlaneInUm
         self.sensorEulerRot = readPhoSimSettingData(
-            folderPath, focalPlaneFileName, "eulerRot")
+            folderPath, focalPlaneFileName, "eulerRot"
+        )
 
     def _shiftCenterWfs(self, sensorName, focalPlaneData):
         """Shift the fieldXY of center of wavefront sensors.
@@ -141,9 +166,9 @@ class SourceProcessor(object):
             tempY = yInUm + sizeXinPixel / 2 * pixelSizeInUm
 
         # Replace the value by the shifted one
-        if (tempX is not None):
+        if tempX is not None:
             focalPlaneData[0] = str(tempX)
-        elif (tempY is not None):
+        elif tempY is not None:
             focalPlaneData[1] = str(tempY)
 
     def _getDeblendDonutTypeInSetting(self):
@@ -167,7 +192,7 @@ class SourceProcessor(object):
             Abbreviated sensor name. (the default is None.)
         """
 
-        if (sensorName is not None):
+        if sensorName is not None:
             self.sensorName = sensorName
 
     def getEulerZinDeg(self, sensorName):
@@ -237,12 +262,14 @@ class SourceProcessor(object):
 
         # Calculate the transformed coordinate in degree.
         fieldX, fieldY = self._rotCam2FocalPlane(
-            self.sensorName, fieldXc, fieldYc, deltaX, deltaY)
+            self.sensorName, fieldXc, fieldYc, deltaX, deltaY
+        )
 
         return fieldX, fieldY
 
-    def _rotCam2FocalPlane(self, sensorName, centerX, centerY, deltaX, deltaY,
-                           clockWise=False):
+    def _rotCam2FocalPlane(
+        self, sensorName, centerX, centerY, deltaX, deltaY, clockWise=False
+    ):
         """Do the rotation from camera coordinate to focal plane coordinate or
         vice versa.
 
@@ -276,15 +303,13 @@ class SourceProcessor(object):
         eulerZinRad = np.deg2rad(eulerZ)
 
         # Counter-clockwise or clockwise rotation
-        if (clockWise):
+        if clockWise:
             eulerZinRad = -eulerZinRad
 
         # Calculate the new x, y by the rotation. This is important for
         # wavefront sensor.
-        newX = centerX + np.cos(eulerZinRad) * deltaX - \
-            np.sin(eulerZinRad) * deltaY
-        newY = centerY + np.sin(eulerZinRad) * deltaX + \
-            np.cos(eulerZinRad)*deltaY
+        newX = centerX + np.cos(eulerZinRad) * deltaX - np.sin(eulerZinRad) * deltaY
+        newY = centerY + np.sin(eulerZinRad) * deltaX + np.cos(eulerZinRad) * deltaY
 
         return newX, newY
 
@@ -381,15 +406,16 @@ class SourceProcessor(object):
 
         # Calculate the distance to center in degree to judge the donut is
         # vignetted or not.
-        fldr = np.sqrt(fieldX**2 + fieldY**2)
+        fldr = np.sqrt(fieldX ** 2 + fieldY ** 2)
         distVignette = self.settingFile.getSetting("distVignette")
-        if (fldr >= distVignette):
+        if fldr >= distVignette:
             return True
         else:
             return False
 
-    def simulateImg(self, imageFolderPath, defocalDis, nbrStar, filterType,
-                    noiseRatio=0.01):
+    def simulateImg(
+        self, imageFolderPath, defocalDis, nbrStar, filterType, noiseRatio=0.01
+    ):
         """Simulate the defocal CCD images with the neighboring star map.
 
         This function is only for the test use.
@@ -424,7 +450,7 @@ class SourceProcessor(object):
 
         # Generate the intra- and extra-focal ccd images
         d1, d2 = self.sensorDimList[self.sensorName]
-        ccdImgIntra = np.random.random([d2, d1])*noiseRatio
+        ccdImgIntra = np.random.random([d2, d1]) * noiseRatio
         ccdImgExtra = ccdImgIntra.copy()
 
         # Get all files in the image directory in a sorted order
@@ -445,23 +471,24 @@ class SourceProcessor(object):
             fileNameStr = fileName.split("_")
 
             # Find the file name with the correct defocal distance
-            if (len(fileNameStr) == 3 and fileNameStr[1] == defocalDis):
+            if len(fileNameStr) == 3 and fileNameStr[1] == defocalDis:
 
                 # Collect the file name based on the defocal type
-                if (fileNameStr[-1] == "intra"):
+                if fileNameStr[-1] == "intra":
                     intraFileList.append(afile)
-                elif (fileNameStr[-1] == "extra"):
+                elif fileNameStr[-1] == "extra":
                     extraFileList.append(afile)
 
         # Get the number of available files
         numFile = len(intraFileList)
-        if (numFile == 0):
+        if numFile == 0:
             raise ValueError("No available donut images.")
 
         # Check the numbers of intra- and extra-focal images should be the same
-        if (numFile != len(extraFileList)):
+        if numFile != len(extraFileList):
             raise ValueError(
-                "The numbers of intra- and extra-focal images are different.")
+                "The numbers of intra- and extra-focal images are different."
+            )
 
         # Get the magnitude of stars
         mappedFilterType = mapFilterRefToG(filterType)
@@ -475,9 +502,11 @@ class SourceProcessor(object):
 
             # Choose a random donut image from the file
             donutImageIntra = self._getDonutImgFromFile(
-                imageFolderPath, intraFileList[randNum])
+                imageFolderPath, intraFileList[randNum]
+            )
             donutImageExtra = self._getDonutImgFromFile(
-                imageFolderPath, extraFileList[randNum])
+                imageFolderPath, extraFileList[randNum]
+            )
 
             # Get the bright star magnitude
             magBS = starMag[brightStar]
@@ -504,10 +533,12 @@ class SourceProcessor(object):
                 magRatio = 1 / 100 ** (magDiff / 5.0)
 
                 # Add the donut image
-                self._addDonutImage(magRatio * donutImageIntra, starX, starY,
-                                    ccdImgIntra)
-                self._addDonutImage(magRatio * donutImageExtra, starX, starY,
-                                    ccdImgExtra)
+                self._addDonutImage(
+                    magRatio * donutImageIntra, starX, starY, ccdImgIntra
+                )
+                self._addDonutImage(
+                    magRatio * donutImageExtra, starX, starY, ccdImgExtra
+                )
 
         return ccdImgIntra, ccdImgExtra
 
@@ -553,8 +584,10 @@ class SourceProcessor(object):
         x = int(starX)
 
         # Add the donut image on the CCD image
-        ccdImg[y-int(d1/2):y-int(d1/2)+d1, x-int(d2/2):x-int(d2/2)+d2] += \
-            donutImage
+        ccdImg[
+            y - int(d1 / 2) : y - int(d1 / 2) + d1,
+            x - int(d2 / 2) : x - int(d2 / 2) + d2,
+        ] += donutImage
 
     def getSingleTargetImage(self, ccdImg, nbrStar, index, filterType):
         """Get the image of single scientific target and related neighboring
@@ -597,7 +630,7 @@ class SourceProcessor(object):
 
         # Get the target star position
         nbrStarId = nbrStar.getId()
-        if (index >= len(nbrStarId)):
+        if index >= len(nbrStarId):
             raise ValueError("Index is higher than the length of star map.")
 
         # Get the star SimobjID
@@ -645,9 +678,9 @@ class SourceProcessor(object):
 
         # Make d1 and d2 to be symmetric and even
         d = max(d1, d2)
-        if (d%2 == 1):
+        if d % 2 == 1:
             # Use d-1 instead of d+1 to avoid the boundary touch
-            d = d-1
+            d = d - 1
 
         # If central x or y plus d/2 will over the boundary, shift the
         # central x, y values
@@ -660,8 +693,9 @@ class SourceProcessor(object):
         # Get the bright star and neighboring stas image
         offsetX = cenX - d / 2
         offsetY = cenY - d / 2
-        singleSciNeiImg = \
-            ccdImg[int(offsetY):int(cenY + d / 2), int(offsetX):int(cenX + d / 2)]
+        singleSciNeiImg = ccdImg[
+            int(offsetY) : int(cenY + d / 2), int(offsetX) : int(cenX + d / 2)
+        ]
 
         # Get the stars position in the new coordinate system
         # The final one is the bright star
@@ -705,8 +739,8 @@ class SourceProcessor(object):
         delta = boundary - center
 
         # Shift the center if needed
-        if (abs(delta) < distance):
-            return boundary - np.sign(delta)*distance
+        if abs(delta) < distance:
+            return boundary - np.sign(delta) * distance
         else:
             return center
 
@@ -747,13 +781,12 @@ class SourceProcessor(object):
 
         # Check there is only one bright star and one neighboring star.
         # This is the limit of deblending algorithm now.
-        if (len(magRatio) != 2):
+        if len(magRatio) != 2:
             raise ValueError("Only one neighboring star allowed.")
 
         # Do the deblending
         iniGuessXY = [(allStarPosX[0], allStarPosY[0])]
-        imgDeblend, realcx, realcy = self.deblend.deblendDonut(blendedImg,
-                                                               iniGuessXY)
+        imgDeblend, realcx, realcy = self.deblend.deblendDonut(blendedImg, iniGuessXY)
 
         return imgDeblend, realcx, realcy
 

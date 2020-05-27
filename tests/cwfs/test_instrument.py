@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import unittest
@@ -16,8 +37,9 @@ class TestInstrument(unittest.TestCase):
         self.inst = Instrument(self.instDir)
         self.dimOfDonutOnSensor = 120
 
-        self.inst.config(CamType.LsstCam, self.dimOfDonutOnSensor,
-                         announcedDefocalDisInMm=1.5)
+        self.inst.config(
+            CamType.LsstCam, self.dimOfDonutOnSensor, announcedDefocalDisInMm=1.5
+        )
 
     def testConfigWithUnsupportedCamType(self):
 
@@ -102,33 +124,38 @@ class TestInstrument(unittest.TestCase):
     def testGetSensorCoor(self):
 
         xSensor, ySensor = self.inst.getSensorCoor()
-        self.assertEqual(xSensor.shape,
-                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertEqual(
+            xSensor.shape, (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor)
+        )
         self.assertAlmostEqual(xSensor[0, 0], -0.97857, places=5)
         self.assertAlmostEqual(xSensor[0, 1], -0.96212, places=5)
 
-        self.assertEqual(ySensor.shape,
-                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertEqual(
+            ySensor.shape, (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor)
+        )
         self.assertAlmostEqual(ySensor[0, 0], -0.97857, places=5)
         self.assertAlmostEqual(ySensor[1, 0], -0.96212, places=5)
 
     def testGetSensorCoorAnnular(self):
 
         xoSensor, yoSensor = self.inst.getSensorCoorAnnular()
-        self.assertEqual(xoSensor.shape,
-                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertEqual(
+            xoSensor.shape, (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor)
+        )
         self.assertTrue(np.isnan(xoSensor[0, 0]))
         self.assertTrue(np.isnan(xoSensor[60, 60]))
 
-        self.assertEqual(yoSensor.shape,
-                         (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor))
+        self.assertEqual(
+            yoSensor.shape, (self.dimOfDonutOnSensor, self.dimOfDonutOnSensor)
+        )
         self.assertTrue(np.isnan(yoSensor[0, 0]))
         self.assertTrue(np.isnan(yoSensor[60, 60]))
 
     def testCalcSizeOfDonutExpected(self):
 
-        self.assertAlmostEqual(self.inst.calcSizeOfDonutExpected(),
-                               121.60589604, places=7)
+        self.assertAlmostEqual(
+            self.inst.calcSizeOfDonutExpected(), 121.60589604, places=7
+        )
 
     def testDataAuxTel(self):
 
@@ -140,8 +167,7 @@ class TestInstrument(unittest.TestCase):
         self.assertEqual(inst.getApertureDiameter(), 1.2)
         self.assertEqual(inst.getDefocalDisOffset(), 0.0205)
         self.assertEqual(inst.getCamPixelSize(), 14.4e-6)
-        self.assertAlmostEqual(inst.calcSizeOfDonutExpected(),
-                               79.08950617, places=7)
+        self.assertAlmostEqual(inst.calcSizeOfDonutExpected(), 79.08950617, places=7)
 
 
 if __name__ == "__main__":

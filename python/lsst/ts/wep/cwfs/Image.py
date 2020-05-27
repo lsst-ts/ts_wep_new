@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 from astropy.io import fits
@@ -8,7 +29,6 @@ from lsst.ts.wep.cwfs.CentroidFindFactory import CentroidFindFactory
 
 
 class Image(object):
-
     def __init__(self, centroidFindType=CentroidFindType.RandomWalk):
         """Image class for wavefront estimation.
 
@@ -22,8 +42,7 @@ class Image(object):
         self.image = np.array([])
         self.imageFilePath = ""
 
-        self._centroidFind = CentroidFindFactory.createCentroidFind(
-            centroidFindType)
+        self._centroidFind = CentroidFindFactory.createCentroidFind(centroidFindType)
 
     def getCentroidFind(self):
         """Get the centroid find object.
@@ -70,11 +89,11 @@ class Image(object):
         """
 
         # Read the file if there is no input image
-        if (image is not None):
+        if image is not None:
             self.image = image
             self.imageFilePath = ""
         else:
-            if (imageFile is not None):
+            if imageFile is not None:
                 self.image = self._readImgFile(imageFile)
                 self.imageFilePath = imageFile
 
@@ -92,8 +111,8 @@ class Image(object):
             Image data.
         """
 
-        if (os.path.isfile(imageFile)):
-            if (imageFile.endswith((".fits", ".fits.gz"))):
+        if os.path.isfile(imageFile):
+            if imageFile.endswith((".fits", ".fits.gz")):
                 image = fits.getdata(imageFile)
             else:
                 image = np.loadtxt(imageFile)
@@ -116,9 +135,10 @@ class Image(object):
         """
 
         # Update the image
-        if (len(self.image) == 0):
-            warnings.warn("No 'image' is hold. Use setImg() instead.",
-                          category=UserWarning)
+        if len(self.image) == 0:
+            warnings.warn(
+                "No 'image' is hold. Use setImg() instead.", category=UserWarning
+            )
         else:
             self.image = image
 
@@ -140,7 +160,7 @@ class Image(object):
             Effective weighting radius.
         """
 
-        if (image is not None):
+        if image is not None:
             imgDonut = image
         else:
             imgDonut = self.image
@@ -158,8 +178,7 @@ class Image(object):
 
         # Get the signal binary image
         imgBinary = self._centroidFind.getImgBinary(self.image)
-        realcx, realcy, realR = self._centroidFind.getCenterAndRfromImgBinary(
-            imgBinary)
+        realcx, realcy, realR = self._centroidFind.getCenterAndRfromImgBinary(imgBinary)
 
         # Get the background binary img
         bgBinary = 1 - imgBinary

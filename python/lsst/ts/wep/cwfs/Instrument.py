@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 
@@ -6,7 +27,6 @@ from lsst.ts.wep.Utility import CamType
 
 
 class Instrument(object):
-
     def __init__(self, instDir):
         """Instrument class for wavefront estimation.
 
@@ -30,10 +50,14 @@ class Instrument(object):
         self.xoSensor = np.array([])
         self.yoSensor = np.array([])
 
-    def config(self, camType, dimOfDonutImgOnSensor,
-               announcedDefocalDisInMm=1.5,
-               instParamFileName="instParam.yaml",
-               maskMigrateFileName="maskMigrate.yaml"):
+    def config(
+        self,
+        camType,
+        dimOfDonutImgOnSensor,
+        announcedDefocalDisInMm=1.5,
+        instParamFileName="instParam.yaml",
+        maskMigrateFileName="maskMigrate.yaml",
+    ):
         """Do the configuration of Instrument.
 
         Parameters
@@ -88,11 +112,11 @@ class Instrument(object):
             Camera type is not supported.
         """
 
-        if (camType == CamType.LsstCam):
+        if camType == CamType.LsstCam:
             return "lsst"
-        elif (camType == CamType.ComCam):
+        elif camType == CamType.ComCam:
             return "comcam"
-        elif (camType == CamType.AuxTel):
+        elif camType == CamType.AuxTel:
             return "auxTel"
         else:
             raise ValueError("Camera type (%s) is not supported." % camType)
@@ -113,8 +137,9 @@ class Instrument(object):
 
         # 0.5 is the half of single pixel
         ySensorGrid, xSensorGrid = np.mgrid[
-            -(self.dimOfDonutImg/2-0.5):(self.dimOfDonutImg/2 + 0.5),
-            -(self.dimOfDonutImg/2-0.5):(self.dimOfDonutImg/2 + 0.5)]
+            -(self.dimOfDonutImg / 2 - 0.5) : (self.dimOfDonutImg / 2 + 0.5),
+            -(self.dimOfDonutImg / 2 - 0.5) : (self.dimOfDonutImg / 2 + 0.5),
+        ]
 
         sensorFactor = self.getSensorFactor()
         denominator = self.dimOfDonutImg / 2 / sensorFactor
@@ -130,8 +155,8 @@ class Instrument(object):
 
         # Get the position index that is out of annular aperature range
         obscuration = self.getObscuration()
-        r2Sensor = self.xSensor**2 + self.ySensor**2
-        idx = (r2Sensor > 1) | (r2Sensor < obscuration**2)
+        r2Sensor = self.xSensor ** 2 + self.ySensor ** 2
+        idx = (r2Sensor > 1) | (r2Sensor < obscuration ** 2)
 
         # Define the value to be NaN if it is not in pupul
         self.xoSensor[idx] = np.nan
@@ -267,7 +292,7 @@ class Instrument(object):
 
         focalLength = self.getFocalLength()
         apertureDiameter = self.getApertureDiameter()
-        marginalFL = np.sqrt(focalLength**2 - (apertureDiameter/2)**2)
+        marginalFL = np.sqrt(focalLength ** 2 - (apertureDiameter / 2) ** 2)
 
         return marginalFL
 
@@ -285,7 +310,8 @@ class Instrument(object):
         focalLength = self.getFocalLength()
         pixelSize = self.getCamPixelSize()
         sensorFactor = self.dimOfDonutImg / (
-            offset * apertureDiameter / focalLength / pixelSize)
+            offset * apertureDiameter / focalLength / pixelSize
+        )
 
         return sensorFactor
 

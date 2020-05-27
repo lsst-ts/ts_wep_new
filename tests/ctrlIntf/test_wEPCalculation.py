@@ -1,9 +1,36 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import unittest
 import tempfile
 
-from lsst.ts.wep.Utility import getModulePath, CamType, FilterType, \
-    runProgram, ImageType, BscDbType
+from lsst.ts.wep.Utility import (
+    getModulePath,
+    CamType,
+    FilterType,
+    runProgram,
+    ImageType,
+    BscDbType,
+)
 from lsst.ts.wep.ParamReader import ParamReader
 
 from lsst.ts.wep.ctrlIntf.WEPCalculation import WEPCalculation
@@ -24,8 +51,9 @@ class TestWEPCalculation(unittest.TestCase):
         self.dataDir = tempfile.TemporaryDirectory(dir=testDir)
         self.isrDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 
-        self.wepCalculation = WEPCalculation(AstWcsSol(), CamType.ComCam,
-                                             self.isrDir.name)
+        self.wepCalculation = WEPCalculation(
+            AstWcsSol(), CamType.ComCam, self.isrDir.name
+        )
 
     def tearDown(self):
 
@@ -42,8 +70,9 @@ class TestWEPCalculation(unittest.TestCase):
 
     def testGetBscDbType(self):
 
-        self.assertEqual(self.wepCalculation._getBscDbType(),
-                         BscDbType.LocalDbForStarFile)
+        self.assertEqual(
+            self.wepCalculation._getBscDbType(), BscDbType.LocalDbForStarFile
+        )
 
     def testGetIsrDir(self):
 
@@ -136,9 +165,9 @@ class TestWEPCalculation(unittest.TestCase):
 
     def testCalculateWavefrontErrorsWithoutExtraRawExpData(self):
 
-        self.assertRaises(ValueError,
-                          self.wepCalculation.calculateWavefrontErrors,
-                          RawExpData())
+        self.assertRaises(
+            ValueError, self.wepCalculation.calculateWavefrontErrors, RawExpData()
+        )
 
     def testCalculateWavefrontErrorsWithMultiVisit(self):
 
@@ -146,9 +175,12 @@ class TestWEPCalculation(unittest.TestCase):
         rawExpData.append(1, 0, "")
         rawExpData.append(2, 0, "")
 
-        self.assertRaises(ValueError,
-                          self.wepCalculation.calculateWavefrontErrors,
-                          rawExpData, rawExpData)
+        self.assertRaises(
+            ValueError,
+            self.wepCalculation.calculateWavefrontErrors,
+            rawExpData,
+            rawExpData,
+        )
 
     def testCalculateWavefrontErrors(self):
 
@@ -159,17 +191,16 @@ class TestWEPCalculation(unittest.TestCase):
 
     def _calculateWavefrontErrorsAndCheck(self):
 
-        comcamDataDir = os.path.join(self.testDataDir, "phosimOutput",
-                                     "realComCam")
+        comcamDataDir = os.path.join(self.testDataDir, "phosimOutput", "realComCam")
         rawExpData, extraRawExpData = self._prepareRawExpData(comcamDataDir)
 
         listOfWfErr = self.wepCalculation.calculateWavefrontErrors(
-            rawExpData, extraRawExpData=extraRawExpData)
+            rawExpData, extraRawExpData=extraRawExpData
+        )
 
         self.assertTrue(len(listOfWfErr), 2)
 
-        self.assertNotEqual(listOfWfErr[0].getSensorId(),
-                            listOfWfErr[1].getSensorId())
+        self.assertNotEqual(listOfWfErr[0].getSensorId(), listOfWfErr[1].getSensorId())
 
         for sensorWavefrontData in listOfWfErr:
             self._testSensorWavefrontData(sensorWavefrontData)

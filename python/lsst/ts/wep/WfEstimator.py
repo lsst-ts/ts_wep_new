@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.Algorithm import Algorithm
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
@@ -5,7 +26,6 @@ from lsst.ts.wep.Utility import DefocalType, CamType, CentroidFindType
 
 
 class WfEstimator(object):
-
     def __init__(self, instDir, algoDir):
         """Initialize the wavefront estimator class.
 
@@ -101,9 +121,16 @@ class WfEstimator(object):
 
         self.algo.reset()
 
-    def config(self, solver="exp", camType=CamType.LsstCam,
-               opticalModel="offAxis", defocalDisInMm=1.5, sizeInPix=120,
-               centroidFindType=CentroidFindType.RandomWalk, debugLevel=0):
+    def config(
+        self,
+        solver="exp",
+        camType=CamType.LsstCam,
+        opticalModel="offAxis",
+        defocalDisInMm=1.5,
+        sizeInPix=120,
+        centroidFindType=CentroidFindType.RandomWalk,
+        debugLevel=0,
+    ):
         """Configure the TIE solver.
 
         Parameters
@@ -147,13 +174,14 @@ class WfEstimator(object):
 
         # Update the instrument name
         self.sizeInPix = int(sizeInPix)
-        self.inst.config(camType, self.sizeInPix,
-                         announcedDefocalDisInMm=defocalDisInMm)
+        self.inst.config(
+            camType, self.sizeInPix, announcedDefocalDisInMm=defocalDisInMm
+        )
 
         self.algo.config(solver, self.inst, debugLevel=debugLevel)
 
         # Reset the centroid find algorithm if not the default one
-        if (centroidFindType != CentroidFindType.RandomWalk):
+        if centroidFindType != CentroidFindType.RandomWalk:
             self.imgIntra = CompensableImage(centroidFindType=centroidFindType)
             self.imgExtra = CompensableImage(centroidFindType=centroidFindType)
 
@@ -173,9 +201,9 @@ class WfEstimator(object):
             Path of image file. (the default is None.)
         """
 
-        if (defocalType == DefocalType.Intra):
+        if defocalType == DefocalType.Intra:
             img = self.imgIntra
-        elif (defocalType == DefocalType.Extra):
+        elif defocalType == DefocalType.Extra:
             img = self.imgExtra
 
         img.setImg(fieldXY, defocalType, image=image, imageFile=imageFile)
@@ -208,15 +236,17 @@ class WfEstimator(object):
         for img in (self.imgIntra, self.imgExtra):
             d1, d2 = img.getImg().shape
             if (d1 != self.sizeInPix) or (d2 != self.sizeInPix):
-                raise RuntimeError("Input image shape is (%d, %d), not required (%d, %d)" % (
-                    d1, d2, self.sizeInPix, self.sizeInPix))
+                raise RuntimeError(
+                    "Input image shape is (%d, %d), not required (%d, %d)"
+                    % (d1, d2, self.sizeInPix, self.sizeInPix)
+                )
 
         # Calculate the wavefront error.
         # Run cwfs
         self.algo.runIt(self.imgIntra, self.imgExtra, self.opticalModel, tol=tol)
 
         # Show the Zernikes Zn (n>=4)
-        if (showZer):
+        if showZer:
             self.algo.outZer4Up(showPlot=showPlot)
 
         return self.algo.getZer4UpInNm()

@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import subprocess
 import re
@@ -39,7 +60,7 @@ class FilterType(IntEnum):
             "i": FilterType.I,
             "z": FilterType.Z,
             "y": FilterType.Y,
-            "ref": FilterType.REF
+            "ref": FilterType.REF,
         }
         return string2Filter[char]
 
@@ -159,15 +180,15 @@ def runProgram(command, binDir=None, argstring=None):
     """
 
     # Directory of binary application
-    if (binDir is not None):
+    if binDir is not None:
         command = os.path.join(binDir, command)
 
     # Arguments for the program
-    if (argstring is not None):
-        command += (" " + argstring)
+    if argstring is not None:
+        command += " " + argstring
 
     # Call the program w/o arguments
-    if (subprocess.call(command, shell=True) != 0):
+    if subprocess.call(command, shell=True) != 0:
         raise RuntimeError("Error running: %s" % command)
 
 
@@ -229,7 +250,7 @@ def abbrevDectectorName(canonicalForm):
     m = re.match(r"R:(\d),(\d) S:(\d),(\d)(?:,([A,B]))?$", canonicalForm)
 
     # Raise error if the input does not match the form of regular expression
-    if (m is None):
+    if m is None:
         raise ValueError("Cannot parse canonical name %r" % (canonicalForm,))
 
     # Generate the abbreviated name
@@ -237,7 +258,7 @@ def abbrevDectectorName(canonicalForm):
 
     # Check the sensor is wavefront sensor or not
     subSensor = m.groups()[4]
-    if (subSensor is not None):
+    if subSensor is not None:
         # Label the WFS sensor
         abbrevName = abbrevName + "_C" + {"A": "0", "B": "1"}[subSensor]
 
@@ -321,8 +342,24 @@ def readPhoSimSettingData(folderPath, fileName, atype):
     pathToFile = os.path.join(folderPath, fileName)
 
     # Amplifier list (only list the scientific ccd here)
-    ampList = ["C00", "C01", "C02", "C03", "C04", "C05", "C06", "C07",
-               "C10", "C11", "C12", "C13", "C14", "C15", "C16", "C17"]
+    ampList = [
+        "C00",
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C10",
+        "C11",
+        "C12",
+        "C13",
+        "C14",
+        "C15",
+        "C16",
+        "C17",
+    ]
 
     # Open the file to read
     ccdData = {}
@@ -335,36 +372,36 @@ def readPhoSimSettingData(folderPath, fileName, atype):
 
         data = []
         # Analyze the sensor name to find the amplifier
-        if (fileName == "segmentation.txt"):
+        if fileName == "segmentation.txt":
 
             sensorNameStr = lineElement[0].split("_")
-            if (len(sensorNameStr) == 3):
+            if len(sensorNameStr) == 3:
                 if sensorNameStr[2] in ampList:
                     # Get the segmentation in txt file
-                    if (atype == "readOutDim"):
+                    if atype == "readOutDim":
                         # parallel prescan, serial overscan, serial prescan,
                         # parallel overscan (pixel)
                         data = lineElement[15:19]
-                    elif (atype == "darkCurrent"):
+                    elif atype == "darkCurrent":
                         data = lineElement[13:15]
 
-        elif (fileName == "focalplanelayout.txt"):
+        elif fileName == "focalplanelayout.txt":
 
             # Analyze the sensor name to make sure this line of data is
             # needed
             sensorNameStr = lineElement[0].split("_")
-            if (len(sensorNameStr) == 2 or len(sensorNameStr) == 3):
-                if (atype == "fieldCenter"):
+            if len(sensorNameStr) == 2 or len(sensorNameStr) == 3:
+                if atype == "fieldCenter":
                     # Collect the field center:
                     # x position (microns), y position (microns), pixel
                     # size (microns) number of x pixels, number of y pixels
                     data = lineElement[1:6]
-                elif (atype == "eulerRot"):
+                elif atype == "eulerRot":
                     # Collect the euler Rotation (degrees)
                     data = lineElement[10:13]
 
         # Collect the data
-        if (data):
+        if data:
             ccdData.update({lineElement[0]: data})
 
     # Close the file

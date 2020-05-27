@@ -1,9 +1,31 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit,
-               saveFilePath=None):
+def plotRaDecl(
+    wavefrontSensors, starMap, neighborStarMap, stddevSplit, saveFilePath=None
+):
     """Plot stars in (Ra, Dec) and label the candidate stars and neighboring
     stars.
 
@@ -33,8 +55,7 @@ def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit,
     allSensorX = np.array([])
     for detector, corners in wavefrontSensors.items():
         # Get the ra position on four corners
-        sensorX = np.array([corners[0][0], corners[1][0], corners[2][0],
-                            corners[3][0]])
+        sensorX = np.array([corners[0][0], corners[1][0], corners[2][0], corners[3][0]])
         allSensorX = np.append(allSensorX, sensorX)
 
     # Decide the sensors will cross RA=0 or not based on the standard deviation
@@ -53,7 +74,7 @@ def plotRaDecl(wavefrontSensors, starMap, neighborStarMap, stddevSplit,
     plt.ylabel("Decl (degree)")
 
     # Save the figure and close or just show the iamge
-    if (saveFilePath is not None):
+    if saveFilePath is not None:
         plt.savefig(saveFilePath, bbox_inches="tight")
         plt.close()
     else:
@@ -77,10 +98,22 @@ def _plotSingleRaDecl(wavefrontSensor, stars, neighboringStar, acrossRA0):
     """
 
     # Sensor corners in Ra, Decl
-    sensorX = np.array([wavefrontSensor[0][0], wavefrontSensor[1][0],
-                        wavefrontSensor[2][0], wavefrontSensor[3][0]])
-    sensorY = np.array([wavefrontSensor[0][1], wavefrontSensor[1][1],
-                        wavefrontSensor[2][1], wavefrontSensor[3][1]])
+    sensorX = np.array(
+        [
+            wavefrontSensor[0][0],
+            wavefrontSensor[1][0],
+            wavefrontSensor[2][0],
+            wavefrontSensor[3][0],
+        ]
+    )
+    sensorY = np.array(
+        [
+            wavefrontSensor[0][1],
+            wavefrontSensor[1][1],
+            wavefrontSensor[2][1],
+            wavefrontSensor[3][1],
+        ]
+    )
 
     # Star positions in Ra, Decl
     starX = stars.getRA()
@@ -107,17 +140,19 @@ def _plotSingleRaDecl(wavefrontSensor, stars, neighboringStar, acrossRA0):
             neighborStarMapY = np.append(neighborStarMapY, raDecl[star][1])
 
     # Shift the coordinates if sensors cross RA=0
-    if (acrossRA0):
+    if acrossRA0:
         # Shift Ra position for the plotting
         sensorX[np.where(sensorX > 180)] = sensorX[np.where(sensorX > 180)] - 360
-        if (len(starX)):
+        if len(starX):
             starX[np.where(starX > 180)] = starX[np.where(starX > 180)] - 360
-        if (len(neighborStarMapX)):
-            neighborStarMapX[np.where(neighborStarMapX > 180)] = \
+        if len(neighborStarMapX):
+            neighborStarMapX[np.where(neighborStarMapX > 180)] = (
                 neighborStarMapX[np.where(neighborStarMapX > 180)] - 360
-        if (len(candidateX)):
-            candidateX[np.where(candidateX > 180)] = \
+            )
+        if len(candidateX):
+            candidateX[np.where(candidateX > 180)] = (
                 candidateX[np.where(candidateX > 180)] - 360
+            )
 
     # Rearrange points to plot the quadrilateral
     sensorX, sensorY = _getQuadrilateral(sensorX, sensorY)
@@ -166,16 +201,14 @@ def _getQuadrilateral(Xvalues, Yvalues):
 
             b = Yvalues[0] - m * Xvalues[0]
 
-            dis1 = m * Xvalues[pair[ii - 1][0]] + b - \
-                Yvalues[pair[ii - 1][0]]
-            dis2 = m * Xvalues[pair[ii - 1][1]] + b - \
-                Yvalues[pair[ii - 1][1]]
+            dis1 = m * Xvalues[pair[ii - 1][0]] + b - Yvalues[pair[ii - 1][0]]
+            dis2 = m * Xvalues[pair[ii - 1][1]] + b - Yvalues[pair[ii - 1][1]]
 
             # Find the diagonal
-            if (dis1 * dis2 < 0):
+            if dis1 * dis2 < 0:
                 indexDiag = ii
 
-    if (indexDiag != -1):
+    if indexDiag != -1:
         Xtemp = Xvalues[2]
         Ytemp = Yvalues[2]
 
@@ -192,8 +225,7 @@ def _getQuadrilateral(Xvalues, Yvalues):
     return Xvalues, Yvalues
 
 
-def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None,
-                              saveFilePath=None):
+def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None, saveFilePath=None):
     """Plot stars in pixel and label the candidate stars and neighboring stars.
 
     Parameters
@@ -229,10 +261,8 @@ def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None,
 
         # Get the neighboring stars
         for star in neighboringStars:
-            neighborStarMapX = np.append(neighborStarMapX,
-                                         raDeclInPixel[star][0])
-            neighborStarMapY = np.append(neighborStarMapY,
-                                         raDeclInPixel[star][1])
+            neighborStarMapX = np.append(neighborStarMapX, raDeclInPixel[star][0])
+            neighborStarMapY = np.append(neighborStarMapY, raDeclInPixel[star][1])
 
     # Plot the figure
     plt.figure()
@@ -240,7 +270,7 @@ def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None,
     plt.plot(neighborStarMapX, neighborStarMapY, "go")
     plt.plot(candidateX, candidateY, "ro")
 
-    if (xyDim is not None):
+    if xyDim is not None:
         plt.xlim(0, xyDim[0])
         plt.ylim(0, xyDim[1])
 
@@ -248,7 +278,7 @@ def plotStarInPixelOnDetector(stars, neighboringStar, xyDim=None,
     plt.ylabel("y-Decl (pixel)")
 
     # Save the figure and close or just show the iamge
-    if (saveFilePath is not None):
+    if saveFilePath is not None:
         plt.savefig(saveFilePath, bbox_inches="tight")
         plt.close()
     else:

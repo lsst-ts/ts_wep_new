@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from lsst.ts.wep.bsc.LocalDatabase import LocalDatabase
@@ -22,14 +43,15 @@ class LocalDatabaseForStarFile(LocalDatabase):
         """
 
         tableName = self._getTableName(filterType)
-        if (self._tableIsInDb(tableName)):
+        if self._tableIsInDb(tableName):
             raise ValueError("%s exists in database already." % tableName)
 
         # Create the table
-        command = ("CREATE TABLE %s "
-                   "(id INTEGER PRIMARY KEY, simobjid INTEGER NOT NULL, "
-                   "ra REAL, decl REAL, %smag REAL, bright_star NUMERIC)"
-                   ) % (tableName, filterType.name.lower())
+        command = (
+            "CREATE TABLE %s "
+            "(id INTEGER PRIMARY KEY, simobjid INTEGER NOT NULL, "
+            "ra REAL, decl REAL, %smag REAL, bright_star NUMERIC)"
+        ) % (tableName, filterType.name.lower())
 
         self.cursor.execute(command)
 
@@ -56,7 +78,7 @@ class LocalDatabaseForStarFile(LocalDatabase):
         data = self.cursor.fetchall()
 
         # Check the table exists or not
-        if (len(data) == 0):
+        if len(data) == 0:
             return False
         else:
             return True
@@ -78,20 +100,21 @@ class LocalDatabaseForStarFile(LocalDatabase):
         skyData = np.loadtxt(skyFilePath, skiprows=skiprows)
 
         # Only consider the non-empty data
-        if (len(skyData) != 0):
+        if len(skyData) != 0:
 
             # Change to 2D array if the input is 1D array
-            if (skyData.ndim == 1):
+            if skyData.ndim == 1:
                 skyData = np.expand_dims(skyData, axis=0)
 
             # Add the star
             tableName = self._getTableName(filterType)
             for ii in range(len(skyData)):
                 # Insert data
-                command = ("INSERT INTO %s "
-                           "(simobjid, ra, decl, %smag, bright_star) "
-                           "VALUES (?, ?, ?, ?, ?)"
-                           ) % (tableName, filterType.name.lower())
+                command = (
+                    "INSERT INTO %s "
+                    "(simobjid, ra, decl, %smag, bright_star) "
+                    "VALUES (?, ?, ?, ?, ?)"
+                ) % (tableName, filterType.name.lower())
 
                 simobjID, ra, decl, mag = skyData[ii]
                 task = (int(simobjID), ra, decl, mag, 0)

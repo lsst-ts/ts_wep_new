@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import unittest
 
@@ -23,13 +44,20 @@ class TestLocalDatabase(unittest.TestCase):
         self.filterType = FilterType.G
 
         # Set up neighboring star map
-        stars = StarData([123, 456, 789], [0.1, 0.2, 0.3], [2.1, 2.2, 2.3],
-                         [2.0, 3.0, 4.0], [2.0, 3.0, 4.0], [2.0, 3.0, 4.0],
-                         [2.0, 3.0, 4.0], [2.0, 3.0, 4.0], [2.0, 3.0, 4.0])
+        stars = StarData(
+            [123, 456, 789],
+            [0.1, 0.2, 0.3],
+            [2.1, 2.2, 2.3],
+            [2.0, 3.0, 4.0],
+            [2.0, 3.0, 4.0],
+            [2.0, 3.0, 4.0],
+            [2.0, 3.0, 4.0],
+            [2.0, 3.0, 4.0],
+            [2.0, 3.0, 4.0],
+        )
         stars.setRaInPixel(stars.getRA() * 10)
         stars.setDeclInPixel(stars.getDecl() * 10)
-        self.neighboringStar = stars.getNeighboringStar(
-            [0], 3, self.filterType, 99)
+        self.neighboringStar = stars.getNeighboringStar([0], 3, self.filterType, 99)
 
     def tearDown(self):
 
@@ -41,9 +69,9 @@ class TestLocalDatabase(unittest.TestCase):
     def testQuery(self):
 
         self._insertData()
-        stars = self.localDatabase.query(self.filterType, [0, 2],
-                                         [0, 2.4], [0.4, 2],
-                                         [0.4, 2.4])
+        stars = self.localDatabase.query(
+            self.filterType, [0, 2], [0, 2.4], [0.4, 2], [0.4, 2.4]
+        )
 
         self.assertEqual(stars.getId().tolist(), [123, 456, 789])
         self.assertEqual(stars.getRA().tolist(), [0.1, 0.2, 0.3])
@@ -58,12 +86,12 @@ class TestLocalDatabase(unittest.TestCase):
 
         self._insertData()
         listID = self._getListId()
-        self.localDatabase.updateData(self.filterType, listID,
-                                      ["ra", "ra", "ra"],
-                                      [0.005, 359.98, 359.999])
-        self.localDatabase.updateData(self.filterType, listID,
-                                      ["decl", "decl", "decl"],
-                                      [-1.5, -1.5, -1.5])
+        self.localDatabase.updateData(
+            self.filterType, listID, ["ra", "ra", "ra"], [0.005, 359.98, 359.999]
+        )
+        self.localDatabase.updateData(
+            self.filterType, listID, ["decl", "decl", "decl"], [-1.5, -1.5, -1.5]
+        )
 
         stars = self._queryCrossRa0()
 
@@ -74,15 +102,14 @@ class TestLocalDatabase(unittest.TestCase):
 
     def _queryCrossRa0(self):
 
-        stars = self.localDatabase.query(self.filterType, [0.01, -1],
-                                         [359.99, -2], [0.01, -1],
-                                         [359.99, -2])
+        stars = self.localDatabase.query(
+            self.filterType, [0.01, -1], [359.99, -2], [0.01, -1], [359.99, -2]
+        )
         return stars
 
     def testSearchSimobjdID(self):
 
-        starData = self.localDatabase.searchSimobjdID(FilterType.U,
-                                                      [54408946])
+        starData = self.localDatabase.searchSimobjdID(FilterType.U, [54408946])
         self.assertEqual(len(starData), 1)
         self.assertEqual(starData[0][0], 2)
         self.assertEqual(starData[0][1], 359.732296)
@@ -90,8 +117,7 @@ class TestLocalDatabase(unittest.TestCase):
 
     def testSearchRaDecl(self):
 
-        starId = self.localDatabase.searchRaDecl(FilterType.U, 359.732296,
-                                                 63.053469)
+        starId = self.localDatabase.searchRaDecl(FilterType.U, 359.732296, 63.053469)
         self.assertEqual(starId[0], 2)
 
     def testInsertData(self):
@@ -116,20 +142,18 @@ class TestLocalDatabase(unittest.TestCase):
 
         self._insertData()
         listID = self._getListId()
-        self.localDatabase.updateData(self.filterType, listID,
-                                      ["ra", "ra", "ra"], [1.0, 2.0, 3.0])
+        self.localDatabase.updateData(
+            self.filterType, listID, ["ra", "ra", "ra"], [1.0, 2.0, 3.0]
+        )
 
-        oldDataId = self.localDatabase.searchRaDecl(self.filterType,
-                                                    0.2, 2.2)
-        newDataId = self.localDatabase.searchRaDecl(self.filterType,
-                                                    2.0, 2.2)
+        oldDataId = self.localDatabase.searchRaDecl(self.filterType, 0.2, 2.2)
+        newDataId = self.localDatabase.searchRaDecl(self.filterType, 2.0, 2.2)
         self.assertEqual(len(oldDataId), 0)
         self.assertEqual(len(newDataId), 1)
 
     def _getListId(self):
 
-        starData = self.localDatabase.searchSimobjdID(self.filterType,
-                                                      [123, 456, 789])
+        starData = self.localDatabase.searchSimobjdID(self.filterType, [123, 456, 789])
         listID = [starData[0][0], starData[1][0], starData[2][0]]
 
         return listID

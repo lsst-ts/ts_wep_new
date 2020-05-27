@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import sys
 import numpy as np
@@ -8,13 +29,17 @@ from scipy.ndimage.morphology import binary_dilation, binary_erosion
 
 from lsst.ts.wep.ParamReader import ParamReader
 from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.Tool import padArray, extractArray, ZernikeAnnularEval, \
-    ZernikeMaskedFit, ZernikeAnnularGrad
+from lsst.ts.wep.cwfs.Tool import (
+    padArray,
+    extractArray,
+    ZernikeAnnularEval,
+    ZernikeMaskedFit,
+    ZernikeAnnularGrad,
+)
 from lsst.ts.wep.PlotUtil import plotZernike
 
 
 class Algorithm(object):
-
     def __init__(self, algoDir):
         """Initialize the Algorithm class.
 
@@ -225,7 +250,7 @@ class Algorithm(object):
         """
 
         zobsR = self.algoParamFile.getSetting("obsOfZernikes")
-        if (zobsR == 1):
+        if zobsR == 1:
             zobsR = self._inst.getObscuration()
 
         return float(zobsR)
@@ -366,12 +391,12 @@ class Algorithm(object):
         fftDim = int(self.algoParamFile.getSetting("fftDimension"))
 
         # Make sure the dimension is the order of multiple of 2
-        if (fftDim == 999):
+        if fftDim == 999:
             dimToFit = self._inst.getDimOfDonutOnSensor()
         else:
             dimToFit = fftDim
 
-        padDim = int(2**np.ceil(np.log2(dimToFit)))
+        padDim = int(2 ** np.ceil(np.log2(dimToFit)))
 
         return padDim
 
@@ -517,11 +542,11 @@ class Algorithm(object):
         # To have the iteration time initiated from global variable is to
         # distinguish the manually and automatically iteration processes.
         itr = self.currentItr
-        while (itr <= self.getNumOfOuterItr()):
+        while itr <= self.getNumOfOuterItr():
             stopItr = self._singleItr(I1, I2, model, tol)
 
             # Stop the iteration of outer loop if converged
-            if (stopItr):
+            if stopItr:
                 break
 
             itr += 1
@@ -543,7 +568,7 @@ class Algorithm(object):
 
         #  Do the iteration
         ii = 0
-        while (ii < nItr):
+        while ii < nItr:
             self._singleItr(I1, I2, model)
             ii += 1
 
@@ -579,14 +604,16 @@ class Algorithm(object):
         feedbackGain = self.getFeedbackGain()
 
         # Set the pre-condition
-        if (self.currentItr == 0):
+        if self.currentItr == 0:
 
             # Check this is the first time of running iteration or not
-            if (I1.getImgInit() is None or I2.getImgInit() is None):
+            if I1.getImgInit() is None or I2.getImgInit() is None:
 
                 # Check the image dimension
-                if (I1.getImg().shape != I2.getImg().shape):
-                    print("Error: The intra and extra image stamps need to be of same size.")
+                if I1.getImg().shape != I2.getImg().shape:
+                    print(
+                        "Error: The intra and extra image stamps need to be of same size."
+                    )
                     sys.exit()
 
                 # Calculate the pupil mask (binary matrix) and related
@@ -597,7 +624,7 @@ class Algorithm(object):
                 self._makeMasterMask(I1, I2, self.getPoissonSolverName())
 
                 # Load the offAxis correction coefficients
-                if (model == "offAxis"):
+                if model == "offAxis":
                     offAxisPolyOrder = self.getOffAxisPolyOrder()
                     I1.setOffAxisCorr(self._inst, offAxisPolyOrder)
                     I2.setOffAxisCorr(self._inst, offAxisPolyOrder)
@@ -625,25 +652,25 @@ class Algorithm(object):
         jj = self.currentItr
 
         # Solve the transport of intensity equation (TIE)
-        if (not self.caustic):
+        if not self.caustic:
 
             # Reset the images before the compensation
             I1.updateImage(I1.getImgInit().copy())
             I2.updateImage(I2.getImgInit().copy())
 
-            if (compMode == "zer"):
+            if compMode == "zer":
 
                 # Zk coefficient from the previous iteration
                 ztmp = self.zc.copy()
 
                 # Do the feedback of Zk from the lower terms first based on the
                 # sequence defined in compSequence
-                if (jj != 0):
+                if jj != 0:
                     compSequence = self.getCompSequence()
-                    ztmp[int(compSequence[jj - 1]):] = 0
+                    ztmp[int(compSequence[jj - 1]) :] = 0
 
                 # Add partial feedback of residual estimated wavefront in Zk
-                self.zcomp = self.zcomp + ztmp*feedbackGain
+                self.zcomp = self.zcomp + ztmp * feedbackGain
 
                 # Remove the image distortion by forwarding the image to pupil
                 I1.compensate(self._inst, self, self.zcomp, model)
@@ -664,13 +691,16 @@ class Algorithm(object):
             self.zc, self.West = self._solvePoissonEq(I1, I2, jj)
 
             # Record/ calculate the Zk coefficient and wavefront
-            if (compMode == "zer"):
+            if compMode == "zer":
                 self.converge[:, jj] = self.zcomp + self.zc
 
                 xoSensor, yoSensor = self._inst.getSensorCoorAnnular()
                 self.wcomp = self.West + ZernikeAnnularEval(
-                    np.concatenate(([0, 0, 0], self.zcomp[3:])), xoSensor,
-                    yoSensor, self.getObsOfZernikes())
+                    np.concatenate(([0, 0, 0], self.zcomp[3:])),
+                    xoSensor,
+                    yoSensor,
+                    self.getObsOfZernikes(),
+                )
 
         else:
             # Once we run into caustic, stop here, results may be close to real
@@ -680,24 +710,26 @@ class Algorithm(object):
 
         # Record the coefficients of normal/ annular Zernike polynomials after
         # z4 in unit of nm
-        self.zer4UpNm = self.converge[3:, jj]*1e9
+        self.zer4UpNm = self.converge[3:, jj] * 1e9
 
         # Status of iteration
         stopItr = False
 
         # Calculate the difference
-        if (jj > 0):
-            diffZk = np.sum(np.abs(self.converge[:, jj]-self.converge[:, jj-1]))*1e9
+        if jj > 0:
+            diffZk = (
+                np.sum(np.abs(self.converge[:, jj] - self.converge[:, jj - 1])) * 1e9
+            )
 
             # Check the Status of iteration
-            if (diffZk < tol):
+            if diffZk < tol:
                 stopItr = True
 
         # Update the current iteration time
         self.currentItr += 1
 
         # Show the Zk coefficients in interger in each iteration
-        if (self.debugLevel >= 2):
+        if self.debugLevel >= 2:
             print("itr = %d, z4-z%d" % (jj, self.getNumOfZernikes()))
             print(np.rint(self.zer4UpNm))
 
@@ -732,16 +764,16 @@ class Algorithm(object):
         apertureDiameter = self._inst.getApertureDiameter()
         sensorFactor = self._inst.getSensorFactor()
         dimOfDonut = self._inst.getDimOfDonutOnSensor()
-        aperturePixelSize = apertureDiameter*sensorFactor/dimOfDonut
+        aperturePixelSize = apertureDiameter * sensorFactor / dimOfDonut
 
         # Calculate the differential Omega
-        dOmega = aperturePixelSize**2
+        dOmega = aperturePixelSize ** 2
 
         # Solve the Poisson's equation based on the type of algorithm
         numTerms = self.getNumOfZernikes()
         zobsR = self.getObsOfZernikes()
         PoissonSolver = self.getPoissonSolverName()
-        if (PoissonSolver == "fft"):
+        if PoissonSolver == "fft":
 
             # Use the differential method by fft to solve the Poisson's
             # equation
@@ -753,20 +785,29 @@ class Algorithm(object):
             # Generate the v, u-coordinates on pupil plane
             padDim = self.getFftDimension()
             v, u = np.mgrid[
-                -0.5/aperturePixelSize: 0.5/aperturePixelSize: 1./padDim/aperturePixelSize,
-                -0.5/aperturePixelSize: 0.5/aperturePixelSize: 1./padDim/aperturePixelSize]
+                -0.5
+                / aperturePixelSize : 0.5
+                / aperturePixelSize : 1.0
+                / padDim
+                / aperturePixelSize,
+                -0.5
+                / aperturePixelSize : 0.5
+                / aperturePixelSize : 1.0
+                / padDim
+                / aperturePixelSize,
+            ]
 
             # Show the threshold and pupil coordinate information
-            if (self.debugLevel >= 3):
+            if self.debugLevel >= 3:
                 print("iOuter=%d, cliplevel=%4.2f" % (iOutItr, cliplevel))
                 print(v.shape)
 
             # Calculate the const of fft:
             # FT{Delta W} = -4*pi^2*(u^2+v^2) * FT{W}
-            u2v2 = -4 * (np.pi**2) * (u*u + v*v)
+            u2v2 = -4 * (np.pi ** 2) * (u * u + v * v)
 
             # Set origin to Inf to result in 0 at origin after filtering
-            ctrIdx = int(np.floor(padDim/2.0))
+            ctrIdx = int(np.floor(padDim / 2.0))
             u2v2[ctrIdx, ctrIdx] = np.inf
 
             # Calculate the wavefront signal
@@ -779,10 +820,12 @@ class Algorithm(object):
             struct = generate_binary_structure(2, 1)
             struct = iterate_structure(struct, boundaryT)
 
-            ApringOut = np.logical_xor(binary_dilation(self.pMask, structure=struct),
-                                       self.pMask).astype(int)
-            ApringIn = np.logical_xor(binary_erosion(self.pMask, structure=struct),
-                                      self.pMask).astype(int)
+            ApringOut = np.logical_xor(
+                binary_dilation(self.pMask, structure=struct), self.pMask
+            ).astype(int)
+            ApringIn = np.logical_xor(
+                binary_erosion(self.pMask, structure=struct), self.pMask
+            ).astype(int)
 
             bordery, borderx = np.nonzero(ApringOut)
 
@@ -795,7 +838,9 @@ class Algorithm(object):
                 SFFT = np.fft.fftshift(np.fft.fft2(np.fft.fftshift(S)))
 
                 # Calculate W by W=IFT{ FT{S}/(-4*pi^2*(u^2+v^2)) }
-                W = np.fft.fftshift(np.fft.irfft2(np.fft.fftshift(SFFT/u2v2), s=S.shape))
+                W = np.fft.fftshift(
+                    np.fft.irfft2(np.fft.fftshift(SFFT / u2v2), s=S.shape)
+                )
 
                 # Estimate the wavefront (includes zeroing offset & masking to
                 # the aperture size)
@@ -814,21 +859,22 @@ class Algorithm(object):
                 # Do a 3x3 average around each border pixel, including only
                 # those pixels inside the aperture
                 for ii in range(len(borderx)):
-                    reg = West[borderx[ii] - boundaryT:
-                               borderx[ii] + boundaryT + 1,
-                               bordery[ii] - boundaryT:
-                               bordery[ii] + boundaryT + 1]
+                    reg = West[
+                        borderx[ii] - boundaryT : borderx[ii] + boundaryT + 1,
+                        bordery[ii] - boundaryT : bordery[ii] + boundaryT + 1,
+                    ]
 
-                    intersectIdx = ApringIn[borderx[ii] - boundaryT:
-                                            borderx[ii] + boundaryT + 1,
-                                            bordery[ii] - boundaryT:
-                                            bordery[ii] + boundaryT + 1]
+                    intersectIdx = ApringIn[
+                        borderx[ii] - boundaryT : borderx[ii] + boundaryT + 1,
+                        bordery[ii] - boundaryT : bordery[ii] + boundaryT + 1,
+                    ]
 
-                    WestdWdn0[borderx[ii], bordery[ii]] = \
-                        reg[np.nonzero(intersectIdx)].mean()
+                    WestdWdn0[borderx[ii], bordery[ii]] = reg[
+                        np.nonzero(intersectIdx)
+                    ].mean()
 
                 # Take Laplacian to find sensor signal estimate (Delta W = S)
-                del2W = laplace(WestdWdn0)/dOmega
+                del2W = laplace(WestdWdn0) / dOmega
 
                 # Extend the dimension of signal to the order of 2 for "fft" to
                 # use
@@ -842,14 +888,15 @@ class Algorithm(object):
                 S = Sest
 
             # Calculate the coefficient of normal/ annular Zernike polynomials
-            if (self.getCompensatorMode() == "zer"):
+            if self.getCompensatorMode() == "zer":
                 xSensor, ySensor = self._inst.getSensorCoor()
-                zc = ZernikeMaskedFit(West, xSensor, ySensor, numTerms,
-                                      self.pMask, zobsR)
+                zc = ZernikeMaskedFit(
+                    West, xSensor, ySensor, numTerms, self.pMask, zobsR
+                )
             else:
                 zc = np.zeros(numTerms)
 
-        elif (PoissonSolver == "exp"):
+        elif PoissonSolver == "exp":
 
             # Use the integration method by serial expansion to solve the
             # Poisson's equation
@@ -874,9 +921,16 @@ class Algorithm(object):
                 # Set the specific Zk cofficient to be 1 for the calculation
                 zcCol[ii] = 1
 
-                F[ii] = np.sum(dI*ZernikeAnnularEval(zcCol, xSensor, ySensor, zobsR))*dOmega
-                dZidx[ii, :, :] = ZernikeAnnularGrad(zcCol, xSensor, ySensor, zobsR, "dx")
-                dZidy[ii, :, :] = ZernikeAnnularGrad(zcCol, xSensor, ySensor, zobsR, "dy")
+                F[ii] = (
+                    np.sum(dI * ZernikeAnnularEval(zcCol, xSensor, ySensor, zobsR))
+                    * dOmega
+                )
+                dZidx[ii, :, :] = ZernikeAnnularGrad(
+                    zcCol, xSensor, ySensor, zobsR, "dx"
+                )
+                dZidy[ii, :, :] = ZernikeAnnularGrad(
+                    zcCol, xSensor, ySensor, zobsR, "dy"
+                )
 
                 # Set the specific Zk cofficient back to 0 to avoid interfering
                 # other Zk's calculation
@@ -887,14 +941,19 @@ class Algorithm(object):
             Mij = np.zeros([numTerms, numTerms])
             for ii in range(numTerms):
                 for jj in range(numTerms):
-                    Mij[ii, jj] = np.sum(I0*(dZidx[ii, :, :].squeeze()*dZidx[jj, :, :].squeeze() +
-                                             dZidy[ii, :, :].squeeze()*dZidy[jj, :, :].squeeze()))
-            Mij = dOmega/(apertureDiameter/2.)**2 * Mij
+                    Mij[ii, jj] = np.sum(
+                        I0
+                        * (
+                            dZidx[ii, :, :].squeeze() * dZidx[jj, :, :].squeeze()
+                            + dZidy[ii, :, :].squeeze() * dZidy[jj, :, :].squeeze()
+                        )
+                    )
+            Mij = dOmega / (apertureDiameter / 2.0) ** 2 * Mij
 
             # Calculate dz
             focalLength = self._inst.getFocalLength()
             offset = self._inst.getDefocalDisOffset()
-            dz = 2*focalLength*(focalLength-offset)/offset
+            dz = 2 * focalLength * (focalLength - offset) / offset
 
             # Define zc
             zc = np.zeros(numTerms)
@@ -903,13 +962,14 @@ class Algorithm(object):
             idx = self.getZernikeTerms()
 
             # Solve the equation: M*W = F => W = M^(-1)*F
-            zc_tmp = np.linalg.lstsq(Mij[:, idx][idx], F[idx], rcond=None)[0]/dz
+            zc_tmp = np.linalg.lstsq(Mij[:, idx][idx], F[idx], rcond=None)[0] / dz
             zc[idx] = zc_tmp
 
             # Estimate the wavefront surface based on z4 - z22
             # z0 - z3 are set to be 0 instead
-            West = ZernikeAnnularEval(np.concatenate(([0, 0, 0], zc[3:])),
-                                      xSensor, ySensor, zobsR)
+            West = ZernikeAnnularEval(
+                np.concatenate(([0, 0, 0], zc[3:])), xSensor, ySensor, zobsR
+            )
 
         return zc, West
 
@@ -953,27 +1013,27 @@ class Algorithm(object):
 
         low = pixelList.min()
         high = pixelList.max()
-        medianThreshold = (high-low)/2. + low
+        medianThreshold = (high - low) / 2.0 + low
 
         # Define the effective minimum central signal element
-        den[den < medianThreshold*cliplevel] = 1.5*medianThreshold
+        den[den < medianThreshold * cliplevel] = 1.5 * medianThreshold
 
         # Calculate delta z = f(f-l)/l, f: focal length, l: defocus distance of
         # the image planes
         focalLength = self._inst.getFocalLength()
         offset = self._inst.getDefocalDisOffset()
-        deltaZ = focalLength*(focalLength-offset)/offset
+        deltaZ = focalLength * (focalLength - offset) / offset
 
         # Calculate the wavefront signal. Enforce the element outside the mask
         # to be 0.
         den[den == 0] = np.inf
 
         # Calculate the wavefront signal
-        S = num/den/deltaZ
+        S = num / den / deltaZ
 
         # Extend the dimension of signal to the order of 2 for "fft" to use
         padDim = self.getFftDimension()
-        Sout = padArray(S, padDim)*self.cMaskPad
+        Sout = padArray(S, padDim) * self.cMaskPad
 
         return Sout
 
@@ -1004,8 +1064,8 @@ class Algorithm(object):
         I1image, I2image = self._checkImageDim(I1, I2)
 
         # Calculate the central image and differential iamge
-        I0 = (I1image+I2image)/2
-        dI = I2image-I1image
+        I0 = (I1image + I2image) / 2
+        dI = I2image - I1image
 
         return I0, dI
 
@@ -1041,10 +1101,10 @@ class Algorithm(object):
         m1, n1 = I1.getImg().shape
         m2, n2 = I2.getImg().shape
 
-        if (m1 != n1 or m2 != n2):
+        if m1 != n1 or m2 != n2:
             raise Exception("Image is not square.")
 
-        if (m1 != m2 or n1 != n2):
+        if m1 != m2 or n1 != n2:
             raise Exception("Images do not have the same size.")
 
         # Define I1
@@ -1078,7 +1138,7 @@ class Algorithm(object):
         self.cMask = I1.getNonPaddedMask() * I2.getNonPaddedMask()
 
         # Change the dimension of image for fft to use
-        if (poissonSolver == "fft"):
+        if poissonSolver == "fft":
             padDim = self.getFftDimension()
             self.pMaskPad = padArray(self.pMask, padDim)
             self.cMaskPad = padArray(self.cMask, padDim)
@@ -1108,18 +1168,18 @@ class Algorithm(object):
         """
 
         # Get the overlap region of images and do the normalization.
-        if (I1.getFieldXY() != I2.getFieldXY()):
+        if I1.getFieldXY() != I2.getFieldXY():
 
             # Get the overlap region of image
-            I1.updateImage(I1.getImg()*self.pMask)
+            I1.updateImage(I1.getImg() * self.pMask)
 
             # Rotate the pMask by 180 degree through rotating two times of 90
             # degree because I2 has been rotated by 180 degree already.
-            I2.updateImage(I2.getImg()*np.rot90(self.pMask, 2))
+            I2.updateImage(I2.getImg() * np.rot90(self.pMask, 2))
 
             # Do the normalization of image.
-            I1.updateImage(I1.getImg()/np.sum(I1.getImg()))
-            I2.updateImage(I2.getImg()/np.sum(I2.getImg()))
+            I1.updateImage(I1.getImg() / np.sum(I1.getImg()))
+            I2.updateImage(I2.getImg() / np.sum(I2.getImg()))
 
         # Return the correct images. It is noted that there is no need of
         # vignetting correction.
@@ -1141,7 +1201,7 @@ class Algorithm(object):
         self.currentItr = 0
 
         # Show the reset information
-        if (self.debugLevel >= 3):
+        if self.debugLevel >= 3:
             print("Resetting images: I1 and I2")
 
         # Determine to reset the images or not based on the existence of
@@ -1153,12 +1213,12 @@ class Algorithm(object):
             I2.updateImage(I2.getImgInit().copy())
 
             # Show the information of resetting image
-            if (self.debugLevel >= 3):
+            if self.debugLevel >= 3:
                 print("Resetting images in inside.")
 
         except AttributeError:
             # Show the information of no image0
-            if (self.debugLevel >= 3):
+            if self.debugLevel >= 3:
                 print("Image0 = None. This is the first time to run the code.")
 
             pass
@@ -1179,37 +1239,57 @@ class Algorithm(object):
         """
 
         # List of Zn,m
-        Znm = ["Z0,0", "Z1,1", "Z1,-1", "Z2,0", "Z2,-2", "Z2,2", "Z3,-1",
-               "Z3,1", "Z3,-3", "Z3,3", "Z4,0", "Z4,2", "Z4,-2", "Z4,4",
-               "Z4,-4", "Z5,1", "Z5,-1", "Z5,3", "Z5,-3", "Z5,5", "Z5,-5",
-               "Z6,0"]
+        Znm = [
+            "Z0,0",
+            "Z1,1",
+            "Z1,-1",
+            "Z2,0",
+            "Z2,-2",
+            "Z2,2",
+            "Z3,-1",
+            "Z3,1",
+            "Z3,-3",
+            "Z3,3",
+            "Z4,0",
+            "Z4,2",
+            "Z4,-2",
+            "Z4,4",
+            "Z4,-4",
+            "Z5,1",
+            "Z5,-1",
+            "Z5,3",
+            "Z5,-3",
+            "Z5,5",
+            "Z5,-5",
+            "Z6,0",
+        ]
 
         # Decide the format of z based on the input unit (m, nm, or um)
-        if (unit == "m"):
-            z = self.zer4UpNm*1e-9
-        elif (unit == "nm"):
+        if unit == "m":
+            z = self.zer4UpNm * 1e-9
+        elif unit == "nm":
             z = self.zer4UpNm
-        elif (unit == "um"):
-            z = self.zer4UpNm*1e-3
+        elif unit == "um":
+            z = self.zer4UpNm * 1e-3
         else:
             print("Unknown unit: %s" % unit)
             print("Unit options are: m, nm, um")
             return
 
         # Write the coefficients into a file if needed.
-        if (filename is not None):
+        if filename is not None:
             f = open(filename, "w")
         else:
             f = sys.stdout
 
-        for ii in range(4, len(z)+4):
-            f.write("Z%d (%s)\t %8.3f\n" % (ii, Znm[ii-1], z[ii-4]))
+        for ii in range(4, len(z) + 4):
+            f.write("Z%d (%s)\t %8.3f\n" % (ii, Znm[ii - 1], z[ii - 4]))
 
         # Close the file
-        if (filename is not None):
+        if filename is not None:
             f.close()
 
         # Show the plot
-        if (showPlot):
+        if showPlot:
             zkIdx = range(4, len(z) + 4)
             plotZernike(zkIdx, z, unit)

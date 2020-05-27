@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import unittest
@@ -46,14 +67,16 @@ class TestCompensableImage(unittest.TestCase):
         dimOfDonutOnSensor = 120
 
         self.inst = Instrument(instDir)
-        self.inst.config(CamType.LsstCam, dimOfDonutOnSensor,
-                         announcedDefocalDisInMm=1.0)
+        self.inst.config(
+            CamType.LsstCam, dimOfDonutOnSensor, announcedDefocalDisInMm=1.0
+        )
 
         # Define the image folder and image names
         # Image data -- Don't know the final image format.
         # It is noted that image.readFile inuts is based on the txt file
-        imageFolderPath = os.path.join(modulePath, "tests", "testData",
-                                       "testImages", "LSST_NE_SN25")
+        imageFolderPath = os.path.join(
+            modulePath, "tests", "testData", "testImages", "LSST_NE_SN25"
+        )
         intra_image_name = "z11_0.25_intra.txt"
         extra_image_name = "z11_0.25_extra.txt"
         self.imgFilePathIntra = os.path.join(imageFolderPath, intra_image_name)
@@ -67,8 +90,14 @@ class TestCompensableImage(unittest.TestCase):
 
         # Get the true Zk
         zcAnsFilePath = os.path.join(
-            modulePath, "tests", "testData", "testImages", "validation",
-            "simulation", "LSST_NE_SN25_z11_0.25_exp.txt")
+            modulePath,
+            "tests",
+            "testData",
+            "testImages",
+            "validation",
+            "simulation",
+            "LSST_NE_SN25_z11_0.25_exp.txt",
+        )
         self.zcCol = np.loadtxt(zcAnsFilePath)
 
         self.wfsImg = CompensableImage()
@@ -135,8 +164,9 @@ class TestCompensableImage(unittest.TestCase):
 
     def _setIntraImg(self):
 
-        self.wfsImg.setImg(self.fieldXY, DefocalType.Intra,
-                           imageFile=self.imgFilePathIntra)
+        self.wfsImg.setImg(
+            self.fieldXY, DefocalType.Intra, imageFile=self.imgFilePathIntra
+        )
 
     def testUpdateImage(self):
 
@@ -175,14 +205,16 @@ class TestCompensableImage(unittest.TestCase):
         boundaryT = 8
         offAxisCorrOrder = 10
         zcCol = np.zeros(22)
-        zcCol[3:] = self.zcCol*1e-9
+        zcCol[3:] = self.zcCol * 1e-9
 
         wfsImgIntra = CompensableImage()
         wfsImgExtra = CompensableImage()
-        wfsImgIntra.setImg(self.fieldXY, DefocalType.Intra,
-                           imageFile=self.imgFilePathIntra,)
-        wfsImgExtra.setImg(self.fieldXY, DefocalType.Extra,
-                           imageFile=self.imgFilePathExtra)
+        wfsImgIntra.setImg(
+            self.fieldXY, DefocalType.Intra, imageFile=self.imgFilePathIntra,
+        )
+        wfsImgExtra.setImg(
+            self.fieldXY, DefocalType.Extra, imageFile=self.imgFilePathExtra
+        )
 
         for wfsImg in [wfsImgIntra, wfsImgExtra]:
             wfsImg.makeMask(self.inst, self.opticalModel, boundaryT, 1)
@@ -215,10 +247,10 @@ class TestCompensableImage(unittest.TestCase):
         img = np.roll(np.roll(template, dx, axis=1), dy, axis=0)
         np.roll(np.roll(img, dx, axis=1), dy, axis=0)
 
-        self.assertGreater(np.sum(np.abs(img-template)), 29)
+        self.assertGreater(np.sum(np.abs(img - template)), 29)
 
         imgRecenter = self.wfsImg.centerOnProjection(img, template, window=20)
-        self.assertLess(np.sum(np.abs(imgRecenter-template)), 1e-7)
+        self.assertLess(np.sum(np.abs(imgRecenter - template)), 1e-7)
 
     def _prepareGaussian2D(self, imgSize, sigma):
 
@@ -227,8 +259,11 @@ class TestCompensableImage(unittest.TestCase):
 
         xx, yy = np.meshgrid(x, y)
 
-        return (1/(2*np.pi*sigma**2) * np.exp(-(xx**2/(2*sigma**2) +
-                                                yy**2/(2*sigma**2))))
+        return (
+            1
+            / (2 * np.pi * sigma ** 2)
+            * np.exp(-(xx ** 2 / (2 * sigma ** 2) + yy ** 2 / (2 * sigma ** 2)))
+        )
 
     def testSetOffAxisCorr(self):
 
@@ -250,7 +285,7 @@ class TestCompensableImage(unittest.TestCase):
         masklist = self.wfsImg.makeMaskList(self.inst, model)
 
         masklistAns = np.array([[0, 0, 1, 1], [0, 0, 0.61, 0]])
-        self.assertEqual(np.sum(np.abs(masklist-masklistAns)), 0)
+        self.assertEqual(np.sum(np.abs(masklist - masklistAns)), 0)
 
     def testMakeMaskListOfOffAxis(self):
 
@@ -259,10 +294,15 @@ class TestCompensableImage(unittest.TestCase):
         model = "offAxis"
         masklist = self.wfsImg.makeMaskList(self.inst, model)
 
-        masklistAns = np.array([[0, 0, 1, 1], [0, 0, 0.61, 0],
-                                [-0.21240585, -0.21240585, 1.2300922, 1],
-                                [-0.08784336, -0.08784336, 0.55802573, 0]])
-        self.assertAlmostEqual(np.sum(np.abs(masklist-masklistAns)), 0)
+        masklistAns = np.array(
+            [
+                [0, 0, 1, 1],
+                [0, 0, 0.61, 0],
+                [-0.21240585, -0.21240585, 1.2300922, 1],
+                [-0.08784336, -0.08784336, 0.55802573, 0],
+            ]
+        )
+        self.assertAlmostEqual(np.sum(np.abs(masklist - masklistAns)), 0)
 
     def testMakeMask(self):
 

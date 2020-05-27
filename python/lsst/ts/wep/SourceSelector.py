@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 
 from lsst.ts.wep.bsc.Filter import Filter
@@ -9,7 +30,6 @@ from lsst.ts.wep.ParamReader import ParamReader
 
 
 class SourceSelector(object):
-
     def __init__(self, camType, bscDbType, settingFileName="default.yaml"):
         """Initialize the source selector class.
 
@@ -37,11 +57,13 @@ class SourceSelector(object):
         starRadiusInPixel = self.settingFile.getSetting("starRadiusInPixel")
         spacingCoefficient = self.settingFile.getSetting("spacingCoef")
         maxNeighboringStar = self.settingFile.getSetting("maxNumOfNbrStar")
-        self.configNbrCriteria(starRadiusInPixel, spacingCoefficient,
-                               maxNeighboringStar=maxNeighboringStar)
+        self.configNbrCriteria(
+            starRadiusInPixel, spacingCoefficient, maxNeighboringStar=maxNeighboringStar
+        )
 
-    def configNbrCriteria(self, starRadiusInPixel, spacingCoefficient,
-                          maxNeighboringStar=0):
+    def configNbrCriteria(
+        self, starRadiusInPixel, spacingCoefficient, maxNeighboringStar=0
+    ):
         """Set the neighboring star criteria to decide the scientific target.
 
         Parameters
@@ -148,9 +170,13 @@ class SourceSelector(object):
         for detector, wavefrontSensor in wavefrontSensors.items():
 
             # Get stars in this wavefront sensor for this observation field
-            stars = self.db.query(mappedFilterType, wavefrontSensor[0],
-                                  wavefrontSensor[1], wavefrontSensor[2],
-                                  wavefrontSensor[3])
+            stars = self.db.query(
+                mappedFilterType,
+                wavefrontSensor[0],
+                wavefrontSensor[1],
+                wavefrontSensor[2],
+                wavefrontSensor[3],
+            )
 
             # Set the detector information for the stars
             stars.setDetector(detector)
@@ -164,23 +190,25 @@ class SourceSelector(object):
 
             # Check the candidate of bright stars based on the magnitude
             indexCandidate = starsOnDet.checkCandidateStars(
-                mappedFilterType, lowMagnitude, highMagnitude)
+                mappedFilterType, lowMagnitude, highMagnitude
+            )
 
             # Determine the neighboring stars based on the distance and
             # allowed number of neighboring stars
             neighborStar = starsOnDet.getNeighboringStar(
-                indexCandidate, self.maxDistance, mappedFilterType,
-                self.maxNeighboringStar)
+                indexCandidate,
+                self.maxDistance,
+                mappedFilterType,
+                self.maxNeighboringStar,
+            )
             neighborStarMap[detector] = neighborStar
 
         # Remove the data that has no bright star
-        self._rmDataWithoutBrightStar(neighborStarMap, starMap,
-                                      wavefrontSensors)
+        self._rmDataWithoutBrightStar(neighborStarMap, starMap, wavefrontSensors)
 
         return neighborStarMap, starMap, wavefrontSensors
 
-    def _rmDataWithoutBrightStar(self, neighborStarMap, starMap,
-                                 wavefrontSensors):
+    def _rmDataWithoutBrightStar(self, neighborStarMap, starMap, wavefrontSensors):
         """Remove the data that has no bright stars on the detector.
 
         The data in inputs will be changed directly.
@@ -200,7 +228,7 @@ class SourceSelector(object):
         # Collect the sensor list without the bright star
         noStarSensorList = []
         for detector, stars in neighborStarMap.items():
-            if (len(stars.getId()) == 0):
+            if len(stars.getId()) == 0:
                 noStarSensorList.append(detector)
 
         # Remove the data in map
@@ -240,7 +268,7 @@ class SourceSelector(object):
             The database type is incorrect.
         """
 
-        if (not isinstance(self.db, LocalDatabaseForStarFile)):
+        if not isinstance(self.db, LocalDatabaseForStarFile):
             raise TypeError("The database type is incorrect.")
 
         # Map the reference filter to the G filter

@@ -1,3 +1,25 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 class RawExpData(object):
     """Raw exposure data class to populate the raw exposure data."""
 
@@ -23,10 +45,10 @@ class RawExpData(object):
             Raw exposure directory in the local disk.
         """
 
-        if (self._isNotNegative(visit)):
+        if self._isNotNegative(visit):
             self.visit.append(int(visit))
 
-        if (self._isNotNegative(snap)):
+        if self._isNotNegative(snap):
             self.snap.append(int(snap))
 
         self.rawExpDir.append(rawExpDir)
@@ -51,7 +73,7 @@ class RawExpData(object):
         """
 
         isNotNegative = False
-        if (value >= 0):
+        if value >= 0:
             isNotNegative = True
         else:
             raise ValueError("The input value should be >= 0.")

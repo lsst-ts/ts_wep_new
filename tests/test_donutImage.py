@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 import unittest
 
@@ -14,8 +35,9 @@ class TestDonutImage(unittest.TestCase):
         self.pixelY = 2
         self.fieldX = 3
         self.fieldY = 4
-        self.donutImg = DonutImage(self.starId, self.pixelX, self.pixelY,
-                                   self.fieldX, self.fieldY)
+        self.donutImg = DonutImage(
+            self.starId, self.pixelX, self.pixelY, self.fieldX, self.fieldY
+        )
 
     def testGetStarId(self):
 
@@ -45,7 +67,7 @@ class TestDonutImage(unittest.TestCase):
         self.donutImg.setWfErr(wfErr)
 
         recordedWfErr = self.donutImg.getWfErr()
-        self.assertEqual(np.sum(np.abs(recordedWfErr-wfErr)), 0)
+        self.assertEqual(np.sum(np.abs(recordedWfErr - wfErr)), 0)
 
 
 if __name__ == "__main__":

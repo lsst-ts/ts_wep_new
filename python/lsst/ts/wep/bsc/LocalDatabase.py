@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import sqlite3
 import numpy as np
 
@@ -46,10 +67,14 @@ class LocalDatabase(DefaultDatabase):
 
         # Do the query
         tableName = self._getTableName(filterType)
-        command = "SELECT simobjid, ra, decl, " + \
-                  filterType.name.lower() + "mag" + \
-                  " FROM " + tableName + \
-                  " WHERE decl <= %f AND decl >= %f AND ra >= %f AND ra <= %f"
+        command = (
+            "SELECT simobjid, ra, decl, "
+            + filterType.name.lower()
+            + "mag"
+            + " FROM "
+            + tableName
+            + " WHERE decl <= %f AND decl >= %f AND ra >= %f AND ra <= %f"
+        )
         query = command % (top, bottom, left, right)
         self.cursor.execute(query)
 
@@ -71,26 +96,35 @@ class LocalDatabase(DefaultDatabase):
             ra.append(item[1])
             decl.append(item[2])
 
-            if (filterType == FilterType.U):
+            if filterType == FilterType.U:
                 lsstMagU.append(item[3])
 
-            elif (filterType == FilterType.G):
+            elif filterType == FilterType.G:
                 lsstMagG.append(item[3])
 
-            elif (filterType == FilterType.R):
+            elif filterType == FilterType.R:
                 lsstMagR.append(item[3])
 
-            elif (filterType == FilterType.I):
+            elif filterType == FilterType.I:
                 lsstMagI.append(item[3])
 
-            elif (filterType == FilterType.Z):
+            elif filterType == FilterType.Z:
                 lsstMagZ.append(item[3])
 
-            elif (filterType == FilterType.Y):
+            elif filterType == FilterType.Y:
                 lsstMagY.append(item[3])
 
-        return StarData(simobjid, ra, decl, lsstMagU, lsstMagG, lsstMagR,
-                        lsstMagI, lsstMagZ, lsstMagY)
+        return StarData(
+            simobjid,
+            ra,
+            decl,
+            lsstMagU,
+            lsstMagG,
+            lsstMagR,
+            lsstMagI,
+            lsstMagZ,
+            lsstMagY,
+        )
 
     def _getTableName(self, filterType):
         """Get the table name.
@@ -127,9 +161,14 @@ class LocalDatabase(DefaultDatabase):
 
         # Search the simobjid data
         tableName = self._getTableName(filterType)
-        command = "SELECT id, ra, decl From " + tableName + \
-                  " WHERE simobjid in" + \
-                  " (" + ', '.join(str(ID) for ID in listID) + ")"
+        command = (
+            "SELECT id, ra, decl From "
+            + tableName
+            + " WHERE simobjid in"
+            + " ("
+            + ", ".join(str(ID) for ID in listID)
+            + ")"
+        )
         self.cursor.execute(command)
 
         return self.cursor.fetchall()
@@ -154,8 +193,7 @@ class LocalDatabase(DefaultDatabase):
 
         # Compare ra and decl to see the existance of star in database
         tableName = self._getTableName(filterType)
-        command = "SELECT id FROM " + tableName + \
-                  " WHERE ra = %f AND decl = %f"
+        command = "SELECT id FROM " + tableName + " WHERE ra = %f AND decl = %f"
         query = command % (ra, decl)
         self.cursor.execute(query)
 
@@ -202,7 +240,7 @@ class LocalDatabase(DefaultDatabase):
         existIdList = []
         for ii in range(len(brightStarList)):
             raDec = neighborStarMap.getRaDecl()[brightStarList[ii]]
-            if (self.searchRaDecl(filterType, raDec[0], raDec[1])):
+            if self.searchRaDecl(filterType, raDec[0], raDec[1]):
                 existIdList.append(brightStarList[ii])
 
         # Collect the lists not in database yet.
@@ -224,9 +262,14 @@ class LocalDatabase(DefaultDatabase):
         for simobjID in allStarList:
 
             # Insert data
-            command = "INSERT INTO " + tableName + " (simobjid, ra, decl, " + \
-                      filterType.name.lower() + "mag, bright_star) " + \
-                      "VALUES (?, ?, ?, ?, ?)"
+            command = (
+                "INSERT INTO "
+                + tableName
+                + " (simobjid, ra, decl, "
+                + filterType.name.lower()
+                + "mag, bright_star) "
+                + "VALUES (?, ?, ?, ?, ?)"
+            )
 
             raDec = neighborStarMap.getRaDecl()[simobjID]
             mag = neighborStarMap.getMag(filterType)[simobjID]
@@ -243,8 +286,7 @@ class LocalDatabase(DefaultDatabase):
         # Commit the change to database
         self.connection.commit()
 
-    def updateData(self, filterType, listID, listOfItemToChange,
-                   listOfNewValue):
+    def updateData(self, filterType, listID, listOfItemToChange, listOfNewValue):
         """Update data based on the Id.
 
         Parameters
@@ -276,13 +318,19 @@ class LocalDatabase(DefaultDatabase):
             # Check the item is "mag" or not. If it is "mag", give the
             # related filter information.
             itemToChange = listOfItemToChange[ii]
-            if (itemToChange == "mag"):
+            if itemToChange == "mag":
                 itemToChange = filterType.name.lower() + itemToChange
 
             # Give the SQL command
-            command = "UPDATE " + tableName + " SET " + \
-                      itemToChange + "=" + str(listOfNewValue[ii]) + \
-                      " WHERE id=?"
+            command = (
+                "UPDATE "
+                + tableName
+                + " SET "
+                + itemToChange
+                + "="
+                + str(listOfNewValue[ii])
+                + " WHERE id=?"
+            )
             self.cursor.execute(command, (listID[ii],))
 
         # Commit the change to database

@@ -1,10 +1,30 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from lsst.ts.wep.cwfs.CentroidDefault import CentroidDefault
 
 
 class CentroidRandomWalk(CentroidDefault):
-
     def __init__(self):
         """CentroidDefault child class to get the centroid of donut by the
         random walk model."""
@@ -65,7 +85,7 @@ class CentroidRandomWalk(CentroidDefault):
         hist, binEdges = np.histogram(array1d, bins=self.numOfBins)
 
         # Parameters for random walk search
-        start = int(self.numOfBins/2.1)
+        start = int(self.numOfBins / 2.1)
         end = slide + 25  # Go back
         startidx = range(start, end, -15)
 
@@ -74,7 +94,7 @@ class CentroidRandomWalk(CentroidDefault):
             minind = startidx[istartPoint]
 
             # Check the condition of start index
-            if ((minind <= 0) or (max(hist[minind - 1:]) == 0)):
+            if (minind <= 0) or (max(hist[minind - 1 :]) == 0):
                 continue
             minval = hist[minind - 1]
 
@@ -83,10 +103,10 @@ class CentroidRandomWalk(CentroidDefault):
             for ii in range(nwalk + 1):
 
                 # if (minind <= slide):
-                if (minind >= slide):
+                if minind >= slide:
 
                     # Find the index of bin that the count is not zero
-                    while (minval == 0):
+                    while minval == 0:
                         minind = minind - 1
                         minval = hist[int(minind - 1)]
 
@@ -94,20 +114,22 @@ class CentroidRandomWalk(CentroidDefault):
                     # table to give a random walk/ step with a random thermal
                     # fluctuation.
                     ind = np.round(stepsize * (2 * np.random.rand() - 1)).astype(int)
-                    thermal = 1 + 0.5*np.random.rand()*np.exp(1.0*ii/(nwalk*0.3))
+                    thermal = 1 + 0.5 * np.random.rand() * np.exp(
+                        1.0 * ii / (nwalk * 0.3)
+                    )
 
                     # Check the index of bin is whithin the range of histogram
-                    if ((minind + ind < 1) or (minind + ind > (self.numOfBins))):
+                    if (minind + ind < 1) or (minind + ind > (self.numOfBins)):
                         continue
 
                     # Look for the minimum point
-                    if (hist[int(minind + ind - 1)] < (minval * thermal)):
+                    if hist[int(minind + ind - 1)] < (minval * thermal):
 
                         # Add the panality to go to the high intensity position
-                        if (ind > 0):
-                            ind = int(ind/3)
+                        if ind > 0:
+                            ind = int(ind / 3)
                         else:
-                            ind = int(ind/2)
+                            ind = int(ind / 2)
 
                         # Update the value of minind
                         minval = hist[int(minind + ind - 1)]
@@ -117,20 +139,22 @@ class CentroidRandomWalk(CentroidDefault):
                     break
 
             # Find the signal of donut in histogram
-            if (minind >= slide):
+            if minind >= slide:
                 foundvalley = True
                 break
 
         # Try to close the second peak
         while (minind >= slide) and (foundvalley is True):
-            if np.abs(hist[int(minind-5)]-hist[int(minind)]) < 4*np.median(hist[len(hist)-20:]):
+            if np.abs(hist[int(minind - 5)] - hist[int(minind)]) < 4 * np.median(
+                hist[len(hist) - 20 :]
+            ):
                 minind = minind - 1
             else:
                 break
 
         # If no valley (signal) is found for the noise, use the value at start
         # index of histogram to be the threshold.
-        if (not foundvalley):
+        if not foundvalley:
             minind = start
 
         # Get the threshold value of donut

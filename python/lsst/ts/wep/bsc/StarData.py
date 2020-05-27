@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -6,9 +27,18 @@ from lsst.ts.wep.bsc.NbrStar import NbrStar
 
 
 class StarData(object):
-
-    def __init__(self, starId, ra, decl, lsstMagU, lsstMagG, lsstMagR,
-                 lsstMagI, lsstMagZ, lsstMagY):
+    def __init__(
+        self,
+        starId,
+        ra,
+        decl,
+        lsstMagU,
+        lsstMagG,
+        lsstMagR,
+        lsstMagI,
+        lsstMagZ,
+        lsstMagY,
+    ):
         """Initialize the star data class.
 
         Parameters
@@ -109,17 +139,17 @@ class StarData(object):
             No filter type matches.
         """
 
-        if (filterType == FilterType.U):
+        if filterType == FilterType.U:
             self.lsstMagU = self._changeToNpArrayIfNeeded(mag)
-        elif (filterType == FilterType.G):
+        elif filterType == FilterType.G:
             self.lsstMagG = self._changeToNpArrayIfNeeded(mag)
-        elif (filterType == FilterType.R):
+        elif filterType == FilterType.R:
             self.lsstMagR = self._changeToNpArrayIfNeeded(mag)
-        elif (filterType == FilterType.I):
+        elif filterType == FilterType.I:
             self.lsstMagI = self._changeToNpArrayIfNeeded(mag)
-        elif (filterType == FilterType.Z):
+        elif filterType == FilterType.Z:
             self.lsstMagZ = self._changeToNpArrayIfNeeded(mag)
-        elif (filterType == FilterType.Y):
+        elif filterType == FilterType.Y:
             self.lsstMagY = self._changeToNpArrayIfNeeded(mag)
         else:
             raise ValueError("No filter type matches.")
@@ -219,17 +249,17 @@ class StarData(object):
             No filter type matches.
         """
 
-        if (filterType == FilterType.U):
+        if filterType == FilterType.U:
             return self.lsstMagU
-        elif (filterType == FilterType.G):
+        elif filterType == FilterType.G:
             return self.lsstMagG
-        elif (filterType == FilterType.R):
+        elif filterType == FilterType.R:
             return self.lsstMagR
-        elif (filterType == FilterType.I):
+        elif filterType == FilterType.I:
             return self.lsstMagI
-        elif (filterType == FilterType.Z):
+        elif filterType == FilterType.Z:
             return self.lsstMagZ
-        elif (filterType == FilterType.Y):
+        elif filterType == FilterType.Y:
             return self.lsstMagY
         else:
             raise ValueError("No filter type matches.")
@@ -296,24 +326,24 @@ class StarData(object):
             List of index candidate.
         """
 
-        if (len(self.ra) != 0):
+        if len(self.ra) != 0:
 
-            if (filterType == FilterType.U):
+            if filterType == FilterType.U:
                 valArray = self.lsstMagU
 
-            elif (filterType == FilterType.G):
+            elif filterType == FilterType.G:
                 valArray = self.lsstMagG
 
-            elif (filterType == FilterType.R):
+            elif filterType == FilterType.R:
                 valArray = self.lsstMagR
 
-            elif (filterType == FilterType.I):
+            elif filterType == FilterType.I:
                 valArray = self.lsstMagI
 
-            elif (filterType == FilterType.Z):
+            elif filterType == FilterType.Z:
                 valArray = self.lsstMagZ
 
-            elif (filterType == FilterType.Y):
+            elif filterType == FilterType.Y:
                 valArray = self.lsstMagY
 
             idxCand = self._getIdxCandByBndry(valArray, lowMag, highMag)
@@ -341,13 +371,13 @@ class StarData(object):
             List of index candidate.
         """
 
-        idxCand = [idx for idx in range(len(valArray))
-                   if lowMag <= valArray[idx] <= highMag]
+        idxCand = [
+            idx for idx in range(len(valArray)) if lowMag <= valArray[idx] <= highMag
+        ]
 
         return idxCand
 
-    def getNeighboringStar(self, idxCand, maxDist, filterType,
-                           maxNumOfNbrStar=0):
+    def getNeighboringStar(self, idxCand, maxDist, filterType, maxNumOfNbrStar=0):
         """Get the neighboring stars of candidate stars based on the specific
         max distance and number of neighboring star.
 
@@ -373,9 +403,8 @@ class StarData(object):
 
         # Calculate the distance in pixel between candidate stars and all stars
         numOfIdxCand = len(idxCand)
-        if (numOfIdxCand != 0):
-            allStarXY = np.array([self.raInPixel,
-                                  self.declInPixel]).transpose()
+        if numOfIdxCand != 0:
+            allStarXY = np.array([self.raInPixel, self.declInPixel]).transpose()
             candidateStarXY = allStarXY[np.array(idxCand), :]
             starDistances = cdist(candidateStarXY, allStarXY)
 
@@ -384,48 +413,47 @@ class StarData(object):
                 idxNbrStar = np.where(starDistances[ii, :] < maxDist)[0]
 
                 # Delete candidate star itself
-                idxNbrStar = np.delete(idxNbrStar,
-                                       np.where(idxNbrStar == idxCand[ii]))
+                idxNbrStar = np.delete(idxNbrStar, np.where(idxNbrStar == idxCand[ii]))
 
                 # Remove the candidate star if there is the neighboring star
                 # brighter than itself
-                if (filterType == FilterType.U):
+                if filterType == FilterType.U:
                     magSelf = self.lsstMagU[idxCand[ii]]
                     magNbrStar = self.lsstMagU[idxNbrStar]
 
-                elif (filterType == FilterType.G):
+                elif filterType == FilterType.G:
                     magSelf = self.lsstMagG[idxCand[ii]]
                     magNbrStar = self.lsstMagG[idxNbrStar]
 
-                elif (filterType == FilterType.R):
+                elif filterType == FilterType.R:
                     magSelf = self.lsstMagR[idxCand[ii]]
                     magNbrStar = self.lsstMagR[idxNbrStar]
 
-                elif (filterType == FilterType.I):
+                elif filterType == FilterType.I:
                     magSelf = self.lsstMagI[idxCand[ii]]
                     magNbrStar = self.lsstMagI[idxNbrStar]
 
-                elif (filterType == FilterType.Z):
+                elif filterType == FilterType.Z:
                     magSelf = self.lsstMagZ[idxCand[ii]]
                     magNbrStar = self.lsstMagZ[idxNbrStar]
 
-                elif (filterType == FilterType.Y):
+                elif filterType == FilterType.Y:
                     magSelf = self.lsstMagY[idxCand[ii]]
                     magNbrStar = self.lsstMagY[idxNbrStar]
 
-                if ((np.where(magNbrStar < magSelf)[0]).size != 0):
+                if (np.where(magNbrStar < magSelf)[0]).size != 0:
                     brighterNeighbor = True
                 else:
                     brighterNeighbor = False
 
                 # Restrict the maximum number of neighboring stars
-                if (len(idxNbrStar) > maxNumOfNbrStar):
+                if len(idxNbrStar) > maxNumOfNbrStar:
                     highNeighboringStar = True
                 else:
                     highNeighboringStar = False
 
                 # Record the information of neighboring stars
-                if (brighterNeighbor is False and highNeighboringStar is False):
+                if brighterNeighbor is False and highNeighboringStar is False:
                     nbrStar.addStar(self, idxCand[ii], idxNbrStar, filterType)
 
         return nbrStar

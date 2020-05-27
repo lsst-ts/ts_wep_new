@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from lsst.ts.wep.cwfs.lib import cyMath
@@ -55,18 +76,20 @@ def _checkPrecondition(z, x, y, nMax):
     """
 
     # Check the dimensions of x and y are the same or not
-    if (x.shape != y.shape):
+    if x.shape != y.shape:
         print("x & y are not the same size")
         exit()
 
     # Check the number of terms of annular Zernike polynomials
-    if (len(z) > nMax):
-        print("Some Zernike related functions are not implemented with >%d terms." % nMax)
+    if len(z) > nMax:
+        print(
+            "Some Zernike related functions are not implemented with >%d terms." % nMax
+        )
         return
-    elif (len(z) < nMax):
+    elif len(z) < nMax:
         # Put the higher order terms as zero to make sure nMax terms of
         # polynomials
-        z = np.hstack((z, np.zeros(nMax-len(z))))
+        z = np.hstack((z, np.zeros(nMax - len(z))))
 
     return z
 
@@ -100,8 +123,9 @@ def ZernikeAnnularGrad(z, x, y, e, axis, nMax=22):
     z = _checkPrecondition(z, x, y, int(nMax))
 
     # Calculate the integration elements
-    return cyMath.ZernikeAnnularGrad(z, x.flatten(), y.flatten(), e,
-                                     axis).reshape(x.shape)
+    return cyMath.ZernikeAnnularGrad(z, x.flatten(), y.flatten(), e, axis).reshape(
+        x.shape
+    )
 
 
 def ZernikeAnnularJacobian(z, x, y, e, order, nMax=22):
@@ -132,8 +156,9 @@ def ZernikeAnnularJacobian(z, x, y, e, order, nMax=22):
     z = _checkPrecondition(z, x, y, int(nMax))
 
     # Calculate the Jacobian
-    return cyMath.ZernikeAnnularJacobian(z, x.flatten(), y.flatten(), e,
-                                         order).reshape(x.shape)
+    return cyMath.ZernikeAnnularJacobian(z, x.flatten(), y.flatten(), e, order).reshape(
+        x.shape
+    )
 
 
 def ZernikeAnnularFit(s, x, y, numTerms, e, nMax=28):
@@ -162,7 +187,7 @@ def ZernikeAnnularFit(s, x, y, numTerms, e, nMax=28):
     """
 
     # Check the dimensions of x and y are the same or not
-    if (x.shape != y.shape):
+    if x.shape != y.shape:
         print("x & y are not the same size")
 
     # Get the value that is finite
@@ -170,7 +195,7 @@ def ZernikeAnnularFit(s, x, y, numTerms, e, nMax=28):
     xFinite = x[:].copy()
     yFinite = y[:].copy()
 
-    finiteIndex = np.isfinite(sFinite+xFinite+yFinite)
+    finiteIndex = np.isfinite(sFinite + xFinite + yFinite)
 
     sFinite = sFinite[finiteIndex]
     xFinite = xFinite[finiteIndex]
@@ -364,19 +389,19 @@ def padArray(inArray, dim):
 
     # Check the conditions
     m, n = inArray.shape
-    if (m != n):
+    if m != n:
         raise Exception("padArray: array is not square.")
 
-    if (m > dim):
+    if m > dim:
         raise Exception("padArray: array is larger than dimension.")
 
     # Extend the boundary of image by creating a bigger matrix and putting the
     # input image in the center
     out = np.zeros([dim, dim])
-    ii = int(np.floor((dim-m)/2))
+    ii = int(np.floor((dim - m) / 2))
 
     # Put the original image in the center of extended image
-    out[ii:ii+m, ii:ii+m] = inArray
+    out[ii : ii + m, ii : ii + m] = inArray
 
     return out
 
@@ -410,16 +435,16 @@ def extractArray(inArray, dim):
 
     # Check the conditions
     m, n = inArray.shape
-    if (m != n):
+    if m != n:
         raise Exception("extractArray: array is not square.")
 
-    if (m < dim):
+    if m < dim:
         raise Exception("extractArray: array is smaller than dimension")
 
     # Calculate the begining index to extract the central image
-    ii = int(np.floor((m-dim)/2))
+    ii = int(np.floor((m - dim) / 2))
 
     # Extract the cetral image
-    out = inArray[ii:ii+dim, ii:ii+dim]
+    out = inArray[ii : ii + dim, ii : ii + dim]
 
     return out

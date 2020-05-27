@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.3:
+
+-------------
+1.4.3
+-------------
+
+Reformat the code by black. Add the black check to .githooks. Ignore flake8 check of E203 ans W503 for the black. Use the sims_w_2020_21.
+
 .. _lsst.ts.wep-1.4.2:
 
 -------------

@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import numpy as np
 
 from lsst.ts.wep.Utility import FilterType
@@ -54,7 +75,7 @@ class DefaultDatabase(object):
         raStddev = np.std(ra)
 
         # Query regions crosses the RA = 0
-        if (raStddev >= self.STD_DEV_SPLIT):
+        if raStddev >= self.STD_DEV_SPLIT:
 
             # Query the left and right regions
             left = max([x for x in ra if x < 180])
@@ -67,21 +88,36 @@ class DefaultDatabase(object):
             starRa = np.append(above0Set.getRA(), below0Set.getRA())
             starDecl = np.append(above0Set.getDecl(), below0Set.getDecl())
 
-            lsstMagU = np.append(above0Set.getMag(FilterType.U),
-                                 below0Set.getMag(FilterType.U))
-            lsstMagG = np.append(above0Set.getMag(FilterType.G),
-                                 below0Set.getMag(FilterType.G))
-            lsstMagR = np.append(above0Set.getMag(FilterType.R),
-                                 below0Set.getMag(FilterType.R))
-            lsstMagI = np.append(above0Set.getMag(FilterType.I),
-                                 below0Set.getMag(FilterType.I))
-            lsstMagZ = np.append(above0Set.getMag(FilterType.Z),
-                                 below0Set.getMag(FilterType.Z))
-            lsstMagY = np.append(above0Set.getMag(FilterType.Y),
-                                 below0Set.getMag(FilterType.Y))
+            lsstMagU = np.append(
+                above0Set.getMag(FilterType.U), below0Set.getMag(FilterType.U)
+            )
+            lsstMagG = np.append(
+                above0Set.getMag(FilterType.G), below0Set.getMag(FilterType.G)
+            )
+            lsstMagR = np.append(
+                above0Set.getMag(FilterType.R), below0Set.getMag(FilterType.R)
+            )
+            lsstMagI = np.append(
+                above0Set.getMag(FilterType.I), below0Set.getMag(FilterType.I)
+            )
+            lsstMagZ = np.append(
+                above0Set.getMag(FilterType.Z), below0Set.getMag(FilterType.Z)
+            )
+            lsstMagY = np.append(
+                above0Set.getMag(FilterType.Y), below0Set.getMag(FilterType.Y)
+            )
 
-            return StarData(starId, starRa, starDecl, lsstMagU, lsstMagG,
-                            lsstMagR, lsstMagI, lsstMagZ, lsstMagY)
+            return StarData(
+                starId,
+                starRa,
+                starDecl,
+                lsstMagU,
+                lsstMagG,
+                lsstMagR,
+                lsstMagI,
+                lsstMagZ,
+                lsstMagY,
+            )
 
         # Query regions does not cross the RA = 0
         else:

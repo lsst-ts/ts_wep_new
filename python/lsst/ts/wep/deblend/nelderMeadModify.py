@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
     Pure Python/Numpy implementation of the Nelder-Mead algorithm.
     Reference: https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
@@ -28,9 +49,19 @@ def feval(func, vars=()):
     return eval("func")(*vars)
 
 
-def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
-                     no_improv_break=10, max_iter=0, alpha=1., gamma=2.,
-                     rho=-0.5, sigma=0.5):
+def nelderMeadModify(
+    func,
+    x_start,
+    args=(),
+    step=0.1,
+    no_improve_thr=10e-6,
+    no_improv_break=10,
+    max_iter=0,
+    alpha=1.0,
+    gamma=2.0,
+    rho=-0.5,
+    sigma=0.5,
+):
     """Optimization of the Nelder-Mead algorithm.
 
     Parameters
@@ -111,13 +142,13 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
             return res[0]
 
         # centroid
-        x0 = [0.] * dim
+        x0 = [0.0] * dim
         for tup in res[:-1]:
             for i, c in enumerate(tup[0]):
-                x0[i] += c / (len(res)-1)
+                x0[i] += c / (len(res) - 1)
 
         # reflection
-        xr = x0 + alpha*(x0 - res[-1][0])
+        xr = x0 + alpha * (x0 - res[-1][0])
 
         vars = (xr,) + args
         rscore = feval(func, vars)
@@ -129,7 +160,7 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
 
         # expansion
         if rscore < res[0][1]:
-            xe = x0 + gamma*(x0 - res[-1][0])
+            xe = x0 + gamma * (x0 - res[-1][0])
 
             vars = (xe,) + args
             escore = feval(func, vars)
@@ -144,7 +175,7 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
                 continue
 
         # contraction
-        xc = x0 + rho*(x0 - res[-1][0])
+        xc = x0 + rho * (x0 - res[-1][0])
 
         vars = (xc,) + args
         cscore = feval(func, vars)
@@ -158,7 +189,7 @@ def nelderMeadModify(func, x_start, args=(), step=0.1, no_improve_thr=10e-6,
         x1 = res[0][0]
         nres = []
         for tup in res:
-            redx = x1 + sigma*(tup[0] - x1)
+            redx = x1 + sigma * (tup[0] - x1)
 
             vars = (redx,) + args
             score = feval(func, vars)

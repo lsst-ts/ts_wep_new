@@ -1,3 +1,24 @@
+# This file is part of ts_wep.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import numpy as np
 import unittest
@@ -19,8 +40,9 @@ class TestAlgorithm(unittest.TestCase):
         # Define the image folder and image names
         # Image data -- Don't know the final image format.
         # It is noted that image.readFile inuts is based on the txt file
-        imageFolderPath = os.path.join(self.modulePath, "tests", "testData",
-                                       "testImages", "LSST_NE_SN25")
+        imageFolderPath = os.path.join(
+            self.modulePath, "tests", "testData", "testImages", "LSST_NE_SN25"
+        )
         intra_image_name = "z11_0.25_intra.txt"
         extra_image_name = "z11_0.25_extra.txt"
 
@@ -49,8 +71,9 @@ class TestAlgorithm(unittest.TestCase):
         instDir = os.path.join(cwfsConfigDir, "instData")
         self.inst = Instrument(instDir)
 
-        self.inst.config(CamType.LsstCam, self.I1.getImgSizeInPix(),
-                         announcedDefocalDisInMm=1.0)
+        self.inst.config(
+            CamType.LsstCam, self.I1.getImgSizeInPix(), announcedDefocalDisInMm=1.0
+        )
 
         # Set up the algorithm
         algoDir = os.path.join(cwfsConfigDir, "algo")
@@ -94,7 +117,7 @@ class TestAlgorithm(unittest.TestCase):
         self.assertTrue(type(zTerms[0]), int)
         self.assertEqual(len(zTerms), self.algoExp.getNumOfZernikes())
         self.assertEqual(zTerms[1], 1)
-        self.assertEqual(zTerms[-1], self.algoExp.getNumOfZernikes()-1)
+        self.assertEqual(zTerms[-1], self.algoExp.getNumOfZernikes() - 1)
 
         zTerms = self.algoFft.getZernikeTerms()
         self.assertTrue(type(zTerms[0]), int)
@@ -102,10 +125,8 @@ class TestAlgorithm(unittest.TestCase):
 
     def testGetObsOfZernikes(self):
 
-        self.assertEqual(self.algoExp.getObsOfZernikes(),
-                         self.inst.getObscuration())
-        self.assertEqual(self.algoFft.getObsOfZernikes(),
-                         self.inst.getObscuration())
+        self.assertEqual(self.algoExp.getObsOfZernikes(), self.inst.getObscuration())
+        self.assertEqual(self.algoFft.getObsOfZernikes(), self.inst.getObscuration())
 
     def testGetNumOfOuterItr(self):
 
@@ -156,16 +177,14 @@ class TestAlgorithm(unittest.TestCase):
 
         sumclipSequence = self.algoFft.getSignalClipSequence()
         self.assertTrue(isinstance(sumclipSequence, np.ndarray))
-        self.assertEqual(len(sumclipSequence), self.algoExp.getNumOfOuterItr()+1)
+        self.assertEqual(len(sumclipSequence), self.algoExp.getNumOfOuterItr() + 1)
         self.assertEqual(sumclipSequence[0], 0.33)
         self.assertEqual(sumclipSequence[-1], 0.51)
 
     def testGetMaskScalingFactor(self):
 
-        self.assertAlmostEqual(self.algoExp.getMaskScalingFactor(), 1.0939,
-                               places=4)
-        self.assertAlmostEqual(self.algoFft.getMaskScalingFactor(), 1.0939,
-                               places=4)
+        self.assertAlmostEqual(self.algoExp.getMaskScalingFactor(), 1.0939, places=4)
+        self.assertAlmostEqual(self.algoFft.getMaskScalingFactor(), 1.0939, places=4)
 
     def testGetWavefrontMapEstiInIter0(self):
 
@@ -188,29 +207,65 @@ class TestAlgorithm(unittest.TestCase):
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
 
         zer4UpNm = self.algoExp.getZer4UpInNm()
-        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) -
-                                       self._getAnsItr0())), 0)
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - self._getAnsItr0())), 0)
 
     def _getAnsItr0(self):
 
-        return [31, -69, -21, 84, 44, -53, 48, -146, 6, 10, 13, -5, 1, -12,
-                -8, 7, 0, -6, 11]
+        return [
+            31,
+            -69,
+            -21,
+            84,
+            44,
+            -53,
+            48,
+            -146,
+            6,
+            10,
+            13,
+            -5,
+            1,
+            -12,
+            -8,
+            7,
+            0,
+            -6,
+            11,
+        ]
 
     def testNextItrWithOneIter(self):
 
         self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=1)
 
         zer4UpNm = self.algoExp.getZer4UpInNm()
-        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) -
-                                       self._getAnsItr0())), 0)
+        self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - self._getAnsItr0())), 0)
 
     def testNextItrWithTwoIter(self):
 
         self.algoExp.nextItr(self.I1, self.I2, self.opticalModel, nItr=2)
         zer4UpNm = self.algoExp.getZer4UpInNm()
 
-        ansRint = [40, -80, -18, 92, 44., -52, 54, -146, 5, 10, 15, -3, -0, -12,
-                   -8, 7, 1, -3, 12]
+        ansRint = [
+            40,
+            -80,
+            -18,
+            92,
+            44.0,
+            -52,
+            54,
+            -146,
+            5,
+            10,
+            15,
+            -3,
+            -0,
+            -12,
+            -8,
+            7,
+            1,
+            -3,
+            12,
+        ]
         self.assertEqual(np.sum(np.abs(np.rint(zer4UpNm) - ansRint)), 0)
 
     def testIter0AndNextIterToCheckReset(self):
@@ -224,7 +279,7 @@ class TestAlgorithm(unittest.TestCase):
         self.algoExp.itr0(self.I1, self.I2, self.opticalModel)
         tmp2 = self.algoExp.getZer4UpInNm()
 
-        difference = np.sum(np.abs(tmp1-tmp2))
+        difference = np.sum(np.abs(tmp1 - tmp2))
         self.assertEqual(difference, 0)
 
     def testRunItOfExp(self):

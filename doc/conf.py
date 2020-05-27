@@ -8,12 +8,14 @@ import lsst.ts.wep
 
 
 _g = globals()
-_g.update(build_package_configs(
-    project_name='ts_wep',
-    version=lsst.ts.wep.version.__version__))
+_g.update(
+    build_package_configs(
+        project_name="ts_wep", version=lsst.ts.wep.version.__version__
+    )
+)
 
 # Support the sphinx extension of plantuml
-extensions.append('sphinxcontrib.plantuml')
+extensions.append("sphinxcontrib.plantuml")
 
 # Put the path to plantuml.jar
-plantuml = 'java -jar /home/lsst/plantuml.jar'
+plantuml = "java -jar /home/lsst/plantuml.jar"

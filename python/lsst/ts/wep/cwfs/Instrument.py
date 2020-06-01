@@ -87,8 +87,10 @@ class Instrument(object):
         self.instParamFile.setFilePath(instParamFilePath)
 
         # Path of mask off-axis correction file
+        # There is no such file for auxiliary telescope
         maskParamFilePath = os.path.join(instFileDir, maskMigrateFileName)
-        self.maskParamFile.setFilePath(maskParamFilePath)
+        if os.path.exists(maskParamFilePath):
+            self.maskParamFile.setFilePath(maskParamFilePath)
 
         self._setSensorCoor()
         self._setSensorCoorAnnular()

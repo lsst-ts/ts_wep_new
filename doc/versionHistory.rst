@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.4:
+
+-------------
+1.4.4
+-------------
+
+Use the pybind11 instead of cython. Add the clang-format check to .githooks.
+
 .. _lsst.ts.wep-1.4.3:
 
 -------------

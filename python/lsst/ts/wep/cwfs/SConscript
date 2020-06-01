@@ -4,7 +4,6 @@ from lsst.ts.wep.Utility import runProgram
 
 # Set the needed path
 modulePath = getModulePath()
-# includePath = "include"
 includePath = os.path.join(modulePath, "include")
 srcFilePath = os.path.join(modulePath, "src", "MathCwfs.cc")
 

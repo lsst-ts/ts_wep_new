@@ -194,9 +194,10 @@ class TestWEPCalculation(unittest.TestCase):
         comcamDataDir = os.path.join(self.testDataDir, "phosimOutput", "realComCam")
         rawExpData, extraRawExpData = self._prepareRawExpData(comcamDataDir)
 
-        listOfWfErr = self.wepCalculation.calculateWavefrontErrors(
-            rawExpData, extraRawExpData=extraRawExpData
-        )
+        with self.assertWarns(UserWarning):
+            listOfWfErr = self.wepCalculation.calculateWavefrontErrors(
+                rawExpData, extraRawExpData=extraRawExpData
+            )
 
         self.assertTrue(len(listOfWfErr), 2)
 

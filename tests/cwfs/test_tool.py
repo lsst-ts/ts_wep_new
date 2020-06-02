@@ -171,6 +171,18 @@ class TestTool(unittest.TestCase):
 
         self._checkAnsWithFile(surfGrad, "annularZernikeGradDxy.txt")
 
+    def testZernikeAnnularGradWrongAxis(self):
+
+        self.assertRaises(
+            ValueError,
+            ZernikeAnnularGrad,
+            self.zerCoef,
+            self.xx,
+            self.yy,
+            self.obscuration,
+            "wrongAxis",
+        )
+
     def testZernikeAnnularJacobian1st(self):
 
         annuZerJacobian = ZernikeAnnularJacobian(
@@ -186,6 +198,18 @@ class TestTool(unittest.TestCase):
         )
 
         self._checkAnsWithFile(annuZerJacobian, "annularZernikeJaco2nd.txt")
+
+    def testZernikeAnnularJacobianWrongType(self):
+
+        self.assertRaises(
+            ValueError,
+            ZernikeAnnularJacobian,
+            self.zerCoef,
+            self.xx,
+            self.yy,
+            self.obscuration,
+            "wrongType",
+        )
 
     def testZernikeAnnularFit(self):
 

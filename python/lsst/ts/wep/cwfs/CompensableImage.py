@@ -35,7 +35,7 @@ from lsst.ts.wep.cwfs.Tool import (
     ZernikeAnnularGrad,
     ZernikeAnnularJacobian,
 )
-from lsst.ts.wep.cwfs.lib.cyMath import poly10_2D, poly10Grad
+from lsst.ts.wep.cwfs import mathcwfs
 from lsst.ts.wep.cwfs.Image import Image
 from lsst.ts.wep.Utility import DefocalType, CentroidFindType
 
@@ -831,7 +831,7 @@ class CompensableImage(object):
             x = data
 
         # Correct the off-axis distortion
-        return poly10_2D(c, x.flatten(), y.flatten()).reshape(x.shape)
+        return mathcwfs.poly10_2D(c, x.flatten(), y.flatten()).reshape(x.shape)
 
     def _poly10Grad(self, c, x, y, atype):
         """Correct the off-axis distortion by fitting with a 10 order
@@ -854,7 +854,7 @@ class CompensableImage(object):
             Corrected parameters for off-axis distortion.
         """
 
-        return poly10Grad(c, x.flatten(), y.flatten(), atype).reshape(x.shape)
+        return mathcwfs.poly10Grad(c, x.flatten(), y.flatten(), atype).reshape(x.shape)
 
     def _createPupilGrid(self, lutx, luty, onepixel, ca, cb, ra, rb, fieldX, fieldY):
         """Create the pupil grid in off-axis model.

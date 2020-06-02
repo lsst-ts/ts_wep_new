@@ -14,6 +14,7 @@ This module calculates the wavefront error in annular Zernike polynomials up to 
 - lsst_distrib (tag: w_2020_21)
 - [phosim_utils](https://github.com/lsst-dm/phosim_utils)
 - scikit-image
+- clang-format (optional)
 - [black](https://github.com/psf/black) (optional)
 - [documenteer](https://github.com/lsst-sqre/documenteer) (optional)
 - [plantuml](http://plantuml.com) (optional)
@@ -39,11 +40,14 @@ Pull the built docker image by `docker pull lsstts/aos:w_2020_21`. The scientifi
 
 ## Code Format
 
-This code is automatically formatted by `black` using a git pre-commit hook.
-To enable this:
+1. The Python code is automatically formatted by `black`.
+2. The C++ code is automatically formatted by `clang-format`.
 
-1. Install the `black` Python package.
-2. Run `git config core.hooksPath .githooks` once in this repository.
+To enable this with a git pre-commit hook:
+
+- Install the `black` Python package.
+- Install the `clang-format` C++ package.
+- Run `git config core.hooksPath .githooks` once in this repository.
 
 ## DM Command Line Task (obs_lsst and phosim_utils)
 

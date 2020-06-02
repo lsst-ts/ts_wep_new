@@ -21,7 +21,7 @@
 
 import numpy as np
 
-from lsst.ts.wep.cwfs.lib import cyMath
+from lsst.ts.wep.cwfs import mathcwfs
 
 
 def ZernikeAnnularEval(z, x, y, e, nMax=28):
@@ -51,7 +51,7 @@ def ZernikeAnnularEval(z, x, y, e, nMax=28):
     z = _checkPrecondition(z, x, y, int(nMax))
 
     # Calculate the wavefront
-    return cyMath.ZernikeAnnularEval(z, x.flatten(), y.flatten(), e).reshape(x.shape)
+    return mathcwfs.zernikeAnnularEval(z, x.flatten(), y.flatten(), e).reshape(x.shape)
 
 
 def _checkPrecondition(z, x, y, nMax):
@@ -123,7 +123,7 @@ def ZernikeAnnularGrad(z, x, y, e, axis, nMax=22):
     z = _checkPrecondition(z, x, y, int(nMax))
 
     # Calculate the integration elements
-    return cyMath.ZernikeAnnularGrad(z, x.flatten(), y.flatten(), e, axis).reshape(
+    return mathcwfs.zernikeAnnularGrad(z, x.flatten(), y.flatten(), e, axis).reshape(
         x.shape
     )
 
@@ -156,9 +156,9 @@ def ZernikeAnnularJacobian(z, x, y, e, order, nMax=22):
     z = _checkPrecondition(z, x, y, int(nMax))
 
     # Calculate the Jacobian
-    return cyMath.ZernikeAnnularJacobian(z, x.flatten(), y.flatten(), e, order).reshape(
-        x.shape
-    )
+    return mathcwfs.zernikeAnnularJacobian(
+        z, x.flatten(), y.flatten(), e, order
+    ).reshape(x.shape)
 
 
 def ZernikeAnnularFit(s, x, y, numTerms, e, nMax=28):

@@ -28,7 +28,18 @@ pipeline {
     }
 
     stages {
-        stage ('Install Requirements') {
+
+        stage('Cloning Repos') {
+            steps {
+                withEnv(["HOME=${env.WORKSPACE}"]) {
+                    sh """
+                        git clone -b master https://github.com/lsst-dm/phosim_utils.git
+                    """
+                }
+            }
+        }
+
+        stage ('Building the Dependencies') {
             steps {
                 // When using the docker container, we need to change
                 // the HOME path to WORKSPACE to have the authority
@@ -36,13 +47,11 @@ pipeline {
                 withEnv(["HOME=${env.WORKSPACE}"]) {
                     sh """
                         source ${env.LSST_STACK}/loadLSST.bash
-                        git clone --branch master https://github.com/lsst-dm/phosim_utils.git
                         cd phosim_utils/
                         setup -k -r . -t ${env.SIMS_VERSION}
                         scons
                         cd ..
-                        setup -k -r .
-                        python builder/setup.py build_ext --build-lib python/lsst/ts/wep/cwfs/lib
+                        c++ -O3 -Wall -shared -std=c++11 -I./include -fPIC `python3 -m pybind11 --includes` ./src/mathcwfs.cc -o python/lsst/ts/wep/cwfs/mathcwfs`python3-config --extension-suffix`
                     """
                 }
             }
@@ -50,10 +59,6 @@ pipeline {
 
         stage('Unit Tests and Coverage Analysis') {
             steps {
-                // Direct the HOME to WORKSPACE for pip to get the
-                // installed library.
-                // 'PATH' can only be updated in a single shell block.
-                // We can not update PATH in 'environment' block.
                 // Pytest needs to export the junit report.
                 withEnv(["HOME=${env.WORKSPACE}"]) {
                     sh """

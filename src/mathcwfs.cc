@@ -25,7 +25,7 @@
 
 #include <pybind11/numpy.h>
 
-#include "lsst/ts/wep/cwfs/MathCwfs.h"
+#include "lsst/ts/wep/cwfs/mathcwfs.h"
 
 namespace py = pybind11;
 
@@ -278,7 +278,6 @@ py::array_t<double> zernikeAnnularJacobian(py::array_t<double> arrayZk,
 
     double sqrt_3 = sqrt(3);
     double sqrt_5 = sqrt(5);
-    double sqrt_6 = sqrt(6);
     double sqrt_7 = sqrt(7);
     double sqrt_8 = sqrt(8);
     double sqrt_10 = sqrt(10);
@@ -343,26 +342,16 @@ py::array_t<double> zernikeAnnularJacobian(py::array_t<double> arrayZk,
             y4 = y2 * y2;
 
             // to make d an array with the same size as x
-            temp = Z[0] * 0 * x_c;
-            temp += Z[1] * 0;
-            temp += Z[2] * 0;
-
-            temp += Z[3] * sqrt_3 * 8 / den1;
-            temp += Z[4] * sqrt_6 * 0;
-            temp += Z[5] * sqrt_6 * 0;
+            temp = Z[3] * sqrt_3 * 8 / den1;
 
             temp += Z[6] * sqrt_8 * 24 * y_c * (1 + e2) / den2;
             temp += Z[7] * sqrt_8 * 24 * x_c * (1 + e2) / den2;
-            temp += Z[8] * sqrt_8 * 0;
-            temp += Z[9] * sqrt_8 * 0;
 
             temp += Z[10] * sqrt_5 * (96 * r2 - 24 * (1 + e2)) / den3;
 
             temp +=
                 Z[11] * sqrt_10 * 48 * (x2 - y2) * (1 + e2 + e4) * num4 / den4;
             temp += Z[12] * sqrt_10 * 96 * xy * (1 + e2 + e4) * num4 / den4;
-            temp += Z[13] * sqrt_10 * 0;
-            temp += Z[14] * sqrt_10 * 0;
 
             temp +=
                 Z[15] * sqrt_12 * 48 * x_c *
@@ -377,8 +366,6 @@ py::array_t<double> zernikeAnnularJacobian(py::array_t<double> arrayZk,
                     (1 + e4) * num6 / den6;
             temp += Z[18] * sqrt_12 * 80.0 * y_c * (3 * x2 - y2) * (1 + e2) *
                     (1 + e4) * num6 / den6;
-            temp += Z[19] * sqrt_12 * 0;
-            temp += Z[20] * sqrt_12 * 0;
 
             temp += Z[21] * sqrt_7 * 48 *
                     (e4 - 10 * e2 * x2 - 10 * e2 * y2 + 3 * e2 + 15 * x4 +
@@ -402,11 +389,7 @@ py::array_t<double> zernikeAnnularJacobian(py::array_t<double> arrayZk,
             y6 = y4 * y2;
 
             // to make d an array with the same size as x
-            temp = pow(Z[0], 2) * 0 * x_c;
-            temp += pow(Z[1], 2) * 0;
-            temp += pow(Z[2], 2) * 0;
-
-            temp += pow(Z[3], 2) * (3) * 16 / den1 / den1;
+            temp = pow(Z[3], 2) * (3) * 16 / den1 / den1;
 
             temp += pow(Z[4], 2) * (6) * (-4) / den2_2;
             temp += pow(Z[5], 2) * (6) * (-4) / den2_2;
@@ -518,6 +501,8 @@ py::array_t<double> zernikeAnnularJacobian(py::array_t<double> arrayZk,
 
             out[ii] = temp;
         }
+    } else {
+        throw std::invalid_argument("Input atype is not supported.");
     }
     return result;
 }
@@ -598,10 +583,7 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
             r2 = x2 + y2;
 
             // to make d an array with the same size as x
-            temp = Z[0] * 0 * x_c;
-
-            temp += Z[1] * 2 * 1 / den1;
-            temp += Z[2] * 2 * 0;
+            temp = Z[1] * 2 * 1 / den1;
 
             temp += Z[3] * sqrt_3 * 4 * x_c / den2;
 
@@ -681,10 +663,7 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
             r2 = x2 + y2;
 
             // to make d an array with the same size as x
-            temp = Z[0] * 0 * x_c;
-
-            temp += Z[1] * 2 * 0;
-            temp += Z[2] * 2 * 1 / den1;
+            temp = Z[2] * 2 * 1 / den1;
 
             temp += Z[3] * sqrt_3 * 4 * y_c / den2;
 
@@ -765,12 +744,7 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
             r4 = r2 * r2;
 
             // to make d an array with the same size as x
-            temp = Z[0] * 0 * x_c;
-            temp += Z[1] * 0;
-            temp += Z[2] * 0;
-
-            temp += Z[3] * sqrt_3 * 4 / den2;
-            temp += Z[4] * 0;
+            temp = Z[3] * sqrt_3 * 4 / den2;
 
             temp += Z[5] * sqrt_6 * 2 / den3;
 
@@ -839,12 +813,7 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
             r4 = r2 * r2;
 
             // to make d an array with the same size as x
-            temp = Z[0] * 0 * x_c;
-            temp += Z[1] * 0;
-            temp += Z[2] * 0;
-
-            temp += Z[3] * sqrt_3 * 4 / den2;
-            temp += Z[4] * 0;
+            temp = Z[3] * sqrt_3 * 4 / den2;
 
             temp += Z[5] * sqrt_6 * (-2) / den3;
 
@@ -913,13 +882,7 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
             r4 = r2 * r2;
 
             // to make d an array with the same size as x
-            temp = Z[0] * 0 * x_c;
-            temp += Z[1] * 0;
-            temp += Z[2] * 0;
-            temp += Z[3] * 0;
-
-            temp += Z[4] * sqrt_6 * 2 / den3;
-            temp += Z[5] * 0;
+            temp = Z[4] * sqrt_6 * 2 / den3;
 
             temp += Z[6] * sqrt_8 * (1 + e2) * (6 * x_c) / den4;
             temp += Z[7] * sqrt_8 * 6 * y_c * (1 + e2) / den4;
@@ -929,7 +892,6 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
 
             temp += Z[10] * sqrt_5 * 48 * xy / den6;
 
-            temp += Z[11] * sqrt_10 * 0;
             temp += Z[12] * sqrt_10 *
                     ((24 * x2 + 24 * y2 - 6) * (1 + e2 + e4) - 6 * e6) * num7 /
                     den7;
@@ -968,6 +930,8 @@ py::array_t<double> zernikeAnnularGrad(py::array_t<double> arrayZk,
 
             d[ii] = temp;
         }
+    } else {
+        throw std::invalid_argument("Input axis is not supported.");
     }
     return result;
 }
@@ -1146,6 +1110,8 @@ py::array_t<double> poly10Grad(py::array_t<double> arrayC,
                 c[63] * pow(x_c, 2) * 8 * pow(y_c, 7) +
                 c[64] * x_c * 9 * pow(y_c, 8) + c[65] * 10 * pow(y_c, 9);
         }
+    } else {
+        throw std::invalid_argument("Input axis is not supported.");
     }
     return result;
 }

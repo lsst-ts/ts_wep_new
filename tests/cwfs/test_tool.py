@@ -173,15 +173,10 @@ class TestTool(unittest.TestCase):
 
     def testZernikeAnnularGradWrongAxis(self):
 
-        self.assertRaises(
-            ValueError,
-            ZernikeAnnularGrad,
-            self.zerCoef,
-            self.xx,
-            self.yy,
-            self.obscuration,
-            "wrongAxis",
-        )
+        with self.assertRaises(ValueError):
+            ZernikeAnnularGrad(
+                self.zerCoef, self.xx, self.yy, self.obscuration, "wrongAxis"
+            )
 
     def testZernikeAnnularJacobian1st(self):
 
@@ -201,15 +196,10 @@ class TestTool(unittest.TestCase):
 
     def testZernikeAnnularJacobianWrongType(self):
 
-        self.assertRaises(
-            ValueError,
-            ZernikeAnnularJacobian,
-            self.zerCoef,
-            self.xx,
-            self.yy,
-            self.obscuration,
-            "wrongType",
-        )
+        with self.assertRaises(ValueError):
+            ZernikeAnnularJacobian(
+                self.zerCoef, self.xx, self.yy, self.obscuration, "wrongType"
+            )
 
     def testZernikeAnnularFit(self):
 

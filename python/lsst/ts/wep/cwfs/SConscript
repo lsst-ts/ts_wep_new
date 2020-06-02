@@ -5,7 +5,7 @@ from lsst.ts.wep.Utility import runProgram
 # Set the needed path
 modulePath = getModulePath()
 includePath = os.path.join(modulePath, "include")
-srcFilePath = os.path.join(modulePath, "src", "MathCwfs.cc")
+srcFilePath = os.path.join(modulePath, "src", "mathcwfs.cc")
 
 # Build the pybind11 module
 output = "mathcwfs"

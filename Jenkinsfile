@@ -51,7 +51,7 @@ pipeline {
                         setup -k -r . -t ${env.SIMS_VERSION}
                         scons
                         cd ..
-                        c++ -O3 -Wall -shared -std=c++11 -I./include -fPIC `python3 -m pybind11 --includes` ./src/MathCwfs.cc -o python/lsst/ts/wep/cwfs/mathcwfs`python3-config --extension-suffix`
+                        c++ -O3 -Wall -shared -std=c++11 -I./include -fPIC `python3 -m pybind11 --includes` ./src/mathcwfs.cc -o python/lsst/ts/wep/cwfs/mathcwfs`python3-config --extension-suffix`
                     """
                 }
             }

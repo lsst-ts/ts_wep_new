@@ -10,8 +10,8 @@ This module calculates the wavefront error in annular Zernike polynomials up to 
 
 ## Needed Package
 
-- lsst_sims (tag: sims_w_2020_21)
-- lsst_distrib (tag: w_2020_21)
+- lsst_sims (tag: sims_w_2020_28)
+- lsst_distrib (tag: w_2020_28)
 - [phosim_utils](https://github.com/lsst-dm/phosim_utils)
 - scikit-image
 - clang-format (optional)
@@ -23,10 +23,10 @@ This module calculates the wavefront error in annular Zernike polynomials up to 
 ## Install the LSST Packages, phosim_utils, and ts_wep
 
 1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`. LSST_DIR is the directory of scientific pipeline.
-2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2020_21`.
-3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2020_21`.
+2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2020_28`.
+3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2020_28`.
 4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion of this.
-5. Clone the repository of phosim_utils to some other directory. Under the phosim_utils directory, use `setup -k -r . -t sims_w_2020_21` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.
+5. Clone the repository of phosim_utils to some other directory. Under the phosim_utils directory, use `setup -k -r . -t sims_w_2020_28` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.
 6. Under the directory of ts_wep, do:
 
 ```bash
@@ -36,7 +36,7 @@ scons
 
 ## Pull the Built Image from Docker Hub
 
-Pull the built docker image by `docker pull lsstts/aos:w_2020_21`. The scientific pipeline and lsst packages are installed already. For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).
+Pull the built docker image by `docker pull lsstts/aos:w_2020_28`. The scientific pipeline and lsst packages are installed already. For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).
 
 ## Code Format
 
@@ -99,7 +99,7 @@ runIsr.py input --id --rerun=run1 --configfile isr_config.py
 ```bash
 source $path_of_lsst_scientific_pipeline/loadLSST.bash
 cd $path_of_phosim_utils
-setup -k -r . -t sims_w_2020_21
+setup -k -r . -t sims_w_2020_28
 ```
 
 2. Setup the WEP environment.

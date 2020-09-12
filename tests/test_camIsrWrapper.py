@@ -54,12 +54,12 @@ class TestCamIsrWrapper(unittest.TestCase):
         self.assertTrue(os.path.isfile(isrConfigfilePath))
 
         numOfLine = self._getNumOfLineInFile(isrConfigfilePath)
-        self.assertEqual(numOfLine, 5)
+        self.assertEqual(numOfLine, 6)
 
     def _doIsrConfig(self):
 
         fileName = "isr_config.py"
-        self.camIsrWrapper.config(doFlat=True, fileName=fileName)
+        self.camIsrWrapper.config(doFlat=True, doOverscan=True, fileName=fileName)
 
         return fileName
 

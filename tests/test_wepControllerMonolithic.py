@@ -231,7 +231,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def step3_doIsr(self):
 
         fileName = "isr_config.py"
-        self.wepCntlr.getIsrWrapper().config(doFlat=True, fileName=fileName)
+        self.wepCntlr.getIsrWrapper().config(doFlat=True, doOverscan=True, fileName=fileName)
 
         rerunName = "run1"
         self.wepCntlr.getIsrWrapper().doISR(self.isrDir.name, rerunName=rerunName)

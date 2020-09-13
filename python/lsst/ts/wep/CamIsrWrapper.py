@@ -45,7 +45,7 @@ class CamIsrWrapper(object):
         self.doFlat = False
         self.doFringe = False
         self.doDefect = False
-
+        self.doOverscan = False
         self.isrConfigFilePath = None
 
     def config(
@@ -55,6 +55,7 @@ class CamIsrWrapper(object):
         doFlat=False,
         doFringe=False,
         doDefect=False,
+        doOverscan=False,
         fileName="isr_config.py",
     ):
         """Do the ISR configuration.
@@ -73,6 +74,8 @@ class CamIsrWrapper(object):
             Do the fringe correction. (the default is False.)
         doDefect : bool, optional
             Do the defect correction. (the default is False.)
+        doOverscan : bool, optional
+            Do the overscan correction. (the default is False.)
         fileName : str, optional
             Config override file name. (the default is "isr_config.py".)
         """
@@ -82,6 +85,7 @@ class CamIsrWrapper(object):
         self.doFlat = doFlat
         self.doFringe = doFringe
         self.doDefect = doDefect
+        self.doOverscan = doOverscan
 
         self._setIsrConfigfile(fileName)
 
@@ -103,7 +107,7 @@ class CamIsrWrapper(object):
         content += "config.isr.doFlat=%s\n" % self.doFlat
         content += "config.isr.doFringe=%s\n" % self.doFringe
         content += "config.isr.doDefect=%s\n" % self.doDefect
-
+        content += "config.isr.doOverscan=%s\n" % self.doOverscan
         try:
             writeFile(filePath, content)
             self.isrConfigFilePath = filePath

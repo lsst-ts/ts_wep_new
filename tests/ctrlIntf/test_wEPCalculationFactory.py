@@ -37,7 +37,6 @@ class TestWEPCalculationFactory(unittest.TestCase):
 
         self.assertTrue(isinstance(calculator, WEPCalculationOfLsstCam))
 
-    @unittest.skip("Not support in cwfs module yet.")
     def testGetCalculatorOfLsstFamCam(self):
 
         calculator = WEPCalculationFactory.getCalculator(CamType.LsstFamCam, "")

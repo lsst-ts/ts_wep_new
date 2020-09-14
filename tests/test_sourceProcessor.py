@@ -237,6 +237,30 @@ class TestSourceProcessor(unittest.TestCase):
         delta = np.sqrt((realCameraX - camX) ** 2 + (realCameraY - camY) ** 2)
         self.assertLess(delta, 10)
 
+    def testMapSensorAndFieldIdx(self):
+
+        fieldXY = self._getFieldXyOfLsst()
+        mapping = self.sourProc.mapSensorAndFieldIdx(fieldXY)
+
+        self.assertEqual(mapping["R22_S11"], 0)
+        self.assertEqual(mapping["R21_S10"], 12)
+
+    def _getFieldXyOfLsst(self):
+
+        nArm = 6
+        armLen = [0.379, 0.841, 1.237, 1.535, 1.708]
+        fieldWFSx = [1.176, -1.176, -1.176, 1.176]
+        fieldWFSy = [1.176, 1.176, -1.176, -1.176]
+        pointAngle = np.arange(nArm) * (2 * np.pi) / nArm
+        fieldX = np.concatenate(
+            [np.zeros(1), np.kron(armLen, np.cos(pointAngle)), fieldWFSx]
+        )
+        fieldY = np.concatenate(
+            [np.zeros(1), np.kron(armLen, np.sin(pointAngle)), fieldWFSy]
+        )
+
+        return np.array([fieldX, fieldY]).T
+
 
 if __name__ == "__main__":
 

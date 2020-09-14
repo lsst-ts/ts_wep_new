@@ -5,13 +5,13 @@ This module calculates the wavefront error in annular Zernike polynomials up to 
 ## Platform
 
 - CentOS 7
-- python: 3.7.6
+- python: 3.7.8
 - scientific pipeline (newinstall.sh from master branch)
 
 ## Needed Package
 
-- lsst_sims (tag: sims_w_2020_28)
-- lsst_distrib (tag: w_2020_28)
+- lsst_sims (tag: sims_w_2020_36)
+- lsst_distrib (tag: w_2020_36)
 - [phosim_utils](https://github.com/lsst-dm/phosim_utils)
 - scikit-image
 - clang-format (optional)
@@ -23,10 +23,10 @@ This module calculates the wavefront error in annular Zernike polynomials up to 
 ## Install the LSST Packages, phosim_utils, and ts_wep
 
 1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`. LSST_DIR is the directory of scientific pipeline.
-2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2020_28`.
-3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2020_28`.
+2. Install the lsst_sims by `eups distrib install lsst_sims -t sims_w_2020_36`.
+3. Install the lsst_distrib by `eups distrib install lsst_distrib -t w_2020_36`.
 4. Fix the path by `curl -sSL https://raw.githubusercontent.com/lsst/shebangtron/master/shebangtron | python`. The [shebangtron repo](https://github.com/lsst/shebangtron) has the further discussion of this.
-5. Clone the repository of phosim_utils to some other directory. Under the phosim_utils directory, use `setup -k -r . -t sims_w_2020_28` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.
+5. Clone the repository of phosim_utils to some other directory. Under the phosim_utils directory, use `setup -k -r . -t sims_w_2020_36` to setup the package in eups and use `scons` to build the module. It is noted that the build process is only needed for the first time.
 6. Under the directory of ts_wep, do:
 
 ```bash
@@ -36,7 +36,9 @@ scons
 
 ## Pull the Built Image from Docker Hub
 
-Pull the built docker image by `docker pull lsstts/aos:w_2020_28`. The scientific pipeline and lsst packages are installed already. For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).
+Pull the built docker image by `docker pull lsstts/aos:w_2020_36`.
+The scientific pipeline and lsst packages are installed already.
+For the details of docker image, please follow the [docker aos image](https://hub.docker.com/r/lsstts/aos).
 
 ## Code Format
 
@@ -99,7 +101,7 @@ runIsr.py input --id --rerun=run1 --configfile isr_config.py
 ```bash
 source $path_of_lsst_scientific_pipeline/loadLSST.bash
 cd $path_of_phosim_utils
-setup -k -r . -t sims_w_2020_28
+setup -k -r . -t sims_w_2020_36
 ```
 
 2. Setup the WEP environment.
@@ -111,7 +113,8 @@ setup -k -r .
 
 ## Example Script
 
-- **mapSensorAndFieldIdx.py**: Map the sensor name to the field point index based on the sensor's position on the ideal focal plane.
+- **mapSensorAndFieldIdx.py**: Map the sensor name to the field point index for LSST.
+- **mapSensorAndFieldIdxLsstFam.py**: Map the sensor name to the field point for LSST full-array mode (FAM).
 
 ## Verify the Calculated Wavefront Error
 
@@ -125,4 +128,12 @@ setup -k -r .
 
 ## Build the Document
 
-The user can use `package-docs build` to build the documentation. The packages of documenteer, plantuml, and sphinxcontrib-plantuml are needed. The path of plantuml.jar in doc/conf.py needs to be updated to the correct path. To clean the built documents, use `package-docs clean`. See [Building single-package documentation locally](https://developer.lsst.io/stack/building-single-package-docs.html) for further details.
+The user can use `package-docs build` to build the documentation.
+The packages of **documenteer**, **plantuml**, and **sphinxcontrib-plantuml** are needed.
+The path of `plantuml.jar` in `doc/conf.py` needs to be updated to the correct path.
+To clean the built documents, use `package-docs clean`.
+See [Building single-package documentation locally](https://developer.lsst.io/stack/building-single-package-docs.html) for further details.
+
+## Reference
+
+1. For the parameters of donut image migration, please follow: [How we predict the shapes of donuts in the WFS devices](doc/ref/200313_mask_param.pdf).

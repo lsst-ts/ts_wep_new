@@ -58,6 +58,7 @@ This module queries the bright star catalog and gets the scientific target.
 * **Filter**: Filter class to provide the scientific target star magnitude boundary.
 * **WcsSol**: Wavefront coordinate system (WCS) solution class to map the sky position to camera pixel position and vice versa.
 * **PlotStarFunc**: Plot funtions used in this bsc module.
+* **BaseBscTestCase**: Base class for the bright star catalog (BSC) tests.
 
 .. _lsst.ts.wep-modules_wep_ctrlIntf:
 
@@ -103,6 +104,7 @@ This module calculates the wavefront error by solving the TIE.
 * **CentroidDefault**: Default centroid class.
 * **CentroidRandomWalk**: CentroidDefault child class to get the centroid of donut by the random walk model.
 * **CentroidOtsu**: CentroidDefault child class to get the centroid of donut by the Otsu's method.
+* **BaseCwfsTestCase**: Base class for CWFS tests.
 
 .. _lsst.ts.wep-modules_wep_deblend:
 

@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.5:
+
+-------------
+1.4.5
+-------------
+
+Use the sims_w_2020_36. Support the LSST full-array mode (FAM). Add the classes of **BaseCwfsTestCase** and **BaseBscTestCase**. Put the limits of star's magnitude into a configuration file. Remove the serialization functions in **FilterType** enum.
+
 .. _lsst.ts.wep-1.4.4:
 
 -------------

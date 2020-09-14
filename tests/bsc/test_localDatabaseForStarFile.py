@@ -20,41 +20,40 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-import shutil
+import tempfile
 import numpy as np
 import unittest
 
+from lsst.ts.wep.bsc.BaseBscTestCase import BaseBscTestCase
 from lsst.ts.wep.bsc.LocalDatabaseForStarFile import LocalDatabaseForStarFile
 from lsst.ts.wep.Utility import getModulePath, FilterType
 
 
-class TestLocalDatabaseForStarFile(unittest.TestCase):
+class TestLocalDatabaseForStarFile(BaseBscTestCase, unittest.TestCase):
     """Test the local database for star file class."""
 
     def setUp(self):
 
-        self.modulePath = getModulePath()
+        self.createBscTest()
 
-        self.dataDir = os.path.join(self.modulePath, "tests", "tmp")
-        self._makeDir(self.dataDir)
-
-        self.filterType = FilterType.G
+        # Set up the local database
         self.db = LocalDatabaseForStarFile()
 
-        dbAdress = os.path.join(self.modulePath, "tests", "testData", "bsc.db3")
+        dbAdress = self.getPathOfBscTest()
         self.db.connect(dbAdress)
 
-    def _makeDir(self, directory):
+        # Set the filter
+        self.filterType = FilterType.G
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        # The temporary directory
+        testDir = os.path.join(getModulePath(), "tests")
+        self.dirTemp = tempfile.TemporaryDirectory(dir=testDir)
 
     def tearDown(self):
 
-        self.db.deleteTable(self.filterType)
         self.db.disconnect()
-
-        shutil.rmtree(self.dataDir)
+        self.dirTemp.cleanup()
+        self.removeBscTest()
 
     def testTableIsInDb(self):
 
@@ -81,7 +80,7 @@ class TestLocalDatabaseForStarFile(unittest.TestCase):
         self.assertEqual(len(idAll), 0)
 
         skyFilePath = os.path.join(
-            self.modulePath, "tests", "testData", "skyComCamInfo.txt"
+            getModulePath(), "tests", "testData", "skyComCamInfo.txt"
         )
         idAll = self._insertDataToDbAndGetAllId(skyFilePath)
 
@@ -108,7 +107,7 @@ class TestLocalDatabaseForStarFile(unittest.TestCase):
 
         header = "Id     Ra      Decl        Mag"
         delimiter = "    "
-        filePath = os.path.join(self.dataDir, fileName)
+        filePath = os.path.join(self.dirTemp.name, fileName)
         np.savetxt(filePath, starData, delimiter=delimiter, header=header)
 
         return filePath

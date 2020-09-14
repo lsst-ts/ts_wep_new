@@ -116,6 +116,8 @@ class Instrument(object):
 
         if camType == CamType.LsstCam:
             return "lsst"
+        elif camType == CamType.LsstFamCam:
+            return "lsstfam"
         elif camType == CamType.ComCam:
             return "comcam"
         elif camType == CamType.AuxTel:

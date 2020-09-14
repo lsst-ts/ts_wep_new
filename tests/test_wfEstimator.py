@@ -55,14 +55,6 @@ class TestWfEsitmator(unittest.TestCase):
 
     def testCalWfsErrOfExp(self):
 
-        # Setup the images
-        self.wfsEst.setImg(self.fieldXY, DefocalType.Intra, imageFile=self.intraImgFile)
-        self.wfsEst.setImg(self.fieldXY, DefocalType.Extra, imageFile=self.extraImgFile)
-
-        # Test the images are set.
-        self.assertEqual(self.wfsEst.getIntraImg().getDefocalType(), DefocalType.Intra)
-        self.assertEqual(self.wfsEst.getExtraImg().getDefocalType(), DefocalType.Extra)
-
         # Setup the configuration
         # If the configuration is reset, the images are needed to be set again.
         self.wfsEst.config(
@@ -73,6 +65,14 @@ class TestWfEsitmator(unittest.TestCase):
             sizeInPix=120,
             debugLevel=0,
         )
+
+        # Setup the images
+        self.wfsEst.setImg(self.fieldXY, DefocalType.Intra, imageFile=self.intraImgFile)
+        self.wfsEst.setImg(self.fieldXY, DefocalType.Extra, imageFile=self.extraImgFile)
+
+        # Test the images are set.
+        self.assertEqual(self.wfsEst.getIntraImg().getDefocalType(), DefocalType.Intra)
+        self.assertEqual(self.wfsEst.getExtraImg().getDefocalType(), DefocalType.Extra)
 
         # Evaluate the wavefront error
         wfsError = [
@@ -103,10 +103,6 @@ class TestWfEsitmator(unittest.TestCase):
 
     def testCalWfsErrOfFft(self):
 
-        # Reset the wavefront images
-        self.wfsEst.setImg(self.fieldXY, DefocalType.Intra, imageFile=self.intraImgFile)
-        self.wfsEst.setImg(self.fieldXY, DefocalType.Extra, imageFile=self.extraImgFile)
-
         # Change the algorithm to fft
         self.wfsEst.config(
             solver="fft",
@@ -116,6 +112,10 @@ class TestWfEsitmator(unittest.TestCase):
             sizeInPix=120,
             debugLevel=0,
         )
+
+        # Reset the wavefront images
+        self.wfsEst.setImg(self.fieldXY, DefocalType.Intra, imageFile=self.intraImgFile)
+        self.wfsEst.setImg(self.fieldXY, DefocalType.Extra, imageFile=self.extraImgFile)
 
         # Evaluate the wavefront error
         wfsError = [

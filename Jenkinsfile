@@ -8,7 +8,7 @@ pipeline {
         // It is recommended by SQUARE team do not add the label to let the
         // system decide.
         docker {
-            image 'lsstts/aos:w_2020_28'
+            image 'lsstts/aos:w_2020_36'
         }
     }
 
@@ -18,13 +18,13 @@ pipeline {
 
     environment {
         // Position of LSST stack directory
-        LSST_STACK="/opt/lsst/software/stack"
+        LSST_STACK = "/opt/lsst/software/stack"
         // Pipeline Sims Version
-        SIMS_VERSION="sims_w_2020_28"
+        SIMS_VERSION = "sims_w_2020_36"
         // XML report path
-        XML_REPORT="jenkinsReport/report.xml"
+        XML_REPORT = "jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
-        MODULE_NAME="lsst.ts.wep"
+        MODULE_NAME = "lsst.ts.wep"
     }
 
     stages {
@@ -51,7 +51,8 @@ pipeline {
                         setup -k -r . -t ${env.SIMS_VERSION}
                         scons
                         cd ..
-                        c++ -O3 -Wall -shared -std=c++11 -I./include -fPIC `python3 -m pybind11 --includes` ./src/mathcwfs.cc -o python/lsst/ts/wep/cwfs/mathcwfs`python3-config --extension-suffix`
+                        setup -k -r .
+                        scons python
                     """
                 }
             }
@@ -88,7 +89,7 @@ pipeline {
                 reportDir: 'htmlcov',
                 reportFiles: 'index.html',
                 reportName: "Coverage Report"
-              ])
+            ])
         }
 
         cleanup {

@@ -128,7 +128,7 @@ setup -k -r .
 
 ## Build the Document
 
-The user can use `package-docs build` to build the documentation.
+To build project documentation, run `package-docs build` to build the documentation.
 The packages of **documenteer**, **plantuml**, and **sphinxcontrib-plantuml** are needed.
 The path of `plantuml.jar` in `doc/conf.py` needs to be updated to the correct path.
 To clean the built documents, use `package-docs clean`.

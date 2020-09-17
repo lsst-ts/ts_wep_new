@@ -19,25 +19,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 import unittest
 
+from lsst.ts.wep.bsc.BaseBscTestCase import BaseBscTestCase
 from lsst.ts.wep.bsc.StarData import StarData
 from lsst.ts.wep.bsc.LocalDatabase import LocalDatabase
-from lsst.ts.wep.Utility import getModulePath, FilterType
+from lsst.ts.wep.Utility import FilterType
 
 
-class TestLocalDatabase(unittest.TestCase):
+class TestLocalDatabase(BaseBscTestCase, unittest.TestCase):
     """Test the LocalDatabase class."""
 
     def setUp(self):
 
-        # Set the database address
-        modulePath = getModulePath()
-        dbAdress = os.path.join(modulePath, "tests", "testData", "bsc.db3")
+        self.createBscTest()
 
-        # Set up local database
+        # Set up the local database
         self.localDatabase = LocalDatabase()
+
+        dbAdress = self.getPathOfBscTest()
         self.localDatabase.connect(dbAdress)
 
         # Set the filter
@@ -61,10 +61,8 @@ class TestLocalDatabase(unittest.TestCase):
 
     def tearDown(self):
 
-        allId = self.localDatabase.getAllId(self.filterType)
-        self.localDatabase.deleteData(self.filterType, allId)
-
         self.localDatabase.disconnect()
+        self.removeBscTest()
 
     def testQuery(self):
 

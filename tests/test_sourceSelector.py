@@ -22,18 +22,20 @@
 import os
 import unittest
 
+from lsst.ts.wep.bsc.BaseBscTestCase import BaseBscTestCase
 from lsst.ts.wep.SourceSelector import SourceSelector
 from lsst.ts.wep.Utility import getModulePath, FilterType, CamType, BscDbType
 
 
-class TestSourceSelector(unittest.TestCase):
+class TestSourceSelector(BaseBscTestCase, unittest.TestCase):
     """Test the source selector class."""
 
     def setUp(self):
 
+        self.createBscTest()
+
         # Get the path of module
         self.modulePath = getModulePath()
-
         self.sourSelc = SourceSelector(CamType.ComCam, BscDbType.LocalDb)
 
         # Set the survey parameters
@@ -43,15 +45,14 @@ class TestSourceSelector(unittest.TestCase):
         self.sourSelc.setObsMetaData(ra, dec, rotSkyPos)
         self.sourSelc.setFilter(FilterType.U)
 
-        # Address of local database
-        self.dbAdress = os.path.join(self.modulePath, "tests", "testData", "bsc.db3")
-
         # Connect to database
+        self.dbAdress = self.getPathOfBscTest()
         self.sourSelc.connect(self.dbAdress)
 
     def tearDown(self):
 
         self.sourSelc.disconnect()
+        self.removeBscTest()
 
     def testInit(self):
 

@@ -1,5 +1,6 @@
 @startuml
 class Filter
+class BaseBscTestCase
 DefaultDatabase <|-- LocalDatabase
 LocalDatabase <|-- LocalDatabaseForStarFile
 DatabaseFactory ..> LocalDatabase

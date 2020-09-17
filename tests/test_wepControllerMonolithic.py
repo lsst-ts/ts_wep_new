@@ -25,6 +25,7 @@ from astropy.io import fits
 import tempfile
 import unittest
 
+from lsst.ts.wep.bsc.BaseBscTestCase import BaseBscTestCase
 from lsst.ts.wep.cwfs.Tool import ZernikeAnnularFit
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.CamIsrWrapper import CamIsrWrapper
@@ -43,10 +44,12 @@ from lsst.ts.wep.Utility import (
 )
 
 
-class TestWepControllerMonolithic(unittest.TestCase):
+class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
     """Test the WepController class."""
 
     def setUp(self):
+
+        self.createBscTest()
 
         self.modulePath = getModulePath()
 
@@ -94,8 +97,8 @@ class TestWepControllerMonolithic(unittest.TestCase):
             starRadiusInPixel, spacingCoefficient, maxNeighboringStar=maxNeighboringStar
         )
 
-        # Connest the database
-        dbAdress = os.path.join(self.modulePath, "tests", "testData", "bsc.db3")
+        # Connect the database
+        dbAdress = self.getPathOfBscTest()
         sourSelc.connect(dbAdress)
 
         return sourSelc
@@ -124,6 +127,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         self.wepCntlr.getSourSelc().disconnect()
         self.dataDir.cleanup()
+        self.removeBscTest()
 
     def testGetDataCollector(self):
 
@@ -231,7 +235,9 @@ class TestWepControllerMonolithic(unittest.TestCase):
     def step3_doIsr(self):
 
         fileName = "isr_config.py"
-        self.wepCntlr.getIsrWrapper().config(doFlat=True, doOverscan=True, fileName=fileName)
+        self.wepCntlr.getIsrWrapper().config(
+            doFlat=True, doOverscan=True, fileName=fileName
+        )
 
         rerunName = "run1"
         self.wepCntlr.getIsrWrapper().doISR(self.isrDir.name, rerunName=rerunName)

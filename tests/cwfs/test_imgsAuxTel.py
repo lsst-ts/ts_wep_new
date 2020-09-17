@@ -24,19 +24,13 @@ import numpy as np
 import unittest
 
 from lsst.ts.wep.cwfs.Image import Image
-from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
-from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.Algorithm import Algorithm
-from lsst.ts.wep.Utility import (
-    getModulePath,
-    getConfigDir,
-    DefocalType,
-    CamType,
-    CentroidFindType,
-)
+from lsst.ts.wep.cwfs.BaseCwfsTestCase import BaseCwfsTestCase
+from lsst.ts.wep.Utility import getModulePath, CamType, CentroidFindType
 
 
-class TestImgsAuxTel(unittest.TestCase):
+class TestImgsAuxTel(BaseCwfsTestCase, unittest.TestCase):
+    """Test the images of auxiliary telescope"""
+
     def setUp(self):
 
         testImageDataDir = os.path.join(
@@ -49,7 +43,24 @@ class TestImgsAuxTel(unittest.TestCase):
         self.tolMax = 6
         self.tolRms = 2
 
-    def _runWep(self, imgIntraName, imgExtraName, offset, model):
+    def testCase1paraxial(self):
+
+        imgIntraName, imgExtraName = self._getImgsCase1()
+        zer4UpNm = self._calcWfErrAuxTel(
+            imgIntraName, imgExtraName, self.offset, "paraxial"
+        )
+
+        ans = self._getDataVerify("case1_auxTel_paraxial.txt")
+        self.compareDiffWithTol(zer4UpNm, ans, self.tolMax, self.tolRms)
+
+    def _getImgsCase1(self):
+
+        imgIntraName = "1579925613-16Pup_intra-0-1.fits"
+        imgExtraName = "1579925662-16Pup_extra-0-1.fits"
+
+        return imgIntraName, imgExtraName
+
+    def _calcWfErrAuxTel(self, imgIntraName, imgExtraName, offset, model):
 
         # Cut the donut image from input files
         centroidFindType = CentroidFindType.Otsu
@@ -60,60 +71,34 @@ class TestImgsAuxTel(unittest.TestCase):
         imgExtraPath = os.path.join(self.testImgDir, imgExtraName)
 
         imgIntra.setImg(imageFile=imgIntraPath)
-
         imgExtra.setImg(imageFile=imgExtraPath)
 
-        xIntra, yIntra, _ = imgIntra.getCenterAndR()
+        xIntra, yIntra = imgIntra.getCenterAndR()[0:2]
         imgIntraArray = imgIntra.getImg()[
             int(yIntra) - offset : int(yIntra) + offset,
             int(xIntra) - offset : int(xIntra) + offset,
         ]
 
-        xExtra, yExtra, _ = imgExtra.getCenterAndR()
+        xExtra, yExtra = imgExtra.getCenterAndR()[0:2]
         imgExtraArray = imgExtra.getImg()[
             int(yExtra) - offset : int(yExtra) + offset,
             int(xExtra) - offset : int(xExtra) + offset,
         ]
 
-        # Set the images
-        fieldXY = (0, 0)
-        imgCompIntra = CompensableImage(centroidFindType=centroidFindType)
-        imgCompIntra.setImg(fieldXY, DefocalType.Intra, image=imgIntraArray)
-
-        imgCompExtra = CompensableImage(centroidFindType=centroidFindType)
-        imgCompExtra.setImg(fieldXY, DefocalType.Extra, image=imgExtraArray)
-
         # Calculate the wavefront error
-
-        # Set the instrument
-        instDir = os.path.join(getConfigDir(), "cwfs", "instData")
-        instAuxTel = Instrument(instDir)
-        instAuxTel.config(
-            CamType.AuxTel, imgCompIntra.getImgSizeInPix(), announcedDefocalDisInMm=0.8
+        fieldXY = (0, 0)
+        wfErr = self.calcWfErr(
+            centroidFindType,
+            fieldXY,
+            CamType.AuxTel,
+            "exp",
+            0.8,
+            model,
+            imageIntra=imgIntraArray,
+            imageExtra=imgExtraArray,
         )
 
-        # Set the algorithm
-        algoFolderPath = os.path.join(getConfigDir(), "cwfs", "algo")
-        algoAuxTel = Algorithm(algoFolderPath)
-        algoAuxTel.config("exp", instAuxTel)
-        algoAuxTel.runIt(imgCompIntra, imgCompExtra, model)
-
-        return algoAuxTel.getZer4UpInNm()
-
-    def testCase1paraxial(self):
-
-        imgIntraName, imgExtraName = self._getImgsCase1()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "paraxial")
-
-        ans = self._getDataVerify("case1_auxTel_paraxial.txt")
-        self._compareDifferenceWithTol(zer4UpNm, ans)
-
-    def _getImgsCase1(self):
-
-        imgIntraName = "1579925613-16Pup_intra-0-1.fits"
-        imgExtraName = "1579925662-16Pup_extra-0-1.fits"
-
-        return imgIntraName, imgExtraName
+        return wfErr
 
     def _getDataVerify(self, fileName):
 
@@ -121,28 +106,25 @@ class TestImgsAuxTel(unittest.TestCase):
 
         return np.loadtxt(filePath)
 
-    def _compareDifferenceWithTol(self, zer4UpNm, ans):
-
-        diffMax = np.max(np.abs(zer4UpNm - ans))
-        self.assertLess(diffMax, self.tolMax)
-
-        diffRms = np.sqrt(np.sum(np.abs(zer4UpNm - ans) ** 2) / 19)
-        self.assertLess(diffRms, self.tolRms)
-
     def testCase1onaxis(self):
 
         imgIntraName, imgExtraName = self._getImgsCase1()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "onAxis")
+        zer4UpNm = self._calcWfErrAuxTel(
+            imgIntraName, imgExtraName, self.offset, "onAxis"
+        )
+
         ans = self._getDataVerify("case1_auxTel_onaxis.txt")
-        self._compareDifferenceWithTol(zer4UpNm, ans)
+        self.compareDiffWithTol(zer4UpNm, ans, self.tolMax, self.tolRms)
 
     def testCase2paraxial(self):
 
         imgIntraName, imgExtraName = self._getImgsCase2()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "paraxial")
+        zer4UpNm = self._calcWfErrAuxTel(
+            imgIntraName, imgExtraName, self.offset, "paraxial"
+        )
 
         ans = self._getDataVerify("case2_auxTel_paraxial.txt")
-        self._compareDifferenceWithTol(zer4UpNm, ans)
+        self.compareDiffWithTol(zer4UpNm, ans, self.tolMax, self.tolRms)
 
     def _getImgsCase2(self):
 
@@ -154,10 +136,12 @@ class TestImgsAuxTel(unittest.TestCase):
     def testCase2onaxis(self):
 
         imgIntraName, imgExtraName = self._getImgsCase2()
-        zer4UpNm = self._runWep(imgIntraName, imgExtraName, self.offset, "onAxis")
+        zer4UpNm = self._calcWfErrAuxTel(
+            imgIntraName, imgExtraName, self.offset, "onAxis"
+        )
 
         ans = self._getDataVerify("case2_auxTel_onaxis.txt")
-        self._compareDifferenceWithTol(zer4UpNm, ans)
+        self.compareDiffWithTol(zer4UpNm, ans, self.tolMax, self.tolRms)
 
 
 if __name__ == "__main__":

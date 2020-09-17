@@ -44,13 +44,6 @@ from lsst.ts.wep.Utility import (
 class TestUtility(unittest.TestCase):
     """Test the Utility functions."""
 
-    def testSerializingAndUnserializingFilterType(self):
-
-        filt = FilterType.fromString("y")
-        self.assertEqual(filt, FilterType.Y)
-        string = filt.toString()
-        self.assertEqual(string, "y")
-
     def testAbbrevDectectorName(self):
 
         sciSensorName = "R:2,2 S:1,1"

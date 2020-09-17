@@ -25,6 +25,7 @@ import tempfile
 from astropy.io import fits
 import unittest
 
+from lsst.ts.wep.bsc.BaseBscTestCase import BaseBscTestCase
 from lsst.ts.wep.cwfs.Tool import ZernikeAnnularFit
 from lsst.ts.wep.CamDataCollector import CamDataCollector
 from lsst.ts.wep.SourceProcessor import SourceProcessor
@@ -41,10 +42,12 @@ from lsst.ts.wep.Utility import (
 )
 
 
-class TestWepControllerMonolithic(unittest.TestCase):
+class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
     """Test the WepController class."""
 
     def setUp(self):
+
+        self.createBscTest()
 
         self.modulePath = getModulePath()
 
@@ -87,8 +90,8 @@ class TestWepControllerMonolithic(unittest.TestCase):
             starRadiusInPixel, spacingCoefficient, maxNeighboringStar=maxNeighboringStar
         )
 
-        # Connest the database
-        dbAdress = os.path.join(self.modulePath, "tests", "testData", "bsc.db3")
+        # Connect the database
+        dbAdress = self.getPathOfBscTest()
         sourSelc.connect(dbAdress)
 
         return sourSelc
@@ -117,6 +120,7 @@ class TestWepControllerMonolithic(unittest.TestCase):
 
         self.wepCntlr.getSourSelc().disconnect()
         self.dataDir.cleanup()
+        self.removeBscTest()
 
     def testMonolithicSteps(self):
         """Do the test based on the steps defined in the child class."""

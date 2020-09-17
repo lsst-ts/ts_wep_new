@@ -43,7 +43,7 @@ class TestInstrument(unittest.TestCase):
 
     def testConfigWithUnsupportedCamType(self):
 
-        self.assertRaises(ValueError, self.inst.config, CamType.LsstFamCam, 120)
+        self.assertRaises(ValueError, self.inst.config, "NoThisCamType", 120)
 
     def testGetInstFileDir(self):
 

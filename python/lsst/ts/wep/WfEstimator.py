@@ -180,10 +180,8 @@ class WfEstimator(object):
 
         self.algo.config(solver, self.inst, debugLevel=debugLevel)
 
-        # Reset the centroid find algorithm if not the default one
-        if centroidFindType != CentroidFindType.RandomWalk:
-            self.imgIntra = CompensableImage(centroidFindType=centroidFindType)
-            self.imgExtra = CompensableImage(centroidFindType=centroidFindType)
+        self.imgIntra = CompensableImage(centroidFindType=centroidFindType)
+        self.imgExtra = CompensableImage(centroidFindType=centroidFindType)
 
     def setImg(self, fieldXY, defocalType, image=None, imageFile=None):
         """Set the wavefront image.
@@ -250,7 +248,3 @@ class WfEstimator(object):
             self.algo.outZer4Up(showPlot=showPlot)
 
         return self.algo.getZer4UpInNm()
-
-
-if __name__ == "__main__":
-    pass

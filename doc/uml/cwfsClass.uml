@@ -9,4 +9,7 @@ CentroidFindFactory ..> CentroidRandomWalk
 CentroidFindFactory ..> CentroidOtsu
 Image ..> CentroidFindFactory
 Image *-- CentroidDefault
+BaseCwfsTestCase ..> CompensableImage
+BaseCwfsTestCase ..> Instrument
+BaseCwfsTestCase ..> Algorithm
 @enduml

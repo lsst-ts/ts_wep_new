@@ -64,6 +64,7 @@ class TestCamDataCollector(unittest.TestCase):
 
     def testIngestCalibs(self):
 
+        self.assertTrue(os.path.exists(self.dataDir.name))
         # Make fake gain images
         fakeFlatDir = tempfile.TemporaryDirectory(dir=self.dataDir.name)
 

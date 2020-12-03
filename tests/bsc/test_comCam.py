@@ -55,8 +55,8 @@ class TestComCam(unittest.TestCase):
         wfsCcdList = self.camera.getWfsCcdList()
 
         self.assertEqual(len(wfsCcdList), 9)
-        self.assertTrue("R:2,2 S:1,1" in wfsCcdList)
-        self.assertFalse("R:2,1 S:1,1" in wfsCcdList)
+        self.assertTrue("R22_S11" in wfsCcdList)
+        self.assertFalse("R21_S11" in wfsCcdList)
 
     def testSetWfsCcdList(self):
 
@@ -67,10 +67,10 @@ class TestComCam(unittest.TestCase):
 
     def testGetWfsCorner(self):
 
-        wfsCorner = self.camera.getWfsCorner("R:2,2 S:1,1")
+        wfsCorner = self.camera.getWfsCorner("R22_S11")
 
         self.assertEqual(len(wfsCorner), 2)
-        self.assertRaises(KeyError, self.camera.getWfsCorner, "R:2,1 S:1,1")
+        self.assertRaises(KeyError, self.camera.getWfsCorner, "R21_S11")
 
     def testSetWfsCorners(self):
 
@@ -81,9 +81,10 @@ class TestComCam(unittest.TestCase):
 
     def testGetCcdDim(self):
 
-        ccdDim = self.camera.getCcdDim("R:2,2 S:1,1")
+        ccdDim = self.camera.getCcdDim("R22_S11")
 
-        self.assertEqual(ccdDim, (4072, 4000))
+        self.assertEqual(ccdDim[0], 4096)
+        self.assertEqual(ccdDim[1], 4004)
 
     def testSetCcdDims(self):
 
@@ -111,7 +112,7 @@ class TestComCam(unittest.TestCase):
 
     def _populatePixelFromRADecl(self):
 
-        self.stars.setDetector("R:2,2 S:1,1")
+        self.stars.setDetector("R22_S11")
         populatedStar = self.camera.populatePixelFromRADecl(self.stars)
 
         return populatedStar

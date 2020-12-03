@@ -87,7 +87,7 @@ class TestSourceSelector(BaseBscTestCase, unittest.TestCase):
             offset=0
         )
 
-        self.assertEqual(len(wavefrontSensors), 8)
+        self.assertGreaterEqual(len(wavefrontSensors), 6)
 
     def testGetTargetStarWithNotZeroOffset(self):
 

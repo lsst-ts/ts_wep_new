@@ -26,7 +26,6 @@ from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
 from lsst.ts.wep.Utility import (
-    abbrevDectectorName,
     searchDonutPos,
     DefocalType,
     ImageType,
@@ -36,14 +35,14 @@ from lsst.ts.wep.Utility import (
 class WepController(object):
 
     CORNER_WFS_LIST = [
-        "R:0,0 S:2,2,A",
-        "R:0,0 S:2,2,B",
-        "R:0,4 S:2,0,A",
-        "R:0,4 S:2,0,B",
-        "R:4,0 S:0,2,A",
-        "R:4,0 S:0,2,B",
-        "R:4,4 S:0,0,A",
-        "R:4,4 S:0,0,B",
+        "R00_S22A",
+        "R00_S22B",
+        "R04_S20A",
+        "R04_S20B",
+        "R40_S02A",
+        "R40_S02B",
+        "R44_S00A",
+        "R44_S00B",
     ]
 
     def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfEsti):
@@ -270,14 +269,15 @@ class WepController(object):
         raft = sensor = channel = None
 
         # Use the regular expression to analyze the input name
-        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
+        m = re.match(r"R(\d\d)_S(\d\d)(?:([A,B]))?$", sensorName)
         if m is not None:
             raft, sensor, channel = m.groups()[0:3]
-
+        else:
+            raise RuntimeError(f"Could not unpack sensor name: {sensorName}.")
         # This is for the phosim mapper use.
         # For example, raft is "R22" and sensor is "S11".
-        raftAbbName = "R" + raft[0] + raft[-1]
-        sensorAbbName = "S" + sensor[0] + sensor[-1]
+        raftAbbName = "R" + raft
+        sensorAbbName = "S" + sensor
 
         return raftAbbName, sensorAbbName, channel
 
@@ -371,11 +371,8 @@ class WepController(object):
         donutMap = dict()
         for sensorName, nbrStar in neighborStarMap.items():
 
-            # Get the abbraviated sensor name
-            abbrevName = abbrevDectectorName(sensorName)
-
             # Configure the source processor
-            self.sourProc.config(sensorName=abbrevName)
+            self.sourProc.config(sensorName=sensorName)
 
             # Get the defocal images: [intra, extra]
             defocalImgList = [
@@ -445,7 +442,7 @@ class WepController(object):
 
                             # Get the Euler angle
                             eulerZangle = round(
-                                self.sourProc.getEulerZinDeg(abbrevName)
+                                self.sourProc.getEulerZinDeg(sensorName)
                             )
 
                             # Change the sign if the angle < 0

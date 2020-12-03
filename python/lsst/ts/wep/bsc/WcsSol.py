@@ -22,7 +22,7 @@
 import numpy as np
 
 from lsst.sims.utils import ObservationMetaData
-from lsst.obs.lsstSim import LsstSimMapper
+from lsst.obs.lsst import LsstCamMapper
 from lsst.sims.coordUtils.CameraUtils import (
     raDecFromPixelCoords,
     pixelCoordsFromRaDec,
@@ -44,7 +44,7 @@ class WcsSol(object):
         self._obs = ObservationMetaData()
 
         if camera is None:
-            self._camera = LsstSimMapper().camera
+            self._camera = LsstCamMapper().camera
         else:
             self._camera = camera
 

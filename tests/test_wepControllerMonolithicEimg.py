@@ -42,6 +42,7 @@ from lsst.ts.wep.Utility import (
 )
 
 
+@unittest.skip("Need new test images to be able to run.")
 class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
     """Test the WepController class."""
 

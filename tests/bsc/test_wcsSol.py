@@ -57,41 +57,44 @@ class TestWcsSol(unittest.TestCase):
 
     def testRaDecFromPixelCoordsForSingleChip(self):
 
-        xPix = 2032
-        yPix = 2000
-        chipName = "R:2,2 S:1,1"
+        xPix = 2047.5
+        yPix = 2001.5
+        chipName = "R22_S11"
         raByWcs, decByWcs = self.wcs.raDecFromPixelCoords(xPix, yPix, chipName)
 
-        self.assertAlmostEqual(raByWcs, self.ra, places=2)
-        self.assertAlmostEqual(decByWcs, self.dec, places=2)
+        self.assertAlmostEqual(raByWcs, self.ra, places=5)
+        self.assertAlmostEqual(decByWcs, self.dec, places=5)
 
     def testRaDecFromPixelCoordsForChipArray(self):
 
-        xPix = np.array([2032, 2032])
-        yPix = np.array([2000, 2000])
-        chipName = np.array(["R:2,2 S:1,1", "R:2,2 S:1,1"])
+        xPix = np.array([2047.5, 2047.5])
+        yPix = np.array([2001.5, 2001.5])
+        chipName = np.array(["R22_S11", "R22_S11"])
         raByWcs, decByWcs = self.wcs.raDecFromPixelCoords(xPix, yPix, chipName)
 
         self.assertEqual(len(raByWcs), 2)
         self.assertEqual(len(decByWcs), 2)
 
-        self.assertAlmostEqual(raByWcs[0], self.ra, places=2)
-        self.assertAlmostEqual(raByWcs[1], self.ra, places=2)
+        self.assertAlmostEqual(raByWcs[0], self.ra, places=5)
+        self.assertAlmostEqual(raByWcs[1], self.ra, places=5)
+
+        self.assertAlmostEqual(decByWcs[0], self.dec, places=5)
+        self.assertAlmostEqual(decByWcs[1], self.dec, places=5)
 
     def testPixelCoordsFromRaDecWithoutChipName(self):
 
         xPix, yPix = self.wcs.pixelCoordsFromRaDec(self.ra, self.dec)
 
-        self.assertAlmostEqual(xPix, 2032, places=-1)
-        self.assertAlmostEqual(yPix, 1994, places=-1)
+        self.assertAlmostEqual(xPix, 2047, places=-1)
+        self.assertAlmostEqual(yPix, 2001, places=-1)
 
     def testPixelCoordsFromRaDecWithChipName(self):
 
-        chipName = "R:2,2 S:1,1"
+        chipName = "R22_S11"
         xPix, yPix = self.wcs.pixelCoordsFromRaDec(self.ra, self.dec, chipName=chipName)
 
-        self.assertAlmostEqual(xPix, 2032, places=-1)
-        self.assertAlmostEqual(yPix, 1994, places=-1)
+        self.assertAlmostEqual(xPix, 2047, places=-1)
+        self.assertAlmostEqual(yPix, 2001, places=-1)
 
     def testFocalPlaneCoordsFromRaDecWithZeroRot(self):
 

@@ -44,6 +44,7 @@ from lsst.ts.wep.Utility import (
 )
 
 
+@unittest.skip("Need new test images to be able to run.")
 class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
     """Test the WepController class."""
 
@@ -157,10 +158,11 @@ class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
         """Do the test based on the steps defined in the child class."""
 
         for name, step in self._steps():
-            try:
-                step()
-            except Exception as e:
-                self.fail("{} failed ({}: {})".format(step, type(e), e))
+            with self.subTest(name=name, step=step):
+                try:
+                    step()
+                except Exception as e:
+                    self.fail("{} failed ({}: {})".format(step, type(e), e))
 
     def _steps(self):
         """Sort the order of test steps.

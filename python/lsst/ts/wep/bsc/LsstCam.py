@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from lsst.obs.lsstSim import LsstSimMapper
+from lsst.obs.lsst import LsstCamMapper
 from lsst.afw.cameraGeom.detector.detector import DetectorType
 
 from lsst.ts.wep.bsc.CameraData import CameraData
@@ -29,7 +29,7 @@ class LsstCam(CameraData):
     def __init__(self):
         """Initialize the LSST camera class."""
 
-        super(LsstCam, self).__init__(LsstSimMapper().camera)
+        super(LsstCam, self).__init__(LsstCamMapper().camera)
         self._initDetectors(DetectorType.WAVEFRONT)
 
 

@@ -27,7 +27,6 @@ from lsst.ts.wep.Utility import (
     getConfigDir,
     BscDbType,
     FilterType,
-    abbrevDectectorName,
     getBscDbType,
     getImageType,
     getCentroidFindType,
@@ -655,8 +654,7 @@ class WEPCalculation(object):
             sensorWavefrontData = SensorWavefrontData()
 
             # Set the sensor Id
-            abbrevSensor = abbrevDectectorName(sensor)
-            sensorIdList = mapSensorNameAndId.mapSensorNameToId(abbrevSensor)
+            sensorIdList = mapSensorNameAndId.mapSensorNameToId(sensor)
             sensorId = sensorIdList[0]
             sensorWavefrontData.setSensorId(sensorId)
 

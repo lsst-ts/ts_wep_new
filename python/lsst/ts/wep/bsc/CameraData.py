@@ -27,7 +27,7 @@ from lsst.ts.wep.Utility import FilterType
 
 
 class CameraData(object):
-    def __init__(self, camera):
+    def __init__(self, camera, centerCcd="R22_S11"):
         """Initialize the camera data class.
 
         Parameters
@@ -35,9 +35,15 @@ class CameraData(object):
         camera : lsst.afw.cameraGeom.camera.camera.Camera
             A collection of Detectors that also supports coordinate
             transformation. (the default is None.)
+
+        centerCcd : str
+            Center Ccd on the camera (e.g. "R22_S11")
         """
 
         self._wcs = WcsSol(camera=camera)
+
+        # Center detector on camera
+        self._centerCcd = centerCcd
 
         # List of wavefront sensor CCD name
         self._wfsCcd = []
@@ -53,7 +59,7 @@ class CameraData(object):
         Parameters
         ----------
         wfsCcdList : list
-            Wavefront sensor list (e.g. ["R:2,2 S:1,1", "R:2,2 S:1,0"]).
+            Wavefront sensor list (e.g. ["R22_S11", "R22_S10"]).
         """
 
         self._wfsCcd = wfsCcdList
@@ -65,7 +71,7 @@ class CameraData(object):
         ----------
         wfsCorners : dict
             Wavefront corner information. The dictionary key is the CCD name
-            (e.g. "R:2,2 S:1,1").
+            (e.g. "R22_S11").
         """
 
         self._corners = wfsCorners
@@ -77,7 +83,7 @@ class CameraData(object):
         ----------
         ccdDims : dict
             CCD dimensions. The dictionary key is the CCD name (e.g.
-            "R:2,2 S:1,1").
+            "R22_S11").
         """
 
         self._dimension = ccdDims
@@ -99,7 +105,7 @@ class CameraData(object):
         Parameters
         ----------
         detectorName : str
-            Detector Name (e.g. "R:2,2 S:1,1").
+            Detector Name (e.g. "R22_S11").
 
         Returns
         -------
@@ -115,7 +121,7 @@ class CameraData(object):
         Parameters
         ----------
         detectorName : str
-            Detector name (e.g. "R:2,2 S:1,1").
+            Detector name (e.g. "R22_S11").
 
         Returns
         -------
@@ -162,7 +168,8 @@ class CameraData(object):
                 dim1, dim2 = bbox.getDimensions()
                 self._dimension[detectorName] = (int(dim1), int(dim2))
 
-    def setObsMetaData(self, ra, dec, rotSkyPos, mjd=59580.0):
+    def setObsMetaData(self, ra, dec, rotSkyPos,
+                       mjd=59580.0):
         """Set the observation meta data.
 
         Parameters
@@ -177,7 +184,8 @@ class CameraData(object):
             Camera MJD. (the default is 59580.0.)
         """
 
-        self._wcs.setObsMetaData(ra, dec, rotSkyPos, mjd=mjd)
+        self._wcs.setObsMetaData(ra, dec, rotSkyPos,
+                                 self._centerCcd, mjd=mjd)
 
     def populatePixelFromRADecl(self, stars):
         """Populates the RAInPixel and DeclInPixel coordinates to the stars.
@@ -199,7 +207,9 @@ class CameraData(object):
         # Populate the pixel data
         ra = populatedStar.getRA()
         decl = populatedStar.getDecl()
-        chipName = np.array([populatedStar.getDetector()] * len(ra))
+        chipName = np.array(
+            [populatedStar.getDetector()] * len(ra)
+        )
         raInPixel, declInPixel = self._wcs.pixelCoordsFromRaDec(
             ra, decl, chipName=chipName, epoch=2000.0, includeDistortion=True
         )
@@ -297,7 +307,7 @@ class CameraData(object):
         Parameters
         ----------
         detectorList : list
-            List of detectors. For example, ["R:2,2 S:1,1", "R:2,2 S:0,1"].
+            List of detectors. For example, ["R22_S11", "R22_S01"].
 
         Returns
         -------
@@ -305,9 +315,9 @@ class CameraData(object):
             This method returns a dict of list.  The dict is keyed on the name
             of the wavefront sensor.  The list contains the (RA, Dec)
             coordinates of the corners of that sensor (RA, Dec are paired as
-            tuples). For example, output['R:0,0 S:2,2B'] = [(23.0, -5.0),
+            tuples). For example, output['R00_SW0'] = [(23.0, -5.0),
             (23.1, -5.0), (23.0, -5.1), (23.1, -5.1)] would mean that the
-            wavefront sensor named 'R:0,0 S:2,2B' has its corners at RA 23,
+            wavefront sensor named 'R00_SW0' has its corners at RA 23,
             Dec -5; RA 23.1, Dec -5; RA 23, Dec -5.1; and RA 23.1, Dec -5.1
             Coordinates are in degrees.
         """

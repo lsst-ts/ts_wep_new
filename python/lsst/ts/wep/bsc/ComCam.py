@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from lsst.obs.lsstSim import LsstSimMapper
+from lsst.obs.lsst import LsstCamMapper
 from lsst.afw.cameraGeom.detector.detector import DetectorType
 
 from lsst.ts.wep.bsc.CameraData import CameraData
@@ -31,21 +31,14 @@ class ComCam(CameraData):
 
         # The comcam's configuration here is approximated by taking the central
         # raft of lsst camera.
-        super(ComCam, self).__init__(LsstSimMapper().camera)
+        super(ComCam, self).__init__(LsstCamMapper().camera)
         self._initDetectors(DetectorType.SCIENCE)
 
         # Remove the ccd data that are not belong to ComCam
-        detectorList = [
-            "R:2,2 S:0,2",
-            "R:2,2 S:1,2",
-            "R:2,2 S:2,2",
-            "R:2,2 S:0,1",
-            "R:2,2 S:1,1",
-            "R:2,2 S:2,1",
-            "R:2,2 S:0,0",
-            "R:2,2 S:1,0",
-            "R:2,2 S:2,0",
-        ]
+        detectorList = ["R22_S02", "R22_S12", "R22_S22",
+                        "R22_S01", "R22_S11", "R22_S21",
+                        "R22_S00", "R22_S10", "R22_S20"]
+
         self.setWfsCcdList(detectorList)
 
         wfsCorners = dict()

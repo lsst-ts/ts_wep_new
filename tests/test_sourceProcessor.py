@@ -160,9 +160,9 @@ class TestSourceProcessor(unittest.TestCase):
             523572679: 13.25217,
         }
         nbrStar.raDeclInPixel = {
-            523572679: (3966.44, 1022.91),
-            523572671: (3968.77, 1081.02),
-            523572575: (3475.48, 479.33),
+            523572679: (2000-1022.91, 3966.44),
+            523572671: (2000-1081.02, 3968.77),
+            523572575: (2000-479.33, 3475.48),
         }
         return nbrStar
 
@@ -231,9 +231,7 @@ class TestSourceProcessor(unittest.TestCase):
         # Compared with DM prediction
         nbrStar = self._generateNbrStar()
         raDeclInPixel = nbrStar.getRaDeclInPixel()
-        camX, camY = self.sourProc.dmXY2CamXY(
-            raDeclInPixel[523572679][0], raDeclInPixel[523572679][1]
-        )
+        camX, camY = raDeclInPixel[523572679][0], raDeclInPixel[523572679][1]
         delta = np.sqrt((realCameraX - camX) ** 2 + (realCameraY - camY) ** 2)
         self.assertLess(delta, 10)
 

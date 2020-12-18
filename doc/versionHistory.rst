@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.7:
+
+-------------
+1.4.7
+-------------
+
+Remove sims and obs_lsstSim dependencies. Update WCS code to use obs_lsst.
+
 .. _lsst.ts.wep-1.4.6:
 
 -------------
@@ -140,7 +148,7 @@ Use the factory pattern for centroid find algorithms. Move the SensorWavefrontEr
 1.3.0
 -------------
 
-Use sims_w_2019_24. Support the eimage. Enable to update and save the setting file. 
+Use sims_w_2019_24. Support the eimage. Enable to update and save the setting file.
 
 .. _lsst.ts.wep-1.2.9:
 
@@ -148,7 +156,7 @@ Use sims_w_2019_24. Support the eimage. Enable to update and save the setting fi
 1.2.9
 -------------
 
-Use sims_w_2019_22. Adapt the new version of ip_isr that fixes the bug that can not do the ISR continuously. 
+Use sims_w_2019_22. Adapt the new version of ip_isr that fixes the bug that can not do the ISR continuously.
 
 .. _lsst.ts.wep-1.2.8:
 

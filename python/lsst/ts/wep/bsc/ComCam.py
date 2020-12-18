@@ -35,9 +35,17 @@ class ComCam(CameraData):
         self._initDetectors(DetectorType.SCIENCE)
 
         # Remove the ccd data that are not belong to ComCam
-        detectorList = ["R22_S02", "R22_S12", "R22_S22",
-                        "R22_S01", "R22_S11", "R22_S21",
-                        "R22_S00", "R22_S10", "R22_S20"]
+        detectorList = [
+            "R22_S02",
+            "R22_S12",
+            "R22_S22",
+            "R22_S01",
+            "R22_S11",
+            "R22_S21",
+            "R22_S00",
+            "R22_S10",
+            "R22_S20",
+        ]
 
         self.setWfsCcdList(detectorList)
 

@@ -59,25 +59,25 @@ class TestWcsSol(unittest.TestCase):
 
         ra = 10
         dec = 19.0
-        raOut, decOut = self.wcs._formatCoordList(ra, dec, 'ra', 'dec')
+        raOut, decOut = self.wcs._formatCoordList(ra, dec, "ra", "dec")
         self.assertEqual(raOut, [ra])
         self.assertEqual(decOut, [dec])
 
     def testFormatCoordListWiLists(self):
 
-        ra = [10., 20.]
-        dec = [5., 23.]
-        raOut, decOut = self.wcs._formatCoordList(ra, dec, 'ra', 'dec')
+        ra = [10.0, 20.0]
+        dec = [5.0, 23.0]
+        raOut, decOut = self.wcs._formatCoordList(ra, dec, "ra", "dec")
         self.assertEqual(ra, raOut)
         self.assertEqual(dec, decOut)
 
     def testFormatCoordListAssert(self):
 
         ra = [10, 20]
-        dec = [10., 20., 30.]
+        dec = [10.0, 20.0, 30.0]
 
         with self.assertRaises(AssertionError, msg="Size of ra not same as dec"):
-            self.wcs._formatCoordList(ra, dec, 'ra', 'dec')
+            self.wcs._formatCoordList(ra, dec, "ra", "dec")
 
     def testRaDecFromPixelCoordsForSingleChip(self):
 

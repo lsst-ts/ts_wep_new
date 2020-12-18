@@ -523,9 +523,6 @@ class SourceProcessor(object):
                 starX, starY = nbrStar.getRaDeclInPixel()[star]
                 magStar = starMag[star]
 
-                # Transform the coordiante from DM team to camera team
-                starX, starY = self.dmXY2CamXY(starX, starY)
-
                 # Ratio of magnitude between donuts (If the magnitudes of stars
                 # differs by 5, the brightness differs by 100.)
                 # (Magnitude difference shoulbe be >= 1.)

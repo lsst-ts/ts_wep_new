@@ -168,8 +168,7 @@ class CameraData(object):
                 dim1, dim2 = bbox.getDimensions()
                 self._dimension[detectorName] = (int(dim1), int(dim2))
 
-    def setObsMetaData(self, ra, dec, rotSkyPos,
-                       mjd=59580.0):
+    def setObsMetaData(self, ra, dec, rotSkyPos, mjd=59580.0):
         """Set the observation meta data.
 
         Parameters
@@ -184,8 +183,7 @@ class CameraData(object):
             Camera MJD. (the default is 59580.0.)
         """
 
-        self._wcs.setObsMetaData(ra, dec, rotSkyPos,
-                                 self._centerCcd, mjd=mjd)
+        self._wcs.setObsMetaData(ra, dec, rotSkyPos, self._centerCcd, mjd=mjd)
 
     def populatePixelFromRADecl(self, stars):
         """Populates the RAInPixel and DeclInPixel coordinates to the stars.
@@ -207,9 +205,7 @@ class CameraData(object):
         # Populate the pixel data
         ra = populatedStar.getRA()
         decl = populatedStar.getDecl()
-        chipName = np.array(
-            [populatedStar.getDetector()] * len(ra)
-        )
+        chipName = np.array([populatedStar.getDetector()] * len(ra))
         raInPixel, declInPixel = self._wcs.pixelCoordsFromRaDec(
             ra, decl, chipName=chipName, epoch=2000.0, includeDistortion=True
         )

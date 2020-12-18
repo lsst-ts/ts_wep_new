@@ -41,7 +41,7 @@ class WcsSol(object):
         self.skyWcs = None
         # Rotation offset between wcs from boresight and images loaded
         # with the butler
-        self.rotOffset = 90.
+        self.rotOffset = 90.0
 
         if camera is None:
             self._camera = obs_lsst.lsstCamMapper.LsstCamMapper().camera
@@ -72,8 +72,7 @@ class WcsSol(object):
 
         return self._camera
 
-    def setObsMetaData(self, ra, dec, rotSkyPos,
-                       centerCcd="R22_S11", mjd=None):
+    def setObsMetaData(self, ra, dec, rotSkyPos, centerCcd="R22_S11", mjd=None):
         """Set up the WCS by specifying the observation meta data.
 
         Parameters
@@ -95,8 +94,10 @@ class WcsSol(object):
         boresightPointing = lsst.geom.SpherePoint(ra, dec, lsst.geom.degrees)
         self.centerCcd = centerCcd
         self.skyWcs = createInitialSkyWcsFromBoresight(
-            boresightPointing, (self.rotOffset-rotSkyPos)*lsst.geom.degrees,
-            self._camera[self.centerCcd], flipX=False
+            boresightPointing,
+            (self.rotOffset - rotSkyPos) * lsst.geom.degrees,
+            self._camera[self.centerCcd],
+            flipX=False,
         )
 
     def _formatCoordList(self, val1, val2, val1Name, val2Name):
@@ -130,11 +131,11 @@ class WcsSol(object):
             val2 as a list of values
         """
 
-        if (isinstance(val1, (int, float)) | isinstance(val2, (int, float))):
+        if isinstance(val1, (int, float)) | isinstance(val2, (int, float)):
             val1 = [val1]
             val2 = [val2]
         assertMessage = "Size of %s not same as %s" % (val1Name, val2Name)
-        assert (len(val1) == len(val2)), assertMessage
+        assert len(val1) == len(val2), assertMessage
 
         return val1, val2
 
@@ -168,8 +169,9 @@ class WcsSol(object):
 
             cameraChip = self._camera[chipName]
             # Get x,y on specified detector in terms of mm from center of cam
-            camXyMm = cameraChip.transform(lsst.geom.Point2D(chipX, chipY),
-                                           PIXELS, FOCAL_PLANE)
+            camXyMm = cameraChip.transform(
+                lsst.geom.Point2D(chipX, chipY), PIXELS, FOCAL_PLANE
+            )
             # Convert mm to pixels
             camPoint = centerChip.transform(camXyMm, FOCAL_PLANE, PIXELS)
             # Calculate correct ra, dec
@@ -226,13 +228,9 @@ class WcsSol(object):
         if isinstance(chipName, np.ndarray):
             chipNameList = chipName.tolist()
         else:
-            chipNameList = [chipName]*nPts
+            chipNameList = [chipName] * nPts
 
-        raDecArray = self._raDecFromPixelCoords(
-            xPix,
-            yPix,
-            chipNameList,
-        )
+        raDecArray = self._raDecFromPixelCoords(xPix, yPix, chipNameList,)
 
         if nPts == 1:
             return raDecArray.flatten()
@@ -266,8 +264,9 @@ class WcsSol(object):
 
             cameraChip = self._camera[self.centerCcd]
 
-            raDecPt = lsst.geom.SpherePoint(raPt*lsst.geom.degrees,
-                                            decPt*lsst.geom.degrees)
+            raDecPt = lsst.geom.SpherePoint(
+                raPt * lsst.geom.degrees, decPt * lsst.geom.degrees
+            )
             # Get xy in pixels
             xyPix = self.skyWcs.skyToPixel(raDecPt)
             xMm, yMm = cameraChip.transform(xyPix, PIXELS, FOCAL_PLANE)
@@ -301,9 +300,7 @@ class WcsSol(object):
             and the second row is the y pixel coordinate.
         """
 
-        xMmList, yMmList = self._focalPlaneCoordsFromRaDec(
-            ra, dec
-        )
+        xMmList, yMmList = self._focalPlaneCoordsFromRaDec(ra, dec)
 
         xPixList = []
         yPixList = []
@@ -318,7 +315,7 @@ class WcsSol(object):
                 detList.append(det.getName())
                 # If detector is specified but pixels do not lie on that
                 # detector then return -9999
-                if ((chipName is not None) and (det.getName() != chipName)):
+                if (chipName is not None) and (det.getName() != chipName):
                     xPix, yPix = (-9999, -9999)
                 else:
                     xPix, yPix = det.transform(xyMm, FOCAL_PLANE, PIXELS)
@@ -371,17 +368,13 @@ class WcsSol(object):
         nPts = len(ra)
 
         if chipName is None:
-            chipNameList = [None]*nPts
+            chipNameList = [None] * nPts
         elif isinstance(chipName, np.ndarray):
             chipNameList = chipName.tolist()
         elif isinstance(chipName, str):
-            chipNameList = [chipName]*nPts
+            chipNameList = [chipName] * nPts
 
-        pixArray = self._pixelCoordsFromRaDec(
-            ra,
-            dec,
-            chipNameList,
-        )
+        pixArray = self._pixelCoordsFromRaDec(ra, dec, chipNameList,)
 
         if nPts == 1:
             return pixArray.flatten()
@@ -412,9 +405,7 @@ class WcsSol(object):
         ra, dec = self._formatCoordList(ra, dec, "ra", "dec")
         nPts = len(ra)
 
-        focalPlaneArray = self._focalPlaneCoordsFromRaDec(
-            ra, dec
-        )
+        focalPlaneArray = self._focalPlaneCoordsFromRaDec(ra, dec)
 
         if nPts == 1:
             return focalPlaneArray.flatten()

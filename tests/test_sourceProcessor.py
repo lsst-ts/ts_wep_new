@@ -115,12 +115,12 @@ class TestSourceProcessor(unittest.TestCase):
     def testDmXY2CamXY(self):
 
         self.sourProc.config(sensorName="R22_S11")
-        self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
+        self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (1000, 4070))
 
     def testCamXY2DmXY(self):
 
         self.sourProc.config(sensorName="R22_S11")
-        self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
+        self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 3000))
 
     def testIsVignette(self):
 
@@ -160,9 +160,9 @@ class TestSourceProcessor(unittest.TestCase):
             523572679: 13.25217,
         }
         nbrStar.raDeclInPixel = {
-            523572679: (2000 - 1022.91, 3966.44),
-            523572671: (2000 - 1081.02, 3968.77),
-            523572575: (2000 - 479.33, 3475.48),
+            523572679: (3966.44, 1022.91),
+            523572671: (3968.77, 1081.02),
+            523572575: (3475.48, 479.33),
         }
         return nbrStar
 
@@ -178,13 +178,13 @@ class TestSourceProcessor(unittest.TestCase):
         ) = self._getSingleTargetImage()
 
         self.assertEqual(sglSciNeiImg.shape, (310, 310))
-        self.assertAlmostEqual(allStarPosX[0], 126.98)
-        self.assertAlmostEqual(allStarPosX[1], 185.09)
+        self.assertAlmostEqual(allStarPosX[0], 185.02)
+        self.assertAlmostEqual(allStarPosX[1], 126.91)
         self.assertAlmostEqual(allStarPosY[0], 206.77)
         self.assertAlmostEqual(allStarPosY[1], 204.44)
         self.assertAlmostEqual(magRatio[0], 0.07959174)
         self.assertEqual(magRatio[1], 1)
-        self.assertEqual(offsetX, 792.0)
+        self.assertEqual(offsetX, 896.0)
         self.assertEqual(offsetY, 3762.0)
 
     def _getSingleTargetImage(self):
@@ -221,7 +221,7 @@ class TestSourceProcessor(unittest.TestCase):
         )
 
         self.assertEqual(imgDeblend.shape, (310, 310))
-        self.assertLess(np.abs(realcx - 184.49), 3)
+        self.assertLess(np.abs(realcx - 126.51), 3)
         self.assertLess(np.abs(realcy - 205.00), 3)
 
         # Get the real camera position x, y after the deblending
@@ -231,7 +231,9 @@ class TestSourceProcessor(unittest.TestCase):
         # Compared with DM prediction
         nbrStar = self._generateNbrStar()
         raDeclInPixel = nbrStar.getRaDeclInPixel()
-        camX, camY = raDeclInPixel[523572679][0], raDeclInPixel[523572679][1]
+        camX, camY = self.sourProc.dmXY2CamXY(
+            raDeclInPixel[523572679][0], raDeclInPixel[523572679][1]
+        )
         delta = np.sqrt((realCameraX - camX) ** 2 + (realCameraY - camY) ** 2)
         self.assertLess(delta, 10)
 

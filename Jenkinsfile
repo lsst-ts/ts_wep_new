@@ -8,7 +8,7 @@ pipeline {
         // It is recommended by SQUARE team do not add the label to let the
         // system decide.
         docker {
-            image 'lsstts/aos:w_2020_38'
+            image 'lsstsqre/centos:w_latest'
         }
     }
 
@@ -20,7 +20,7 @@ pipeline {
         // Position of LSST stack directory
         LSST_STACK = "/opt/lsst/software/stack"
         // Pipeline Sims Version
-        SIMS_VERSION = "sims_w_2020_38"
+        STACK_VERSION = "current"
         // XML report path
         XML_REPORT = "jenkinsReport/report.xml"
         // Module name used in the pytest coverage analysis
@@ -48,7 +48,7 @@ pipeline {
                     sh """
                         source ${env.LSST_STACK}/loadLSST.bash
                         cd phosim_utils/
-                        setup -k -r . -t ${env.SIMS_VERSION}
+                        setup -k -r . -t ${env.STACK_VERSION}
                         scons
                         cd ..
                         setup -k -r .
@@ -65,7 +65,7 @@ pipeline {
                     sh """
                         source ${env.LSST_STACK}/loadLSST.bash
                         cd phosim_utils/
-                        setup -k -r . -t ${env.SIMS_VERSION}
+                        setup -k -r . -t ${env.STACK_VERSION}
                         cd ..
                         setup -k -r .
                         pytest --cov-report html --cov=${env.MODULE_NAME} --junitxml=${env.XML_REPORT} tests/

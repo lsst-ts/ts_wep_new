@@ -326,33 +326,21 @@ class SourceProcessor(object):
         Returns
         -------
         float
-            Pixel x defined in camera coordinate based on LCA-13381.
+            Pixel x defined in camera coordinate based on LSE-349.
         float
-            Pixel y defined in camera coordinate based on LCA-13381.
+            Pixel y defined in camera coordinate based on LSE-349.
         """
 
-        # Camera coordinate is defined in LCA-13381. Define camera coordinate
-        # (x, y) and DM coordinate (x', y'), then the relation is:
+        # Camera coordinate is defined in LSE-349. Define camera coordinate
+        # (x, y) and DM coordinate (x', y'), then the relation is a transpose:
         # Camera team +y = DM team +x'
-        # Camera team +x = DM team -y'
-
-        #  O---->y
-        #  |
-        #  |   ----------------------
-        #  \/ |                      |   (x', y') = (200, 500) =>
-        #  x  |                      |   (x, y) = (-500, 200) -> (3500, 200)
-        #     |4000                  |
-        # y'  |                      |
-        #  /\ |       4072           |
-        #  |  |----------------------
-        #  |
-        #  O-----> x'
+        # Camera team +x = DM team +y'
 
         # Get the CCD dimension
         dimX, dimY = self.sensorDimList[self.sensorName]
 
         # Calculate the transformed coordinate
-        pixelCamX = dimX - pixelDmY
+        pixelCamX = pixelDmY
         pixelCamY = pixelDmX
 
         return pixelCamX, pixelCamY
@@ -363,9 +351,9 @@ class SourceProcessor(object):
         Parameters
         ----------
         pixelCamX : float
-            Pixel x defined in Camera coordinate based on LCA-13381.
+            Pixel x defined in Camera coordinate based on LSE-349.
         pixelCamY : float
-            Pixel y defined in Camera coordinate based on LCA-13381.
+            Pixel y defined in Camera coordinate based on LSE-349.
 
         Returns
         -------
@@ -383,7 +371,7 @@ class SourceProcessor(object):
 
         # Calculate the transformed coordinate
         pixelDmX = pixelCamY
-        pixelDmY = dimX - pixelCamX
+        pixelDmY = pixelCamX
 
         return pixelDmX, pixelDmY
 
@@ -523,6 +511,9 @@ class SourceProcessor(object):
                 starX, starY = nbrStar.getRaDeclInPixel()[star]
                 magStar = starMag[star]
 
+                # Transform the coordiante from DM team to camera team
+                starX, starY = self.dmXY2CamXY(starX, starY)
+
                 # Ratio of magnitude between donuts (If the magnitudes of stars
                 # differs by 5, the brightness differs by 100.)
                 # (Magnitude difference shoulbe be >= 1.)
@@ -646,6 +637,9 @@ class SourceProcessor(object):
 
             # Get the star pixel position
             starX, starY = raDeclInPixel[star]
+
+            # Transform the coordiante from DM team to camera team
+            starX, starY = self.dmXY2CamXY(starX, starY)
 
             allStarPosX.append(starX)
             allStarPosY.append(starY)

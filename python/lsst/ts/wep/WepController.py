@@ -236,8 +236,11 @@ class WepController(object):
 
                 img = self.butlerWrapper.getImageData(exp)
 
+                # Transform the image in DM coordinate to camera coordinate.
+                camImg = self._transImgDmCoorToCamCoor(img)
+
                 # Collect the image
-                imgList.append(img)
+                imgList.append(camImg)
 
             wfsImgMap[sensorName] = DefocalImage(
                 intraImg=imgList[0], extraImg=imgList[1]
@@ -486,9 +489,6 @@ class WepController(object):
                         # contain the negative value after the ISR correction.
                         # This happens for the amplifier images.
                         imgDeblend = np.abs(imgDeblend)
-
-                        # Transform the image in DM coordinate to camera coordinate.
-                        imgDeblend = self._transImgDmCoorToCamCoor(imgDeblend)
 
                         # Set the intra focal image
                         if jj == 0:

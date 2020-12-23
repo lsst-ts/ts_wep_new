@@ -336,14 +336,7 @@ class SourceProcessor(object):
         # Camera team +y = DM team +x'
         # Camera team +x = DM team +y'
 
-        # Get the CCD dimension
-        dimX, dimY = self.sensorDimList[self.sensorName]
-
-        # Calculate the transformed coordinate
-        pixelCamX = pixelDmY
-        pixelCamY = pixelDmX
-
-        return pixelCamX, pixelCamY
+        return pixelDmY, pixelDmX
 
     def camXY2DmXY(self, pixelCamX, pixelCamY):
         """Transform the pixel x, y from camera coordinate to DM coordinate.
@@ -366,14 +359,7 @@ class SourceProcessor(object):
         # Check the comment in dmXY2CamXY() for the details of coordinate
         # systems of DM and camera teams.
 
-        # Get the CCD dimension
-        dimX, dimY = self.sensorDimList[self.sensorName]
-
-        # Calculate the transformed coordinate
-        pixelDmX = pixelCamY
-        pixelDmY = pixelCamX
-
-        return pixelDmX, pixelDmY
+        return pixelCamY, pixelCamX
 
     def isVignette(self, fieldX, fieldY):
         """The donut is vignetted or not by calculating the donut's distance to

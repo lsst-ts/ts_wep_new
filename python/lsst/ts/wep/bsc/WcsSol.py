@@ -83,10 +83,10 @@ class WcsSol(object):
             Pointing decl in degree.
         rotSkyPos : float
             The orientation of the telescope in degrees.
-        centerCcd: str
-            Center Ccd on the camera (the default is "R22_S11")
-        mjd : float or None
-            Camera MJD. (the default is None)
+        centerCcd: str, optional
+            Center Ccd on the camera (the default is "R22_S11").
+        mjd : float or None, optional
+            Camera MJD. (the default is None).
             Note: This no longer does anything and should be removed in
             a future update.
         """
@@ -101,7 +101,6 @@ class WcsSol(object):
         )
 
     def _formatCoordList(self, val1, val2, val1Name, val2Name):
-
         """
         Check if value entered is a single int or float rather than a list.
         If so, turn it into a list and return. Also make sure number of entered
@@ -111,22 +110,18 @@ class WcsSol(object):
         Parameters
         ----------
         val1: int, float or list
-            Values of coordinate 1 (ra value(s) for example)
-
+            Values of coordinate 1 (ra value(s) for example).
         val2: int, float or list
-            Values of coordinate 2 (dec if val1 is ra)
-
+            Values of coordinate 2 (dec if val1 is ra).
         val1Name: str
-            Name of the type of coordinate in val1 ("ra" for example)
-
+            Name of the type of coordinate in val1 ("ra" for example).
         val2Name: str
-            Name of the type of coordinate in val2 ("dec" is val1Name is "ra")
+            Name of the type of coordinate in val2 ("dec" is val1Name is "ra").
 
         Returns
         -------
         val1: list
             val1 as a list of values
-
         val2: list
             val2 as a list of values
         """
@@ -140,7 +135,6 @@ class WcsSol(object):
         return val1, val2
 
     def _raDecFromPixelCoords(self, xPix, yPix, chipNameList):
-
         """Convert pixel coordinates into RA, Dec.
 
         Parameters
@@ -230,7 +224,7 @@ class WcsSol(object):
         else:
             chipNameList = [chipName] * nPts
 
-        raDecArray = self._raDecFromPixelCoords(xPix, yPix, chipNameList,)
+        raDecArray = self._raDecFromPixelCoords(xPix, yPix, chipNameList)
 
         if nPts == 1:
             return raDecArray.flatten()
@@ -238,7 +232,6 @@ class WcsSol(object):
             return raDecArray
 
     def _focalPlaneCoordsFromRaDec(self, ra, dec):
-
         """Get the focal plane coordinates for all objects in the catalog.
 
         Parameters
@@ -247,7 +240,6 @@ class WcsSol(object):
             ra is in degrees in the International Celestial Reference System.
         dec : float or numpy.ndarray
             dec is in degrees in the International Celestial Reference System.
-
 
         Returns
         -------
@@ -276,9 +268,8 @@ class WcsSol(object):
         return np.array([xMmList, yMmList])
 
     def _pixelCoordsFromRaDec(self, ra, dec, chipNameList):
-
-        """Get the pixel positions (or nan if not on a chip) for objects based
-        on their RA, and Dec (in degrees).
+        """Get the pixel positions (or (-9999, -9999) if not on a chip)
+        for objects based on their RA, and Dec (in degrees).
 
         Parameters
         ----------
@@ -289,9 +280,12 @@ class WcsSol(object):
         chipNameList : list
             chipName designates the names of the chips on which the pixel
             coordinates will be reckoned. If all entries are None,
-            this method will calculate which chip each(RA, Dec) pair actually
+            this method will calculate which chip each (RA, Dec) pair actually
             falls on, and return pixel coordinates for each (RA, Dec) pair on
-            the appropriate chip. (the default is None.)
+            the appropriate chip. (the default is None).
+            If the chipName is specified but the (RA, Dec) entry does not fall
+            on the specified chip then the function will return (-9999, -9999)
+            as the pixel coordinates.
 
         Returns
         -------
@@ -373,6 +367,10 @@ class WcsSol(object):
             chipNameList = chipName.tolist()
         elif isinstance(chipName, str):
             chipNameList = [chipName] * nPts
+        else:
+            raise ValueError(
+                "chipName is an unallowed type. Can be None, string or list of strings."
+            )
 
         pixArray = self._pixelCoordsFromRaDec(ra, dec, chipNameList,)
 

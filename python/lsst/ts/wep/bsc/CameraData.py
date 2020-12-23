@@ -35,9 +35,8 @@ class CameraData(object):
         camera : lsst.afw.cameraGeom.camera.camera.Camera
             A collection of Detectors that also supports coordinate
             transformation. (the default is None.)
-
-        centerCcd : str
-            Center Ccd on the camera (e.g. "R22_S11")
+        centerCcd : str, optional
+            Center Ccd on the camera. (The default is "R22_S11").
         """
 
         self._wcs = WcsSol(camera=camera)
@@ -183,7 +182,7 @@ class CameraData(object):
             Camera MJD. (the default is 59580.0.)
         """
 
-        self._wcs.setObsMetaData(ra, dec, rotSkyPos, self._centerCcd, mjd=mjd)
+        self._wcs.setObsMetaData(ra, dec, rotSkyPos, centerCcd=self._centerCcd, mjd=mjd)
 
     def populatePixelFromRADecl(self, stars):
         """Populates the RAInPixel and DeclInPixel coordinates to the stars.

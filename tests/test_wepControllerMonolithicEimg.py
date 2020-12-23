@@ -254,8 +254,8 @@ class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
 
         # Compare with OPD
         donutList = []
-        donutList.extend(self.donutMap["R:2,2 S:1,1"])
-        donutList.extend(self.donutMap["R:2,2 S:1,0"])
+        donutList.extend(self.donutMap["R22_S11"])
+        donutList.extend(self.donutMap["R22_S10"])
 
         for aId in range(4):
             wfErr = donutList[aId].getWfErr()
@@ -296,12 +296,12 @@ class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
             self.assertGreater(avgErr.max(), 100)
 
         # Compare with the central OPD
-        wfErrOnR22S11 = avgErrMap["R:2,2 S:1,1"]
+        wfErrOnR22S11 = avgErrMap["R22_S11"]
         zkOfOpdOnR22S11 = self._getZkInNmFromOpd(4)[3:]
         deltaOnR22S11 = np.abs(wfErrOnR22S11[7] - zkOfOpdOnR22S11[7])
         self.assertLess(deltaOnR22S11, 5)
 
-        wfErrOnR22S10 = avgErrMap["R:2,2 S:1,0"]
+        wfErrOnR22S10 = avgErrMap["R22_S10"]
         zkOfOpdOnR22S10 = self._getZkInNmFromOpd(5)[3:]
         deltaOnR22S10 = np.abs(wfErrOnR22S10[7] - zkOfOpdOnR22S10[7])
         self.assertLess(deltaOnR22S10, 5)
@@ -321,7 +321,7 @@ class TestWepControllerMonolithic(BaseBscTestCase, unittest.TestCase):
 
         self.masterDonutMap = self.wepCntlr.calcWfErr(self.masterDonutMap)
 
-        masterDonutList = self.masterDonutMap["R:2,2 S:1,1"]
+        masterDonutList = self.masterDonutMap["R22_S11"]
         wfErr = masterDonutList[0].getWfErr()
 
         # Do the assertion

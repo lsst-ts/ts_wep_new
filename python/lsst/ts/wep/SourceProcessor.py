@@ -326,36 +326,17 @@ class SourceProcessor(object):
         Returns
         -------
         float
-            Pixel x defined in camera coordinate based on LCA-13381.
+            Pixel x defined in camera coordinate based on LSE-349.
         float
-            Pixel y defined in camera coordinate based on LCA-13381.
+            Pixel y defined in camera coordinate based on LSE-349.
         """
 
-        # Camera coordinate is defined in LCA-13381. Define camera coordinate
-        # (x, y) and DM coordinate (x', y'), then the relation is:
+        # Camera coordinate is defined in LSE-349. Define camera coordinate
+        # (x, y) and DM coordinate (x', y'), then the relation is a transpose:
         # Camera team +y = DM team +x'
-        # Camera team +x = DM team -y'
+        # Camera team +x = DM team +y'
 
-        #  O---->y
-        #  |
-        #  |   ----------------------
-        #  \/ |                      |   (x', y') = (200, 500) =>
-        #  x  |                      |   (x, y) = (-500, 200) -> (3500, 200)
-        #     |4000                  |
-        # y'  |                      |
-        #  /\ |       4072           |
-        #  |  |----------------------
-        #  |
-        #  O-----> x'
-
-        # Get the CCD dimension
-        dimX, dimY = self.sensorDimList[self.sensorName]
-
-        # Calculate the transformed coordinate
-        pixelCamX = dimX - pixelDmY
-        pixelCamY = pixelDmX
-
-        return pixelCamX, pixelCamY
+        return pixelDmY, pixelDmX
 
     def camXY2DmXY(self, pixelCamX, pixelCamY):
         """Transform the pixel x, y from camera coordinate to DM coordinate.
@@ -363,9 +344,9 @@ class SourceProcessor(object):
         Parameters
         ----------
         pixelCamX : float
-            Pixel x defined in Camera coordinate based on LCA-13381.
+            Pixel x defined in Camera coordinate based on LSE-349.
         pixelCamY : float
-            Pixel y defined in Camera coordinate based on LCA-13381.
+            Pixel y defined in Camera coordinate based on LSE-349.
 
         Returns
         -------
@@ -378,14 +359,7 @@ class SourceProcessor(object):
         # Check the comment in dmXY2CamXY() for the details of coordinate
         # systems of DM and camera teams.
 
-        # Get the CCD dimension
-        dimX, dimY = self.sensorDimList[self.sensorName]
-
-        # Calculate the transformed coordinate
-        pixelDmX = pixelCamY
-        pixelDmY = dimX - pixelCamX
-
-        return pixelDmX, pixelDmY
+        return pixelCamY, pixelCamX
 
     def isVignette(self, fieldX, fieldY):
         """The donut is vignetted or not by calculating the donut's distance to

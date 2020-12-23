@@ -4,13 +4,9 @@
 #   the "sconsUtils" package.
 setupRequired(sconsUtils)
 setupRequired(utils)
-setupRequired(sims_catUtils)
 setupRequired(obs_lsst)
 setupRequired(daf_persistence)
-setupRequired(obs_lsstSim)
 setupRequired(afw)
-setupRequired(sims_utils)
-setupRequired(sims_coordUtils)
 setupRequired(phosim_utils)
 
 # The following is boilerplate for all packages.

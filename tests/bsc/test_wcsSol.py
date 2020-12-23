@@ -44,24 +44,47 @@ class TestWcsSol(unittest.TestCase):
 
         self.assertEqual(self.wcs.getCamera(), camera)
 
-    def testSetObservationMetaData(self):
+    def testsetObsMetaData(self):
 
         ra = 10.0
         dec = 20.0
         rotSkyPos = 30.0
         self.wcs.setObsMetaData(ra, dec, rotSkyPos)
 
-        self.assertAlmostEqual(self.wcs._obs.pointingRA, ra)
-        self.assertAlmostEqual(self.wcs._obs.pointingDec, dec)
-        self.assertAlmostEqual(self.wcs._obs.rotSkyPos, rotSkyPos)
+        skyOrigin = self.wcs.skyWcs.getSkyOrigin()
+        self.assertAlmostEqual(skyOrigin.getRa().asDegrees(), ra)
+        self.assertAlmostEqual(skyOrigin.getDec().asDegrees(), dec)
+
+    def testFormatCoordListWiIntFloat(self):
+
+        ra = 10
+        dec = 19.0
+        raOut, decOut = self.wcs._formatCoordList(ra, dec, "ra", "dec")
+        self.assertEqual(raOut, [ra])
+        self.assertEqual(decOut, [dec])
+
+    def testFormatCoordListWiLists(self):
+
+        ra = [10.0, 20.0]
+        dec = [5.0, 23.0]
+        raOut, decOut = self.wcs._formatCoordList(ra, dec, "ra", "dec")
+        self.assertEqual(ra, raOut)
+        self.assertEqual(dec, decOut)
+
+    def testFormatCoordListAssert(self):
+
+        ra = [10, 20]
+        dec = [10.0, 20.0, 30.0]
+
+        with self.assertRaises(AssertionError, msg="Size of ra not same as dec"):
+            self.wcs._formatCoordList(ra, dec, "ra", "dec")
 
     def testRaDecFromPixelCoordsForSingleChip(self):
 
         xPix = 2032
         yPix = 2000
-        chipName = "R:2,2 S:1,1"
+        chipName = "R22_S11"
         raByWcs, decByWcs = self.wcs.raDecFromPixelCoords(xPix, yPix, chipName)
-
         self.assertAlmostEqual(raByWcs, self.ra, places=2)
         self.assertAlmostEqual(decByWcs, self.dec, places=2)
 
@@ -69,7 +92,7 @@ class TestWcsSol(unittest.TestCase):
 
         xPix = np.array([2032, 2032])
         yPix = np.array([2000, 2000])
-        chipName = np.array(["R:2,2 S:1,1", "R:2,2 S:1,1"])
+        chipName = np.array(["R22_S11", "R22_S11"])
         raByWcs, decByWcs = self.wcs.raDecFromPixelCoords(xPix, yPix, chipName)
 
         self.assertEqual(len(raByWcs), 2)
@@ -82,16 +105,24 @@ class TestWcsSol(unittest.TestCase):
 
         xPix, yPix = self.wcs.pixelCoordsFromRaDec(self.ra, self.dec)
 
-        self.assertAlmostEqual(xPix, 2032, places=-1)
-        self.assertAlmostEqual(yPix, 1994, places=-1)
+        self.assertAlmostEqual(xPix, 2048, places=-1)
+        self.assertAlmostEqual(yPix, 2000, places=-1)
 
     def testPixelCoordsFromRaDecWithChipName(self):
 
-        chipName = "R:2,2 S:1,1"
+        chipName = "R22_S11"
         xPix, yPix = self.wcs.pixelCoordsFromRaDec(self.ra, self.dec, chipName=chipName)
 
-        self.assertAlmostEqual(xPix, 2032, places=-1)
-        self.assertAlmostEqual(yPix, 1994, places=-1)
+        self.assertAlmostEqual(xPix, 2048, places=-1)
+        self.assertAlmostEqual(yPix, 2000, places=-1)
+
+    def testPixelCoordsFromRaDecWithWrongType(self):
+
+        with self.assertRaises(
+            ValueError,
+            msg="chipName is an unallowed type. Can be None, string or array of strings.",
+        ):
+            self.wcs.pixelCoordsFromRaDec(self.ra, self.dec, chipName=20.0)
 
     def testFocalPlaneCoordsFromRaDecWithZeroRot(self):
 
@@ -105,8 +136,8 @@ class TestWcsSol(unittest.TestCase):
         # 1 arcsec = 1/3600 degree
         xInMm, yInMm = self.wcs.focalPlaneCoordsFromRaDec(20.0 / 3600, 0)
 
-        self.assertAlmostEqual(xInMm, 1.0, places=3)
-        self.assertAlmostEqual(yInMm, 0.0, places=3)
+        self.assertAlmostEqual(xInMm, 0.0, places=3)
+        self.assertAlmostEqual(yInMm, 1.0, places=3)
 
     def testFocalPlaneCoordsFromRaDecWithNonZeroRot(self):
 
@@ -116,8 +147,8 @@ class TestWcsSol(unittest.TestCase):
         # 1 arcsec = 1/3600 degree
         xInMm, yInMm = self.wcs.focalPlaneCoordsFromRaDec(20.0 / 3600, 0)
 
-        self.assertAlmostEqual(xInMm, 1 / np.sqrt(2), places=3)
-        self.assertAlmostEqual(yInMm, -1 / np.sqrt(2), places=3)
+        self.assertAlmostEqual(xInMm, -1 / np.sqrt(2), places=3)
+        self.assertAlmostEqual(yInMm, 1 / np.sqrt(2), places=3)
 
 
 if __name__ == "__main__":

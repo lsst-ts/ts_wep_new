@@ -115,12 +115,12 @@ class TestSourceProcessor(unittest.TestCase):
     def testDmXY2CamXY(self):
 
         self.sourProc.config(sensorName="R22_S11")
-        self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (3000, 4070))
+        self.assertEqual(self.sourProc.dmXY2CamXY(4070, 1000), (1000, 4070))
 
     def testCamXY2DmXY(self):
 
         self.sourProc.config(sensorName="R22_S11")
-        self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 1000))
+        self.assertEqual(self.sourProc.camXY2DmXY(3000, 4070), (4070, 3000))
 
     def testIsVignette(self):
 
@@ -178,13 +178,13 @@ class TestSourceProcessor(unittest.TestCase):
         ) = self._getSingleTargetImage()
 
         self.assertEqual(sglSciNeiImg.shape, (310, 310))
-        self.assertAlmostEqual(allStarPosX[0], 126.98)
-        self.assertAlmostEqual(allStarPosX[1], 185.09)
+        self.assertAlmostEqual(allStarPosX[0], 185.02)
+        self.assertAlmostEqual(allStarPosX[1], 126.91)
         self.assertAlmostEqual(allStarPosY[0], 206.77)
         self.assertAlmostEqual(allStarPosY[1], 204.44)
         self.assertAlmostEqual(magRatio[0], 0.07959174)
         self.assertEqual(magRatio[1], 1)
-        self.assertEqual(offsetX, 792.0)
+        self.assertEqual(offsetX, 896.0)
         self.assertEqual(offsetY, 3762.0)
 
     def _getSingleTargetImage(self):
@@ -221,7 +221,7 @@ class TestSourceProcessor(unittest.TestCase):
         )
 
         self.assertEqual(imgDeblend.shape, (310, 310))
-        self.assertLess(np.abs(realcx - 184.49), 3)
+        self.assertLess(np.abs(realcx - 126.51), 3)
         self.assertLess(np.abs(realcy - 205.00), 3)
 
         # Get the real camera position x, y after the deblending

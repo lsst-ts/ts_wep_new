@@ -26,7 +26,6 @@ from lsst.ts.wep.ButlerWrapper import ButlerWrapper
 from lsst.ts.wep.DefocalImage import DefocalImage
 from lsst.ts.wep.DonutImage import DonutImage
 from lsst.ts.wep.Utility import (
-    abbrevDectectorName,
     searchDonutPos,
     DefocalType,
     ImageType,
@@ -221,7 +220,7 @@ class WepController(object):
         for sensorName in sensorNameList:
 
             # Get the sensor name information
-            raft, sensor = self._getSensorInfo(sensorName)[0:2]
+            raft, sensor = self._getSensorInfo(sensorName)
 
             # The intra/ extra defocal images are decided by obsId
             imgList = []
@@ -251,35 +250,31 @@ class WepController(object):
 
     def _getSensorInfo(self, sensorName):
         """Get the sensor information.
-
         Parameters
         ----------
         sensorName : str
-            Sensor name (e.g. "R:2,2 S:1,1" or "R:0,0 S:2,2,A")
-
+            Sensor name (e.g. "R22_S11" or "R44_SW0"). Note: SW0 and SW1 are
+            used as the wavefront sensor in lsst.obs.lsst.LsstCamMapper.
         Returns
         -------
         str
             Raft.
         str
             Sensor.
-        str
-            Channel.
+        Raises
+        ------
+        ValueError
+            Can not match the raft and sensor from sensorName.
         """
 
-        raft = sensor = channel = None
-
-        # Use the regular expression to analyze the input name
-        m = re.match(r"R:(\d,\d) S:(\d,\d)(?:,([A,B]))?$", sensorName)
+        m = re.match(r"R(\d\d)_S([W\d]\d)", sensorName)
         if m is not None:
-            raft, sensor, channel = m.groups()[0:3]
-
-        # This is for the phosim mapper use.
-        # For example, raft is "R22" and sensor is "S11".
-        raftAbbName = "R" + raft[0] + raft[-1]
-        sensorAbbName = "S" + sensor[0] + sensor[-1]
-
-        return raftAbbName, sensorAbbName, channel
+            raftId, sensorId = m.groups()
+            raft = "R" + raftId
+            sensor = "S" + sensorId
+            return raft, sensor
+        else:
+            raise ValueError(f"Can not match the raft and sensor from {sensorName}")
 
     def _transImgDmCoorToCamCoor(self, dmImg):
         """Transfrom the image in DM coordinate to camera coordinate.
@@ -371,11 +366,8 @@ class WepController(object):
         donutMap = dict()
         for sensorName, nbrStar in neighborStarMap.items():
 
-            # Get the abbraviated sensor name
-            abbrevName = abbrevDectectorName(sensorName)
-
             # Configure the source processor
-            self.sourProc.config(sensorName=abbrevName)
+            self.sourProc.config(sensorName=sensorName)
 
             # Get the defocal images: [intra, extra]
             defocalImgList = [

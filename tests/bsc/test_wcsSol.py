@@ -116,6 +116,14 @@ class TestWcsSol(unittest.TestCase):
         self.assertAlmostEqual(xPix, 2048, places=-1)
         self.assertAlmostEqual(yPix, 2000, places=-1)
 
+    def testPixelCoordsFromRaDecWithWrongType(self):
+
+        with self.assertRaises(
+            ValueError,
+            msg="chipName is an unallowed type. Can be None, string or list of strings.",
+        ):
+            self.wcs.pixelCoordsFromRaDec(self.ra, self.dec, chipName=20.0)
+
     def testFocalPlaneCoordsFromRaDecWithZeroRot(self):
 
         self.wcs.setObsMetaData(0, 0, 0)

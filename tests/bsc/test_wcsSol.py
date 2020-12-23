@@ -120,7 +120,7 @@ class TestWcsSol(unittest.TestCase):
 
         with self.assertRaises(
             ValueError,
-            msg="chipName is an unallowed type. Can be None, string or list of strings.",
+            msg="chipName is an unallowed type. Can be None, string or array of strings.",
         ):
             self.wcs.pixelCoordsFromRaDec(self.ra, self.dec, chipName=20.0)
 

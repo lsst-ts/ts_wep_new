@@ -200,6 +200,8 @@ class WcsSol(object):
         epoch : float, optional
             epoch is the mean epoch in years of the celestial coordinate
             system. (the default is 2000.0.)
+            Note: epoch no longer does anything and should be
+            removed in future update.
         includeDistortion : bool, optional
             If True (default), then this method will expect the true pixel
             coordinates with optical distortion included.  If False, this
@@ -207,6 +209,8 @@ class WcsSol(object):
             coordinates with estimated optical distortion removed. See the
             documentation in afw.cameraGeom for more details. (the default is
             True.)
+            Note: includeDistortion no longer does anything and should be
+            removed in future update.
 
         Returns
         -------
@@ -343,6 +347,8 @@ class WcsSol(object):
         epoch : float, optional
             epoch is the mean epoch in years of the celestial coordinate
             system. (the default is 2000.0.)
+            Note: epoch no longer does anything and should be
+            removed in future update.
         includeDistortion : bool, optional
             If True (default), then this method will expect the true pixel
             coordinates with optical distortion included.  If False, this
@@ -350,12 +356,19 @@ class WcsSol(object):
             coordinates with estimated optical distortion removed. See the
             documentation in afw.cameraGeom for more details. (the default is
             True.)
+            Note: includeDistortion no longer does anything and should be
+            removed in future update.
 
         Returns
         -------
         numpy.ndarray
             A 2-D numpy array in which the first row is the x pixel coordinate
             and the second row is the y pixel coordinate.
+
+        Raises
+        ------
+        ValueError
+            If chipName is not one of numpy.ndarray, str, or None.
         """
 
         ra, dec = self._formatCoordList(ra, dec, "ra", "dec")
@@ -369,7 +382,7 @@ class WcsSol(object):
             chipNameList = [chipName] * nPts
         else:
             raise ValueError(
-                "chipName is an unallowed type. Can be None, string or list of strings."
+                "chipName is an unallowed type. Can be None, string or array of strings."
             )
 
         pixArray = self._pixelCoordsFromRaDec(ra, dec, chipNameList,)
@@ -391,6 +404,7 @@ class WcsSol(object):
         epoch : float, optional
             epoch is the mean epoch in years of the celestial coordinate
             system. (the default is 2000.0.)
+            Note: This no longer does anything and should be removed in future.
 
         Returns
         -------

@@ -21,7 +21,6 @@
 
 import os
 import subprocess
-import re
 from scipy.ndimage.measurements import center_of_mass
 from enum import IntEnum, auto
 
@@ -134,80 +133,6 @@ def runProgram(command, binDir=None, argstring=None):
     # Call the program w/o arguments
     if subprocess.call(command, shell=True) != 0:
         raise RuntimeError("Error running: %s" % command)
-
-
-def expandDetectorName(abbrevName):
-    """Convert a detector name of the form Rxy_Sxy[_Ci] to canonical form:
-    R:x,y S:x,y[,c] C0 -> A, C1 -> B.
-
-    This is copied from lsst.obs.lsstSim:
-    https://github.com/lsst/obs_lsstSim/blob/master/bin.src/
-    makeLsstCameraRepository.py
-
-    Parameters
-    ----------
-    abbrevName : str
-        Abbreviated name.
-
-    Returns
-    -------
-    str
-        Detector canonical name.
-
-    Raises
-    ------
-    ValueError
-        Input does not match the abbreviated form of detector name.
-    """
-
-    m = re.match(r"R(\d)(\d)_S(\d)(\d)(?:_C([0,1]))?$", abbrevName)
-    if m is None:
-        raise ValueError("Cannot parse abbreviated name %r" % (abbrevName,))
-    fullName = "R:%s,%s S:%s,%s" % tuple(m.groups()[0:4])
-    subSensor = m.groups()[4]
-    if subSensor is not None:
-        fullName = fullName + "," + {"0": "A", "1": "B"}[subSensor]
-    return fullName
-
-
-def abbrevDectectorName(canonicalForm):
-    """Convert a canonical name to abbreviate name (R:x,y S:x,y[,c] -->
-    Rxy_Sxy[_Ci]).
-
-    Parameters
-    ----------
-    canonicalForm : str
-        Detector canonical name.
-
-    Returns
-    -------
-    str
-        Abbreviated name.
-
-    Raises
-    ------
-    ValueError
-        Input does not match the canonical form of detector name.
-    """
-
-    # Use the regular expression to analyze the input name
-    m = re.match(r"R:(\d),(\d) S:(\d),(\d)(?:,([A,B]))?$", canonicalForm)
-
-    # Raise error if the input does not match the form of regular expression
-    if m is None:
-        raise ValueError("Cannot parse canonical name %r" % (canonicalForm,))
-
-    # Generate the abbreviated name
-    abbrevName = "R%s%s_S%s%s" % tuple(m.groups()[0:4])
-
-    # Check the sensor is wavefront sensor or not
-    subSensor = m.groups()[4]
-    if subSensor is not None:
-        # Label the WFS sensor
-        abbrevName = abbrevName + "_C" + {"A": "0", "B": "1"}[subSensor]
-
-    # Return the abbreviate name
-    return abbrevName
 
 
 def searchDonutPos(img):
@@ -478,7 +403,3 @@ def getDeblendDonutType(deblendDonutType):
         return DeblendDonutType.Adapt
     else:
         raise ValueError("The %s is not supported." % deblendDonutType)
-
-
-if __name__ == "__main__":
-    pass

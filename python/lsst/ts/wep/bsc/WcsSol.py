@@ -38,7 +38,9 @@ class WcsSol(object):
             transformation. (the default is None.)
         """
 
+        # Sky WCS solution that uses the functions in obs_lsst
         self.skyWcs = None
+
         # Rotation offset between wcs from boresight and images loaded
         # with the butler
         self.rotOffset = 90.0
@@ -72,7 +74,7 @@ class WcsSol(object):
 
         return self._camera
 
-    def setObsMetaData(self, ra, dec, rotSkyPos, centerCcd="R22_S11", mjd=None):
+    def setObsMetaData(self, ra, dec, rotSkyPos, centerCcd="R22_S11"):
         """Set up the WCS by specifying the observation meta data.
 
         Parameters
@@ -85,10 +87,6 @@ class WcsSol(object):
             The orientation of the telescope in degrees.
         centerCcd: str, optional
             Center Ccd on the camera (the default is "R22_S11").
-        mjd : float or None, optional
-            Camera MJD. (the default is None).
-            Note: This no longer does anything and should be removed in
-            a future update.
         """
 
         boresightPointing = lsst.geom.SpherePoint(ra, dec, lsst.geom.degrees)
@@ -176,14 +174,8 @@ class WcsSol(object):
 
         return np.array([raList, decList])
 
-    def raDecFromPixelCoords(
-        self, xPix, yPix, chipName, epoch=2000.0, includeDistortion=True
-    ):
+    def raDecFromPixelCoords(self, xPix, yPix, chipName):
         """Convert pixel coordinates into RA, Dec.
-
-        WARNING: This method does not account for apparent motion due to
-        parallax. This method is only useful for mapping positions on a
-        theoretical focal plane to positions on the celestial sphere.
 
         Parameters
         ----------
@@ -197,20 +189,6 @@ class WcsSol(object):
             one chip name for each (xPix, yPix) coordinate pair), or a single
             value (in which case, all of the (xPix, yPix) points will be
             reckoned on that chip).
-        epoch : float, optional
-            epoch is the mean epoch in years of the celestial coordinate
-            system. (the default is 2000.0.)
-            Note: epoch no longer does anything and should be
-            removed in future update.
-        includeDistortion : bool, optional
-            If True (default), then this method will expect the true pixel
-            coordinates with optical distortion included.  If False, this
-            method will expect TAN_PIXEL coordinates, which are the pixel
-            coordinates with estimated optical distortion removed. See the
-            documentation in afw.cameraGeom for more details. (the default is
-            True.)
-            Note: includeDistortion no longer does anything and should be
-            removed in future update.
 
         Returns
         -------
@@ -324,9 +302,7 @@ class WcsSol(object):
 
         return np.array([xPixList, yPixList])
 
-    def pixelCoordsFromRaDec(
-        self, ra, dec, chipName=None, epoch=2000.0, includeDistortion=True
-    ):
+    def pixelCoordsFromRaDec(self, ra, dec, chipName=None):
         """Get the pixel positions (or nan if not on a chip) for objects based
         on their RA, and Dec (in degrees).
 
@@ -344,20 +320,6 @@ class WcsSol(object):
             this method will calculate which chip each(RA, Dec) pair actually
             falls on, and return pixel coordinates for each (RA, Dec) pair on
             the appropriate chip. (the default is None.)
-        epoch : float, optional
-            epoch is the mean epoch in years of the celestial coordinate
-            system. (the default is 2000.0.)
-            Note: epoch no longer does anything and should be
-            removed in future update.
-        includeDistortion : bool, optional
-            If True (default), then this method will expect the true pixel
-            coordinates with optical distortion included.  If False, this
-            method will expect TAN_PIXEL coordinates, which are the pixel
-            coordinates with estimated optical distortion removed. See the
-            documentation in afw.cameraGeom for more details. (the default is
-            True.)
-            Note: includeDistortion no longer does anything and should be
-            removed in future update.
 
         Returns
         -------
@@ -392,7 +354,7 @@ class WcsSol(object):
         else:
             return pixArray
 
-    def focalPlaneCoordsFromRaDec(self, ra, dec, epoch=2000.0):
+    def focalPlaneCoordsFromRaDec(self, ra, dec):
         """Get the focal plane coordinates for all objects in the catalog.
 
         Parameters
@@ -401,10 +363,6 @@ class WcsSol(object):
             ra is in degrees in the International Celestial Reference System.
         dec : float or numpy.ndarray
             dec is in degrees in the International Celestial Reference System.
-        epoch : float, optional
-            epoch is the mean epoch in years of the celestial coordinate
-            system. (the default is 2000.0.)
-            Note: This no longer does anything and should be removed in future.
 
         Returns
         -------
@@ -423,7 +381,3 @@ class WcsSol(object):
             return focalPlaneArray.flatten()
         else:
             return focalPlaneArray
-
-
-if __name__ == "__main__":
-    pass

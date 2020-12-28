@@ -36,7 +36,7 @@ class TestComCam(unittest.TestCase):
         dec = 30.0  # -90 <= Dec <= 90
         rotSkyPos = 0.0
         self.camera = ComCam()
-        self.camera.setObsMetaData(ra, dec, rotSkyPos, mjd=59580.0)
+        self.camera.setObsMetaData(ra, dec, rotSkyPos)
 
         self.stars = StarData(
             [123, 456, 789],

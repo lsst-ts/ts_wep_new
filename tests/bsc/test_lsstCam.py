@@ -30,7 +30,7 @@ class TestLsstCam(unittest.TestCase):
     def setUp(self):
 
         self.cam = LsstCam()
-        self.cam.setObsMetaData(0, 0, 0, mjd=59580.0)
+        self.cam.setObsMetaData(0, 0, 0)
 
     def testGetWfsCcdList(self):
 

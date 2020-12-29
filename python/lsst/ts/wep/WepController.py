@@ -35,14 +35,14 @@ from lsst.ts.wep.Utility import (
 class WepController(object):
 
     CORNER_WFS_LIST = [
-        "R:0,0 S:2,2,A",
-        "R:0,0 S:2,2,B",
-        "R:0,4 S:2,0,A",
-        "R:0,4 S:2,0,B",
-        "R:4,0 S:0,2,A",
-        "R:4,0 S:0,2,B",
-        "R:4,4 S:0,0,A",
-        "R:4,4 S:0,0,B",
+        "R00_SW0",
+        "R00_SW1",
+        "R04_SW0",
+        "R04_SW1",
+        "R40_SW0",
+        "R40_SW1",
+        "R44_SW0",
+        "R44_SW1",
     ]
 
     def __init__(self, dataCollector, isrWrapper, sourSelc, sourProc, wfEsti):
@@ -250,17 +250,20 @@ class WepController(object):
 
     def _getSensorInfo(self, sensorName):
         """Get the sensor information.
+
         Parameters
         ----------
         sensorName : str
             Sensor name (e.g. "R22_S11" or "R44_SW0"). Note: SW0 and SW1 are
             used as the wavefront sensor in lsst.obs.lsst.LsstCamMapper.
+
         Returns
         -------
         str
             Raft.
         str
             Sensor.
+
         Raises
         ------
         ValueError
@@ -437,7 +440,7 @@ class WepController(object):
 
                             # Get the Euler angle
                             eulerZangle = round(
-                                self.sourProc.getEulerZinDeg(abbrevName)
+                                self.sourProc.getEulerZinDeg(sensorName)
                             )
 
                             # Change the sign if the angle < 0
@@ -545,15 +548,17 @@ class WepController(object):
 
                 # Get the intra- and extra-focal donut images
 
-                # Check the sensor is the corner WFS or not. Only consider "A"
-                # Intra: C0 -> A; Extra: C1 -> B
+                # Check the sensor is the corner WFS or not.
+                # Only consider "intra" WFS.
+                # For LsstSimMapper, Intra: C0 -> A; Extra: C1 -> B
+                # For LsstCamMapper, Intra: C0 -> SW1; Extra: C1 ->SW0
 
                 # Look for the intra-focal image
-                if sensorName.endswith("A"):
+                if sensorName.endswith("SW1"):
                     intraDonut = donutList[ii]
 
                     # Get the extra-focal sensor name
-                    extraFocalSensorName = sensorName.replace("A", "B")
+                    extraFocalSensorName = sensorName.replace("SW1", "SW0")
 
                     # Get the donut list of extra-focal sensor
                     extraDonutList = donutMap[extraFocalSensorName]
@@ -562,7 +567,7 @@ class WepController(object):
                     else:
                         continue
                 # Pass the extra-focal image
-                elif sensorName.endswith("B"):
+                elif sensorName.endswith("SW0"):
                     continue
                 # Scientific sensor
                 else:
@@ -866,7 +871,3 @@ class WepController(object):
                 stackImg += img[cy - deltaY : cy + deltaY, cx - deltaX : cx + deltaX]
 
         return stackImg
-
-
-if __name__ == "__main__":
-    pass

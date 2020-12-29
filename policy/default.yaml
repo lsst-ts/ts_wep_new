@@ -20,9 +20,6 @@ defaultBscPath: tests/testData/bsc.db3
 # This is for the test only
 defaultSkyFilePath: tests/testData/phosimOutput/realComCam/skyComCamInfo.txt
 
-# Camera MJD
-cameraMJD: 59580.0
-
 # Star (donut) radious in pixel
 # Donut radius is 63 pixel if the defocal distance is 1.5 mm
 starRadiusInPixel: 63

@@ -23,7 +23,6 @@ import os
 import numpy as np
 
 from lsst.ts.wep.ButlerWrapper import ButlerWrapper
-from lsst.ts.wep.Utility import abbrevDectectorName
 from matplotlib.colors import LogNorm, SymLogNorm
 
 import matplotlib.pyplot as plt
@@ -138,8 +137,8 @@ def plotDonutImg(donutMap, saveToDir=None, dpi=None):
     extraType = "extra"
 
     for sensorName, donutList in donutMap.items():
-        # Generate the image name
-        imgTitle = abbrevDectectorName(sensorName) + "_DonutImg"
+        # Title of image
+        imgTitle = sensorName + "_DonutImg"
 
         # Collect all images and titles
         intraImgList = []

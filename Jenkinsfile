@@ -13,7 +13,7 @@ pipeline {
     }
 
     triggers {
-        pollSCM('H * * * *')
+        pollSCM('H H(0-7) * * 1')
     }
 
     environment {
@@ -31,10 +31,8 @@ pipeline {
 
         stage('Cloning Repos') {
             steps {
-                withEnv(["HOME=${env.WORKSPACE}"]) {
-                    sh """
-                        git clone -b master https://github.com/lsst-dm/phosim_utils.git
-                    """
+                dir(env.WORKSPACE + '/phosim_utils') {
+                    git branch: 'master', url: 'https://github.com/lsst-dm/phosim_utils.git'
                 }
             }
         }

@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.9:
+
+-------------
+1.4.9
+-------------
+
+* Unify the line ending to LF.
+
 .. _lsst.ts.wep-1.4.8:
 
 -------------

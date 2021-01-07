@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.4.10:
+
+-------------
+1.4.10
+-------------
+
+* Add ``CentroidConvolveTemplate`` as a new centroid finding method.
+
 .. _lsst.ts.wep-1.4.9:
 
 -------------

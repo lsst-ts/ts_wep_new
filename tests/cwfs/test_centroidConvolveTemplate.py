@@ -21,17 +21,17 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
 
         for x in range(160):
             for y in range(160):
-                if np.sqrt((80-x)**2 + (80-y)**2) <= radiusOuter:
+                if np.sqrt((80 - x) ** 2 + (80 - y) ** 2) <= radiusOuter:
                     singleDonut[x, y] += 1
-                if np.sqrt((80-x)**2 + (80-y)**2) <= radiusInner:
+                if np.sqrt((80 - x) ** 2 + (80 - y) ** 2) <= radiusInner:
                     singleDonut[x, y] -= 1
-                if np.sqrt((50-x)**2 + (80-y)**2) <= radiusOuter:
+                if np.sqrt((50 - x) ** 2 + (80 - y) ** 2) <= radiusOuter:
                     doubleDonut[x, y] += 1
-                if np.sqrt((50-x)**2 + (80-y)**2) <= radiusInner:
+                if np.sqrt((50 - x) ** 2 + (80 - y) ** 2) <= radiusInner:
                     doubleDonut[x, y] -= 1
-                if np.sqrt((100-x)**2 + (80-y)**2) <= radiusOuter:
+                if np.sqrt((100 - x) ** 2 + (80 - y) ** 2) <= radiusOuter:
                     doubleDonut[x, y] += 1
-                if np.sqrt((100-x)**2 + (80-y)**2) <= radiusInner:
+                if np.sqrt((100 - x) ** 2 + (80 - y) ** 2) <= radiusInner:
                     doubleDonut[x, y] -= 1
         # Make binary image
         doubleDonut[doubleDonut > 0.5] = 1

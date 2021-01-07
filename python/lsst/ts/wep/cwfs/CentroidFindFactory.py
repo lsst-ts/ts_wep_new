@@ -53,7 +53,7 @@ class CentroidFindFactory(object):
             return CentroidRandomWalk()
         elif centroidFindType == CentroidFindType.Otsu:
             return CentroidOtsu()
-        elif (centroidFindType == CentroidFindType.ConvolveTemplate):
+        elif centroidFindType == CentroidFindType.ConvolveTemplate:
             return CentroidConvolveTemplate()
         else:
             raise ValueError("The %s is not supported." % centroidFindType)

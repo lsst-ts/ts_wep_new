@@ -10,8 +10,7 @@ class CentroidConvolveTemplate(CentroidRandomWalk):
     """CentroidDefault child class to get the centroid of donut by
     convolution."""
 
-    def getCenterFromTemplateConv(self, imageBinary, templateImgBinary,
-                                  n_donuts):
+    def getCenterFromTemplateConv(self, imageBinary, templateImgBinary, n_donuts):
         """Get the centers of the donuts in the binary image.
 
         Parameters
@@ -28,9 +27,13 @@ class CentroidConvolveTemplate(CentroidRandomWalk):
             x, y pixel coordinates for donut centroid
         """
 
-        temp_convolve = correlate(imageBinary, templateImgBinary, mode='same', method='fft')
+        temp_convolve = correlate(
+            imageBinary, templateImgBinary, mode="same", method="fft"
+        )
         ranked_convolve = np.argsort(temp_convolve.flatten())[::-1]
-        cutoff = len(np.where(temp_convolve.flatten() > 0.95*np.max(temp_convolve))[0])
+        cutoff = len(
+            np.where(temp_convolve.flatten() > 0.95 * np.max(temp_convolve))[0]
+        )
         ranked_convolve = ranked_convolve[:cutoff]
         nx, ny = np.unravel_index(ranked_convolve, np.shape(imageBinary))
 
@@ -41,8 +44,9 @@ class CentroidConvolveTemplate(CentroidRandomWalk):
         cent_y = []
 
         for label_num in range(n_donuts):
-            nx_label, ny_label = np.unravel_index(ranked_convolve[labels == label_num][0],
-                                                  np.shape(imageBinary))
+            nx_label, ny_label = np.unravel_index(
+                ranked_convolve[labels == label_num][0], np.shape(imageBinary)
+            )
             cent_x.append(nx_label)
             cent_y.append(ny_label)
 

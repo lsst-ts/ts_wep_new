@@ -70,13 +70,11 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
         singleDonut += randState.normal(scale=0.1, size=np.shape(singleDonut))
 
         # Use single donut as template and test recovery on double donut
-        centX, centY, rad = self.centroidConv.getCenterAndR(
-            doubleDonut, singleDonut, 2
-        )
+        centX, centY, rad = self.centroidConv.getCenterAndR(doubleDonut, singleDonut, 2)
 
         self.assertCountEqual(centX, [50, 100])
         self.assertEqual(centY, [80, 80])
-        eff_radius = np.sqrt(40**2 - 20**2)
+        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
         self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
     def testGetCenterAndRFromImgBinary(self):
@@ -90,7 +88,7 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
 
         self.assertCountEqual(centX, [50, 100])
         self.assertEqual(centY, [80, 80])
-        eff_radius = np.sqrt(40**2 - 20**2)
+        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
         self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
     def testGetCenterFromTemplateConv(self):

@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-
+from copy import deepcopy
 from lsst.ts.wep.cwfs.CentroidDefault import CentroidDefault
 from lsst.ts.wep.cwfs.CentroidRandomWalk import CentroidRandomWalk
 from scipy.signal import correlate
@@ -32,17 +32,20 @@ class CentroidConvolveTemplate(CentroidDefault):
     """CentroidDefault child class to get the centroid of donut by
     convolution."""
 
-    def getCenterAndR(self, imgDonut, templateDonut, nDonuts, peakThreshold=0.95):
+    def getCenterAndR(
+        self, imgDonut, templateDonut=None, nDonuts=1, peakThreshold=0.95
+    ):
         """Get the centroid data and effective weighting radius.
 
         Parameters
         ----------
         imgDonut : numpy.ndarray
             Donut image.
-        templateDonut : numpy.ndarray
-            Template image for a single donut.
+        templateDonut : None or numpy.ndarray
+            Template image for a single donut. If set to None
+            then the image will be convolved with itself. (The Default is None)
         nDonuts : int
-            Number of donuts in the image
+            Number of donuts in the image. (The Default is 1)
         peakThreshold : float
             This value is a specifies a number between 0 and 1 that is
             the fraction of the highest pixel value in the convolved image.
@@ -60,16 +63,22 @@ class CentroidConvolveTemplate(CentroidDefault):
             Effective weighting radius.
         """
 
+        if templateDonut is None:
+            templateDonut = deepcopy(imgDonut)
+
         self._centRandomWalk = CentroidRandomWalk()
         imgBinary = self._centRandomWalk.getImgBinary(imgDonut)
         templateBinary = self._centRandomWalk.getImgBinary(templateDonut)
 
         return self.getCenterAndRfromImgBinary(
-            imgBinary, templateBinary, nDonuts, peakThreshold=peakThreshold
+            imgBinary,
+            templateBinary=templateBinary,
+            nDonuts=nDonuts,
+            peakThreshold=peakThreshold,
         )
 
     def getCenterAndRfromImgBinary(
-        self, imgBinary, templateBinary, nDonuts, peakThreshold=0.95
+        self, imgBinary, templateBinary=None, nDonuts=1, peakThreshold=0.95
     ):
         """Get the centroid data and effective weighting radius.
 
@@ -77,10 +86,11 @@ class CentroidConvolveTemplate(CentroidDefault):
         ----------
         imgBinary : numpy.ndarray
             Binary image of donut.
-        templateBinary : numpy.ndarray
-            Binary image of template for a single donut.
+        templateBinary : None or numpy.ndarray
+            Binary image of template for a single donut. If set to None
+            then the image will be convolved with itself. (The Default is None)
         nDonuts : int
-            Number of donuts in the image
+            Number of donuts in the image. (The Default is 1)
         peakThreshold : float
             This value is a specifies a number between 0 and 1 that is
             the fraction of the highest pixel value in the convolved image.
@@ -98,15 +108,21 @@ class CentroidConvolveTemplate(CentroidDefault):
             Effective weighting radius.
         """
 
+        if templateBinary is None:
+            templateBinary = deepcopy(imgBinary)
+
         x, y = self.getCenterFromTemplateConv(
-            imgBinary, templateBinary, nDonuts, peakThreshold=peakThreshold
+            imgBinary,
+            templateImgBinary=templateBinary,
+            nDonuts=nDonuts,
+            peakThreshold=peakThreshold,
         )
         radius = np.sqrt(np.sum(templateBinary) / np.pi)
 
         return x, y, radius
 
     def getCenterFromTemplateConv(
-        self, imageBinary, templateImgBinary, nDonuts, peakThreshold=0.95
+        self, imageBinary, templateImgBinary=None, nDonuts=1, peakThreshold=0.95
     ):
         """
         Get the centers of the donuts by convolving a binary template image
@@ -121,10 +137,12 @@ class CentroidConvolveTemplate(CentroidDefault):
         ----------
         imageBinary: numpy.ndarray
             Binary image of postage stamp.
-        templateImgBinary: numpy.ndarray
-            Binary image of template donut.
+        templateImgBinary: None or numpy.ndarray
+            Binary image of template donut. If set to None then the image
+            is convolved with itself. (The default is None)
         nDonuts: int
-            Number of donuts there should be in the binary image.
+            Number of donuts there should be in the binary image. (The default
+            is 1)
         peakThreshold: float
             This value is a specifies a number between 0 and 1 that is
             the fraction of the highest pixel value in the convolved image.
@@ -139,6 +157,9 @@ class CentroidConvolveTemplate(CentroidDefault):
         list
             Y pixel coordinates for donut centroid.
         """
+
+        if templateImgBinary is None:
+            templateImgBinary = deepcopy(imageBinary)
 
         # We set the mode to be "same" because we need to return the same
         # size image to the code.

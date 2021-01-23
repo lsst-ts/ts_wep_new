@@ -69,8 +69,18 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
         doubleDonut += randState.normal(scale=0.1, size=np.shape(doubleDonut))
         singleDonut += randState.normal(scale=0.1, size=np.shape(singleDonut))
 
+        # Test recovery with defaults
+        centX, centY, rad = self.centroidConv.getCenterAndR(singleDonut)
+
+        self.assertEqual(centX, [80])
+        self.assertEqual(centY, [80])
+        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
+        self.assertAlmostEqual(rad, eff_radius, delta=0.1)
+
         # Use single donut as template and test recovery on double donut
-        centX, centY, rad = self.centroidConv.getCenterAndR(doubleDonut, singleDonut, 2)
+        centX, centY, rad = self.centroidConv.getCenterAndR(
+            doubleDonut, templateDonut=singleDonut, nDonuts=2
+        )
 
         self.assertCountEqual(centX, [50, 100])
         self.assertEqual(centY, [80, 80])
@@ -81,9 +91,17 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
 
         singleDonut, doubleDonut = self._createData()
 
+        # Test recovery with defaults
+        centX, centY, rad = self.centroidConv.getCenterAndRfromImgBinary(singleDonut)
+
+        self.assertEqual(centX, [80])
+        self.assertEqual(centY, [80])
+        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
+        self.assertAlmostEqual(rad, eff_radius, delta=0.1)
+
         # Use single donut as template and test recovery on double donut
         centX, centY, rad = self.centroidConv.getCenterAndRfromImgBinary(
-            doubleDonut, singleDonut, 2
+            doubleDonut, templateBinary=singleDonut, nDonuts=2
         )
 
         self.assertCountEqual(centX, [50, 100])
@@ -96,15 +114,13 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
         singleDonut, doubleDonut = self._createData()
 
         # Test recovery of single donut
-        singleCX, singleCY = self.centroidConv.getCenterFromTemplateConv(
-            singleDonut, singleDonut, 1
-        )
+        singleCX, singleCY = self.centroidConv.getCenterFromTemplateConv(singleDonut)
         self.assertEqual(singleCX, [80])
         self.assertEqual(singleCY, [80])
 
         # Test recovery of two donuts at once
         doubleCX, doubleCY = self.centroidConv.getCenterFromTemplateConv(
-            doubleDonut, singleDonut, 2
+            doubleDonut, templateImgBinary=singleDonut, nDonuts=2
         )
         self.assertCountEqual(doubleCX, [50, 100])
         self.assertEqual(doubleCY, [80, 80])

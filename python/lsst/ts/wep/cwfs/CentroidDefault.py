@@ -33,6 +33,8 @@ class CentroidDefault(object):
         ----------
         imgDonut : numpy.ndarray
             Donut image.
+        **kwargs : dict[str, any]
+            Dictionary of input argument: new value for that input argument.
 
         Returns
         -------
@@ -56,6 +58,8 @@ class CentroidDefault(object):
         ----------
         imgBinary : numpy.ndarray [int]
             Binary image of donut.
+        **kwargs : dict[str, any]
+            Dictionary of input argument: new value for that input argument.
 
         Returns
         -------

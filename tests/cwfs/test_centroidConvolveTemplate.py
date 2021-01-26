@@ -32,14 +32,11 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
 
         self.centroidConv = CentroidConvolveTemplate()
 
-    def _createData(self):
-
-        radiusInner = 20
-        radiusOuter = 40
+    def _createData(self, radiusInner, radiusOuter, imageSize, addNoise=False):
 
         # Create two images. One with a single donut and one with two donuts.
-        singleDonut = np.zeros((160, 160))
-        doubleDonut = np.zeros((160, 160))
+        singleDonut = np.zeros((imageSize, imageSize))
+        doubleDonut = np.zeros((imageSize, imageSize))
 
         for x in range(160):
             for y in range(160):
@@ -58,72 +55,108 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
         # Make binary image
         doubleDonut[doubleDonut > 0.5] = 1
 
-        return singleDonut, doubleDonut
+        if addNoise is True:
+            # Add noise so the images are not binary
+            randState = np.random.RandomState(42)
+            singleDonut += randState.normal(scale=0.01, size=np.shape(singleDonut))
+            doubleDonut += randState.normal(scale=0.01, size=np.shape(doubleDonut))
 
-    def testGetCenterAndR(self):
+        eff_radius = np.sqrt(radiusOuter ** 2 - radiusInner ** 2)
 
-        singleDonut, doubleDonut = self._createData()
+        return singleDonut, doubleDonut, eff_radius
 
-        # Add noise so the images are not binary
-        randState = np.random.RandomState(42)
-        doubleDonut += randState.normal(scale=0.1, size=np.shape(doubleDonut))
-        singleDonut += randState.normal(scale=0.1, size=np.shape(singleDonut))
+    def testGetImgBinary(self):
+
+        singleDonut, doubleDonut, eff_radius = self._createData(
+            20, 40, 160, addNoise=False
+        )
+
+        noisySingle, noisyDouble, eff_radius = self._createData(
+            20, 40, 160, addNoise=True
+        )
+
+        binarySingle = self.centroidConv.getImgBinary(noisySingle)
+
+        np.testing.assert_array_equal(singleDonut, binarySingle)
+
+    def testGetCenterAndRWithoutTemplate(self):
+
+        singleDonut, doubleDonut, eff_radius = self._createData(
+            20, 40, 160, addNoise=True
+        )
 
         # Test recovery with defaults
         centX, centY, rad = self.centroidConv.getCenterAndR(singleDonut)
 
-        self.assertEqual(centX, [80])
-        self.assertEqual(centY, [80])
-        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
+        self.assertEqual(centX, 80.0)
+        self.assertEqual(centY, 80.0)
         self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
-        # Use single donut as template and test recovery on double donut
-        centX, centY, rad = self.centroidConv.getCenterAndR(
-            doubleDonut, templateDonut=singleDonut, nDonuts=2
+    def testGetCenterAndRWithTemplate(self):
+
+        singleDonut, doubleDonut, eff_radius = self._createData(
+            20, 40, 160, addNoise=True
         )
 
-        self.assertCountEqual(centX, [50, 100])
-        self.assertEqual(centY, [80, 80])
-        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
+        # Test recovery with defaults
+        centX, centY, rad = self.centroidConv.getCenterAndR(
+            singleDonut, templateDonut=singleDonut
+        )
+
+        self.assertEqual(centX, 80.0)
+        self.assertEqual(centY, 80.0)
         self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
     def testGetCenterAndRFromImgBinary(self):
 
-        singleDonut, doubleDonut = self._createData()
+        singleDonut, doubleDonut, eff_radius = self._createData(20, 40, 160)
 
         # Test recovery with defaults
         centX, centY, rad = self.centroidConv.getCenterAndRfromImgBinary(singleDonut)
 
-        self.assertEqual(centX, [80])
-        self.assertEqual(centY, [80])
-        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
+        self.assertEqual(centX, 80.0)
+        self.assertEqual(centY, 80.0)
         self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
-        # Use single donut as template and test recovery on double donut
-        centX, centY, rad = self.centroidConv.getCenterAndRfromImgBinary(
-            doubleDonut, templateBinary=singleDonut, nDonuts=2
-        )
+    def testNDonutsAssertion(self):
 
-        self.assertCountEqual(centX, [50, 100])
-        self.assertEqual(centY, [80, 80])
-        eff_radius = np.sqrt(40 ** 2 - 20 ** 2)
-        self.assertAlmostEqual(rad, eff_radius, delta=0.1)
+        singleDonut, doubleDonut, eff_radius = self._createData(20, 40, 160)
 
-    def testGetCenterFromTemplateConv(self):
+        nDonutsAssertMsg = "nDonuts must be an integer >= 1"
+        with self.assertRaises(AssertionError, msg=nDonutsAssertMsg):
+            cX, cY, rad = self.centroidConv.getCenterAndRfromTemplateConv(
+                singleDonut, nDonuts=0
+            )
 
-        singleDonut, doubleDonut = self._createData()
+        with self.assertRaises(AssertionError, msg=nDonutsAssertMsg):
+            cX, cY, rad = self.centroidConv.getCenterAndRfromTemplateConv(
+                singleDonut, nDonuts=-1
+            )
+
+        with self.assertRaises(AssertionError, msg=nDonutsAssertMsg):
+            cX, cY, rad = self.centroidConv.getCenterAndRfromTemplateConv(
+                singleDonut, nDonuts=1.5
+            )
+
+    def testGetCenterAndRFromTemplateConv(self):
+
+        singleDonut, doubleDonut, eff_radius = self._createData(20, 40, 160)
 
         # Test recovery of single donut
-        singleCX, singleCY = self.centroidConv.getCenterFromTemplateConv(singleDonut)
-        self.assertEqual(singleCX, [80])
-        self.assertEqual(singleCY, [80])
+        singleCX, singleCY, rad = self.centroidConv.getCenterAndRfromTemplateConv(
+            singleDonut
+        )
+        self.assertEqual(singleCX, [80.0])
+        self.assertEqual(singleCY, [80.0])
+        self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
         # Test recovery of two donuts at once
-        doubleCX, doubleCY = self.centroidConv.getCenterFromTemplateConv(
+        doubleCX, doubleCY, rad = self.centroidConv.getCenterAndRfromTemplateConv(
             doubleDonut, templateImgBinary=singleDonut, nDonuts=2
         )
-        self.assertCountEqual(doubleCX, [50, 100])
-        self.assertEqual(doubleCY, [80, 80])
+        self.assertCountEqual(doubleCX, [50.0, 100.0])
+        self.assertEqual(doubleCY, [80.0, 80.0])
+        self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 
 
 if __name__ == "__main__":

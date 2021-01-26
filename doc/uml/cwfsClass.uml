@@ -9,7 +9,7 @@ CentroidDefault <|-- CentroidConvolveTemplate
 CentroidFindFactory ..> CentroidRandomWalk
 CentroidFindFactory ..> CentroidOtsu
 CentroidFindFactory ..> CentroidConvolveTemplate
-CentroidRandomWalk ..> CentroidConvolveTemplate
+CentroidConvolveTemplate *-- CentroidRandomWalk
 Image ..> CentroidFindFactory
 Image *-- CentroidDefault
 BaseCwfsTestCase ..> CompensableImage

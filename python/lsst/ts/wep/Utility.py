@@ -360,7 +360,7 @@ def getCentroidFindType(centroidFindType):
     Parameters
     ----------
     centroidFindType : str
-        Centroid find algorithm to use (randomWalk or otsu).
+        Centroid find algorithm to use (randomWalk, otsu, or convolveTemplate).
 
     Returns
     -------

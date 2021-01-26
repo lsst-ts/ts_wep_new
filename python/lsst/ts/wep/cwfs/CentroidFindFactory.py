@@ -40,7 +40,7 @@ class CentroidFindFactory(object):
 
         Returns
         -------
-        CentroidRandomWalk, CentroidOtsu, CentroidConvolveTemplate
+        Child class of centroidDefault
             Centroid find object.
 
         Raises

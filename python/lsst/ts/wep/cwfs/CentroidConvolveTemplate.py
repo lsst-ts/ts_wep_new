@@ -81,7 +81,7 @@ class CentroidConvolveTemplate(CentroidDefault):
         imgBinary = self.getImgBinary(imgDonut)
 
         if templateDonut is None:
-            templateBinary = templateDonut
+            templateBinary = copy(imgBinary)
         else:
             templateBinary = self.getImgBinary(templateDonut)
 

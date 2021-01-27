@@ -104,6 +104,7 @@ This module calculates the wavefront error by solving the TIE.
 * **CentroidDefault**: Default centroid class.
 * **CentroidRandomWalk**: CentroidDefault child class to get the centroid of donut by the random walk model.
 * **CentroidOtsu**: CentroidDefault child class to get the centroid of donut by the Otsu's method.
+* **CentroidConvolveTemplate**: CentroidDefault child class to get the centroids of one or more donuts in an image by convolution with a template donut.
 * **BaseCwfsTestCase**: Base class for CWFS tests.
 
 .. _lsst.ts.wep-modules_wep_deblend:

@@ -25,6 +25,7 @@ from lsst.ts.wep.Utility import CentroidFindType
 from lsst.ts.wep.cwfs.CentroidFindFactory import CentroidFindFactory
 from lsst.ts.wep.cwfs.CentroidRandomWalk import CentroidRandomWalk
 from lsst.ts.wep.cwfs.CentroidOtsu import CentroidOtsu
+from lsst.ts.wep.cwfs.CentroidConvolveTemplate import CentroidConvolveTemplate
 
 
 class TestCentroidFindFactory(unittest.TestCase):
@@ -41,6 +42,13 @@ class TestCentroidFindFactory(unittest.TestCase):
 
         centroidFind = CentroidFindFactory.createCentroidFind(CentroidFindType.Otsu)
         self.assertTrue(isinstance(centroidFind, CentroidOtsu))
+
+    def testCreateCentroidFindConvolveTemplate(self):
+
+        centroidFind = CentroidFindFactory.createCentroidFind(
+            CentroidFindType.ConvolveTemplate
+        )
+        self.assertTrue(isinstance(centroidFind, CentroidConvolveTemplate))
 
     def testCreateCentroidFindWrongType(self):
 

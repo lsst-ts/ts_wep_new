@@ -26,13 +26,15 @@ from scipy.ndimage import center_of_mass
 class CentroidDefault(object):
     """Default Centroid class."""
 
-    def getCenterAndR(self, imgDonut):
+    def getCenterAndR(self, imgDonut, **kwargs):
         """Get the centroid data and effective weighting radius.
 
         Parameters
         ----------
         imgDonut : numpy.ndarray
             Donut image.
+        **kwargs : dict[str, any]
+            Dictionary of input argument: new value for that input argument.
 
         Returns
         -------
@@ -48,7 +50,7 @@ class CentroidDefault(object):
 
         return self.getCenterAndRfromImgBinary(imgBinary)
 
-    def getCenterAndRfromImgBinary(self, imgBinary):
+    def getCenterAndRfromImgBinary(self, imgBinary, **kwargs):
         """Get the centroid data and effective weighting radius from the binary
         image.
 
@@ -56,6 +58,8 @@ class CentroidDefault(object):
         ----------
         imgBinary : numpy.ndarray [int]
             Binary image of donut.
+        **kwargs : dict[str, any]
+            Dictionary of input argument: new value for that input argument.
 
         Returns
         -------

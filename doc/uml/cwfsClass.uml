@@ -5,8 +5,11 @@ Algorithm -- CompensableImage
 CompensableImage ..> Instrument
 CentroidDefault <|-- CentroidRandomWalk
 CentroidDefault <|-- CentroidOtsu
+CentroidDefault <|-- CentroidConvolveTemplate
 CentroidFindFactory ..> CentroidRandomWalk
 CentroidFindFactory ..> CentroidOtsu
+CentroidFindFactory ..> CentroidConvolveTemplate
+CentroidConvolveTemplate *-- CentroidRandomWalk
 Image ..> CentroidFindFactory
 Image *-- CentroidDefault
 BaseCwfsTestCase ..> CompensableImage

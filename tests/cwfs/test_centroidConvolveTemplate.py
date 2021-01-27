@@ -38,19 +38,47 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
         singleDonut = np.zeros((imageSize, imageSize))
         doubleDonut = np.zeros((imageSize, imageSize))
 
-        for x in range(160):
-            for y in range(160):
-                if np.sqrt((80 - x) ** 2 + (80 - y) ** 2) <= radiusOuter:
+        for x in range(imageSize):
+            for y in range(imageSize):
+                # For single donut put the donut at the center of the image
+                if (
+                    np.sqrt((imageSize / 2 - x) ** 2 + (imageSize / 2 - y) ** 2)
+                    <= radiusOuter
+                ):
                     singleDonut[x, y] += 1
-                if np.sqrt((80 - x) ** 2 + (80 - y) ** 2) <= radiusInner:
+                if (
+                    np.sqrt((imageSize / 2 - x) ** 2 + (imageSize / 2 - y) ** 2)
+                    <= radiusInner
+                ):
                     singleDonut[x, y] -= 1
-                if np.sqrt((50 - x) ** 2 + (80 - y) ** 2) <= radiusOuter:
+                # For double donut put the two donuts along same line
+                # halfway down the image and provide 10 pixels between
+                # image edge and outer edge of donut on either side of image
+                if (
+                    np.sqrt(((radiusOuter + 10) - x) ** 2 + (imageSize / 2 - y) ** 2)
+                    <= radiusOuter
+                ):
                     doubleDonut[x, y] += 1
-                if np.sqrt((50 - x) ** 2 + (80 - y) ** 2) <= radiusInner:
+                if (
+                    np.sqrt(((radiusOuter + 10) - x) ** 2 + (imageSize / 2 - y) ** 2)
+                    <= radiusInner
+                ):
                     doubleDonut[x, y] -= 1
-                if np.sqrt((100 - x) ** 2 + (80 - y) ** 2) <= radiusOuter:
+                if (
+                    np.sqrt(
+                        (imageSize - (radiusOuter + 10) - x) ** 2
+                        + (imageSize / 2 - y) ** 2
+                    )
+                    <= radiusOuter
+                ):
                     doubleDonut[x, y] += 1
-                if np.sqrt((100 - x) ** 2 + (80 - y) ** 2) <= radiusInner:
+                if (
+                    np.sqrt(
+                        (imageSize - (radiusOuter + 10) - x) ** 2
+                        + (imageSize / 2 - y) ** 2
+                    )
+                    <= radiusInner
+                ):
                     doubleDonut[x, y] -= 1
         # Make binary image
         doubleDonut[doubleDonut > 0.5] = 1
@@ -154,7 +182,7 @@ class TestCentroidConvolveTemplate(unittest.TestCase):
         doubleCX, doubleCY, rad = self.centroidConv.getCenterAndRfromTemplateConv(
             doubleDonut, templateImgBinary=singleDonut, nDonuts=2
         )
-        self.assertCountEqual(doubleCX, [50.0, 100.0])
+        self.assertCountEqual(doubleCX, [50.0, 110.0])
         self.assertEqual(doubleCY, [80.0, 80.0])
         self.assertAlmostEqual(rad, eff_radius, delta=0.1)
 

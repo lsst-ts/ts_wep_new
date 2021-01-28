@@ -29,8 +29,15 @@ from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 
 class TemplateModel(TemplateDefault):
     """Class to make the donut templates from the Instrument model."""
-    def makeTemplate(self, sensorName, defocalState, imageSize,
-                     camType=CamType.LsstCam, pixelScale=0.2):
+
+    def makeTemplate(
+        self,
+        sensorName,
+        defocalState,
+        imageSize,
+        camType=CamType.LsstCam,
+        pixelScale=0.2,
+    ):
         """Make the template image.
 
         Parameters
@@ -54,12 +61,16 @@ class TemplateModel(TemplateDefault):
         """
 
         configDir = getConfigDir()
-        focalPlaneLayout = readPhoSimSettingData(configDir, 'focalplanelayout.txt', "fieldCenter")
+        focalPlaneLayout = readPhoSimSettingData(
+            configDir, "focalplanelayout.txt", "fieldCenter"
+        )
 
         pixelSizeInUm = float(focalPlaneLayout[sensorName][2])
         sizeXinPixel = int(focalPlaneLayout[sensorName][3])
 
-        sensorXMicron, sensorYMicron = np.array(focalPlaneLayout[sensorName][:2], dtype=float)
+        sensorXMicron, sensorYMicron = np.array(
+            focalPlaneLayout[sensorName][:2], dtype=float
+        )
         # Correction for wavefront sensors
         # (from _shiftCenterWfs in SourceProcessor.py)
         if sensorName in ("R44_S00_C0", "R00_S22_C1"):
@@ -86,11 +97,11 @@ class TemplateModel(TemplateDefault):
         img.defocalType = defocalState
 
         # Convert pixel locations to degrees
-        sensorXPixel = float(sensorXMicron)/pixelSizeInUm
-        sensorYPixel = float(sensorYMicron)/pixelSizeInUm
+        sensorXPixel = float(sensorXMicron) / pixelSizeInUm
+        sensorYPixel = float(sensorYMicron) / pixelSizeInUm
 
-        sensorXDeg = sensorXPixel*pixelScale / 3600
-        sensorYDeg = sensorYPixel*pixelScale / 3600
+        sensorXDeg = sensorXPixel * pixelScale / 3600
+        sensorYDeg = sensorYPixel * pixelScale / 3600
 
         # define position of donut at center of current sensor in degrees
         boundaryT = 0

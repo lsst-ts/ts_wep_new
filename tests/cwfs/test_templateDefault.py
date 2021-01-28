@@ -33,7 +33,13 @@ class TestTemplateDefault(unittest.TestCase):
 
     def testMakeTemplate(self):
 
-        self.assertRaises(NotImplementedError, self.templateMaker.makeTemplate)
+        self.assertRaises(
+            NotImplementedError,
+            self.templateMaker.makeTemplate,
+            "sensor",
+            "defocalState",
+            100,
+        )
 
 
 if __name__ == "__main__":

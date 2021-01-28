@@ -40,6 +40,11 @@ class TemplateDefault(object):
 
         Returns
         -------
+        numpy.ndarray [float]
+            The donut template as a binary image
+
+        Raises
+        -------
         NotImplementedError
             Child class should implement this.
         """

@@ -10,6 +10,10 @@ CentroidFindFactory ..> CentroidRandomWalk
 CentroidFindFactory ..> CentroidOtsu
 CentroidFindFactory ..> CentroidConvolveTemplate
 CentroidConvolveTemplate *-- CentroidRandomWalk
+TemplateDefault <|-- TemplateModel
+TemplateMakerFactory ..> TemplateModel
+TemplateModel *-- CompensableImage
+TemplateModel *-- Instrument
 Image ..> CentroidFindFactory
 Image *-- CentroidDefault
 BaseCwfsTestCase ..> CompensableImage

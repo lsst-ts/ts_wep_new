@@ -24,7 +24,10 @@ from lsst.ts.wep.cwfs.TemplateModel import TemplateModel
 
 
 class TemplateMakerFactory(object):
-    """Factory used to create template creation object to generate donut template images."""
+    """
+    Factory used to create template maker object to generate donut
+    template images CentroidConvolveTemplate.
+    """
 
     @staticmethod
     def createTemplateMaker(templateType):

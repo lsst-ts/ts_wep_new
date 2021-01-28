@@ -6,6 +6,15 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.5.1:
+
+-------------
+1.5.1
+-------------
+
+* Add template maker classes to make templates for ``CentroidConvolveTemplate``.
+* Added ``TemplateMakerFactory``, ``TemplateDefault``, and ``TemplateModel``.
+
 .. _lsst.ts.wep-1.5.0:
 
 -------------

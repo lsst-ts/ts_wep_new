@@ -49,7 +49,7 @@ class TemplateModel(TemplateDefault):
 
         Returns
         -------
-        numpy.ndarray
+        numpy.ndarray [float]
             The donut template as a binary image
         """
 

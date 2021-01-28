@@ -31,9 +31,7 @@ class TestTemplateMakerFactory(unittest.TestCase):
 
     def testCreateTemplateModel(self):
 
-        templateMaker = TemplateMakerFactory.createTemplateMaker(
-            TemplateType.Model
-        )
+        templateMaker = TemplateMakerFactory.createTemplateMaker(TemplateType.Model)
         self.assertTrue(isinstance(templateMaker, TemplateModel))
 
     def testCreateCentroidFindWrongType(self):

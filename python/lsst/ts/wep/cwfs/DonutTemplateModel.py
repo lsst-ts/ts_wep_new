@@ -22,35 +22,39 @@
 import os
 import numpy as np
 from lsst.ts.wep.Utility import getConfigDir, readPhoSimSettingData, CamType
-from lsst.ts.wep.cwfs.TemplateDefault import TemplateDefault
+from lsst.ts.wep.cwfs.DonutTemplateDefault import DonutTemplateDefault
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 
 
-class TemplateModel(TemplateDefault):
+class DonutTemplateModel(DonutTemplateDefault):
     """Class to make the donut templates from the Instrument model."""
 
     def makeTemplate(
         self,
         sensorName,
-        defocalState,
+        defocalType,
         imageSize,
         camType=CamType.LsstCam,
+        opticalModel="offAxis",
         pixelScale=0.2,
     ):
-        """Make the template image.
+        """Make the donut template image.
 
         Parameters
         ----------
         sensorName : str
             The camera detector for which we want to make a template. Should
             be in "Rxx_Sxx" format.
-        defocalState : str
-            "extra" or "intra" describing the defocal state of the sensor.
+        defocalType : enum 'DefocalType'
+            The defocal state of the sensor.
         imageSize : int
             Size of template in pixels. The template will be a square.
         camType : enum 'CamType'
             Camera type. (Default is CamType.LsstCam)
+        model : str, optional
+            Optical model. It can be "paraxial", "onAxis", or "offAxis".
+            (The default is "offAxis")
         pixelScale : float
             The pixels to arcseconds conversion factor. (The default is 0.2)
 
@@ -72,7 +76,6 @@ class TemplateModel(TemplateDefault):
             focalPlaneLayout[sensorName][:2], dtype=float
         )
         # Correction for wavefront sensors
-        # (from _shiftCenterWfs in SourceProcessor.py)
         if sensorName in ("R44_S00_C0", "R00_S22_C1"):
             # Shift center to +x direction
             sensorXMicron = sensorXMicron + sizeXinPixel / 2 * pixelSizeInUm
@@ -88,13 +91,11 @@ class TemplateModel(TemplateDefault):
 
         # Load Instrument parameters
         instDir = os.path.join(configDir, "cwfs", "instData")
-        dimOfDonutImgOnSensor = imageSize
         inst = Instrument(instDir)
-        inst.config(camType, dimOfDonutImgOnSensor)
+        inst.config(camType, imageSize)
 
         # Create image for mask
         img = CompensableImage()
-        img.defocalType = defocalState
 
         # Convert pixel locations to degrees
         sensorXPixel = float(sensorXMicron) / pixelSizeInUm
@@ -102,13 +103,14 @@ class TemplateModel(TemplateDefault):
 
         sensorXDeg = sensorXPixel * pixelScale / 3600
         sensorYDeg = sensorYPixel * pixelScale / 3600
+        fieldXY = [sensorXDeg, sensorYDeg]
 
-        # define position of donut at center of current sensor in degrees
+        # Define position of donut at center of current sensor in degrees
         boundaryT = 0
         maskScalingFactorLocal = 1
-        img.fieldX, img.fieldY = sensorXDeg, sensorYDeg
-        img.makeMask(inst, "offAxis", boundaryT, maskScalingFactorLocal)
+        img.setImg(fieldXY, defocalType, image=np.zeros((imageSize, imageSize)))
+        img.makeMask(inst, opticalModel, boundaryT, maskScalingFactorLocal)
 
-        templateArray = img.cMask
+        templateArray = img.getNonPaddedMask()
 
         return templateArray

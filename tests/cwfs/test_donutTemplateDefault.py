@@ -21,23 +21,24 @@
 
 import unittest
 
-from lsst.ts.wep.Utility import TemplateType
-from lsst.ts.wep.cwfs.TemplateMakerFactory import TemplateMakerFactory
-from lsst.ts.wep.cwfs.TemplateModel import TemplateModel
+from lsst.ts.wep.cwfs.DonutTemplateDefault import DonutTemplateDefault
 
 
-class TestTemplateMakerFactory(unittest.TestCase):
-    """Test the TemplateMakerFactory class."""
+class TestDonutTemplateDefault(unittest.TestCase):
+    """Test the TemplateDefault class."""
 
-    def testCreateTemplateModel(self):
+    def setUp(self):
 
-        templateMaker = TemplateMakerFactory.createTemplateMaker(TemplateType.Model)
-        self.assertTrue(isinstance(templateMaker, TemplateModel))
+        self.templateMaker = DonutTemplateDefault()
 
-    def testCreateCentroidFindWrongType(self):
+    def testMakeTemplate(self):
 
         self.assertRaises(
-            ValueError, TemplateMakerFactory.createTemplateMaker, "wrongType"
+            NotImplementedError,
+            self.templateMaker.makeTemplate,
+            "sensor",
+            "defocalState",
+            100,
         )
 
 

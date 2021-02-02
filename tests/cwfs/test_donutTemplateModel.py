@@ -23,8 +23,8 @@ import unittest
 import os
 import numpy as np
 
-from lsst.ts.wep.cwfs.TemplateModel import TemplateModel
-from lsst.ts.wep.Utility import CamType, getConfigDir
+from lsst.ts.wep.cwfs.DonutTemplateModel import DonutTemplateModel
+from lsst.ts.wep.Utility import CamType, DefocalType, getConfigDir
 from lsst.ts.wep.cwfs.Instrument import Instrument
 from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
 
@@ -34,37 +34,47 @@ class TestTemplateModel(unittest.TestCase):
 
     def setUp(self):
 
-        self.templateMaker = TemplateModel()
+        self.templateMaker = DonutTemplateModel()
 
-    def _createTestTemplate(self, imageSize, defocalState):
+    def _createTestTemplate(self, imageSize, defocalType, opticalModel):
         """Create a test template located at center of focal plane."""
 
         # Load Instrument parameters
         instDir = os.path.join(getConfigDir(), "cwfs", "instData")
-        dimOfDonutImgOnSensor = imageSize
         inst = Instrument(instDir)
-        inst.config(CamType.LsstCam, dimOfDonutImgOnSensor)
+        inst.config(CamType.LsstCam, imageSize)
 
         # Create image for mask
         img = CompensableImage()
-        img.defocalType = defocalState
 
-        # define position of donut at center of current sensor in degrees
-        img.fieldX, img.fieldY = 0.0, 0.0
-        img.makeMask(inst, "offAxis", 0, 1)
+        # Define position of donut at center of current sensor in degrees
+        fieldXY = [0.0, 0.0]
+        img.setImg(fieldXY, defocalType, image=np.zeros((imageSize, imageSize)))
+        img.makeMask(inst, opticalModel, 0, 1)
 
-        return img.cMask
+        return img.getNonPaddedMask()
 
     def testMakeTemplate(self):
 
-        testTemplate = self._createTestTemplate(160, "extra")
+        testTemplate = self._createTestTemplate(160, DefocalType.Extra, "offAxis")
 
         # Generate a test template on the center chip
-        templateArray = self.templateMaker.makeTemplate("R22_S11", "extra", 160)
+        templateArray = self.templateMaker.makeTemplate(
+            "R22_S11", DefocalType.Extra, 160
+        )
 
         self.assertEqual(np.max(templateArray), 1.0)
         self.assertEqual(np.shape(templateArray), (160, 160))
         np.testing.assert_array_equal(templateArray, testTemplate)
+
+    def testMakeTemplateSize(self):
+
+        # Generate a test template on the center chip
+        templateArray = self.templateMaker.makeTemplate(
+            "R22_S11", DefocalType.Extra, 140
+        )
+
+        self.assertEqual(np.shape(templateArray), (140, 140))
 
 
 if __name__ == "__main__":

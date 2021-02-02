@@ -20,19 +20,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class TemplateDefault(object):
-    """Default Template class."""
+class DonutTemplateDefault(object):
+    """Default Donut Template class."""
 
-    def makeTemplate(self, sensorName, defocalState, imageSize, **kwargs):
-        """Make the template image.
+    def makeTemplate(self, sensorName, defocalType, imageSize, **kwargs):
+        """Make the donut template image.
 
         Parameters
         ----------
         sensorName : str
             The camera detector for which we want to make a template. Should
             be in "Rxx_Sxx" format.
-        defocalState : str
-            "extra" or "intra" describing the defocal state of the sensor.
+        defocalType : enum 'DefocalType'
+            The defocal state of the sensor.
         imageSize : int
             Size of template in pixels. The template will be a square.
         **kwargs : dict[str, any]

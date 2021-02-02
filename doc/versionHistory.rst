@@ -12,8 +12,8 @@ Version History
 1.5.1
 -------------
 
-* Add template maker classes to make templates for ``CentroidConvolveTemplate``.
-* Added ``TemplateMakerFactory``, ``TemplateDefault``, and ``TemplateModel``.
+* Add donut template classes to make templates for ``CentroidConvolveTemplate``.
+* Add ``DonutTemplateFactory``, ``DonutTemplateDefault``, and ``DonutTemplateModel``.
 
 .. _lsst.ts.wep-1.5.0:
 

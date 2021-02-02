@@ -19,29 +19,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from lsst.ts.wep.Utility import TemplateType
-from lsst.ts.wep.cwfs.TemplateModel import TemplateModel
+from lsst.ts.wep.Utility import DonutTemplateType
+from lsst.ts.wep.cwfs.DonutTemplateModel import DonutTemplateModel
 
 
-class TemplateMakerFactory(object):
+class DonutTemplateFactory(object):
     """
     Factory used to create template maker object to generate donut
     template images CentroidConvolveTemplate.
     """
 
     @staticmethod
-    def createTemplateMaker(templateType):
+    def createDonutTemplate(donutTemplateType):
         """Create the template maker object.
 
         Parameters
         ----------
-        templateType : enum 'TemplateType'
+        donutTemplateType : enum 'DonutTemplateType'
             Algorithm to create the donut templates
 
         Returns
         -------
-        Child class of templateDefault
-            Template maker object
+        Child class of DonutTemplateDefault
+            Donut template object
 
         Raises
         ------
@@ -49,7 +49,7 @@ class TemplateMakerFactory(object):
             The template type is not supported.
         """
 
-        if templateType == TemplateType.Model:
-            return TemplateModel()
+        if donutTemplateType == DonutTemplateType.Model:
+            return DonutTemplateModel()
         else:
-            raise ValueError("The %s is not supported." % templateType)
+            raise ValueError(f"The {donutTemplateType} is not supported.")

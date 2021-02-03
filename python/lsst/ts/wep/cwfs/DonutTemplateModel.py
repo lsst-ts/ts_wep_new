@@ -50,18 +50,18 @@ class DonutTemplateModel(DonutTemplateDefault):
             The defocal state of the sensor.
         imageSize : int
             Size of template in pixels. The template will be a square.
-        camType : enum 'CamType'
+        camType : enum 'CamType', optional
             Camera type. (Default is CamType.LsstCam)
         model : str, optional
             Optical model. It can be "paraxial", "onAxis", or "offAxis".
             (The default is "offAxis")
-        pixelScale : float
+        pixelScale : float, optional
             The pixels to arcseconds conversion factor. (The default is 0.2)
 
         Returns
         -------
-        numpy.ndarray [float]
-            The donut template as a binary image
+        numpy.ndarray [int]
+            The donut template as a binary image.
         """
 
         configDir = getConfigDir()
@@ -101,6 +101,7 @@ class DonutTemplateModel(DonutTemplateDefault):
         sensorXPixel = float(sensorXMicron) / pixelSizeInUm
         sensorYPixel = float(sensorYMicron) / pixelSizeInUm
 
+        # Multiply by pixelScale then divide by 3600 for arcsec -> deg conversion
         sensorXDeg = sensorXPixel * pixelScale / 3600
         sensorYDeg = sensorYPixel * pixelScale / 3600
         fieldXY = [sensorXDeg, sensorYDeg]
@@ -111,6 +112,4 @@ class DonutTemplateModel(DonutTemplateDefault):
         img.setImg(fieldXY, defocalType, image=np.zeros((imageSize, imageSize)))
         img.makeMask(inst, opticalModel, boundaryT, maskScalingFactorLocal)
 
-        templateArray = img.getNonPaddedMask()
-
-        return templateArray
+        return np.array(img.getNonPaddedMask(), dtype=int)

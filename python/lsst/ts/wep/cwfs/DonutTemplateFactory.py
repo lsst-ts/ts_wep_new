@@ -36,12 +36,12 @@ class DonutTemplateFactory(object):
         Parameters
         ----------
         donutTemplateType : enum 'DonutTemplateType'
-            Algorithm to create the donut templates
+            Algorithm to create the donut templates.
 
         Returns
         -------
         Child class of DonutTemplateDefault
-            Donut template object
+            Donut template object.
 
         Raises
         ------

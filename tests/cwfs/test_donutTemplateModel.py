@@ -20,13 +20,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import unittest
-import os
 import numpy as np
 
 from lsst.ts.wep.cwfs.DonutTemplateModel import DonutTemplateModel
-from lsst.ts.wep.Utility import CamType, DefocalType, getConfigDir
-from lsst.ts.wep.cwfs.Instrument import Instrument
-from lsst.ts.wep.cwfs.CompensableImage import CompensableImage
+from lsst.ts.wep.Utility import DefocalType
 
 
 class TestTemplateModel(unittest.TestCase):
@@ -36,45 +33,42 @@ class TestTemplateModel(unittest.TestCase):
 
         self.templateMaker = DonutTemplateModel()
 
-    def _createTestTemplate(self, imageSize, defocalType, opticalModel):
-        """Create a test template located at center of focal plane."""
-
-        # Load Instrument parameters
-        instDir = os.path.join(getConfigDir(), "cwfs", "instData")
-        inst = Instrument(instDir)
-        inst.config(CamType.LsstCam, imageSize)
-
-        # Create image for mask
-        img = CompensableImage()
-
-        # Define position of donut at center of current sensor in degrees
-        fieldXY = [0.0, 0.0]
-        img.setImg(fieldXY, defocalType, image=np.zeros((imageSize, imageSize)))
-        img.makeMask(inst, opticalModel, 0, 1)
-
-        return img.getNonPaddedMask()
-
     def testMakeTemplate(self):
 
-        testTemplate = self._createTestTemplate(160, DefocalType.Extra, "offAxis")
-
         # Generate a test template on the center chip
+        imageSize = 160
         templateArray = self.templateMaker.makeTemplate(
-            "R22_S11", DefocalType.Extra, 160
+            "R22_S11", DefocalType.Extra, imageSize
         )
 
-        self.assertEqual(np.max(templateArray), 1.0)
-        self.assertEqual(np.shape(templateArray), (160, 160))
-        np.testing.assert_array_equal(templateArray, testTemplate)
+        self.assertTrue(isinstance(templateArray, np.ndarray))
+        self.assertEqual(templateArray.dtype, int)
+        self.assertEqual(np.max(templateArray), 1)
 
-    def testMakeTemplateSize(self):
+        # Center of donut should have hole in it
+        self.assertEqual(templateArray[int(imageSize / 2), int(imageSize / 2)], 0)
 
-        # Generate a test template on the center chip
-        templateArray = self.templateMaker.makeTemplate(
-            "R22_S11", DefocalType.Extra, 140
+        # Donut at center of focal plane should be symmetrical
+        np.testing.assert_array_equal(
+            templateArray[: int(imageSize / 2)],
+            templateArray[-1 : -1 * (int(imageSize / 2) + 1) : -1],
         )
 
-        self.assertEqual(np.shape(templateArray), (140, 140))
+    def testTemplateSize(self):
+
+        # Generate a test template on the center chip
+        imageSize = 160
+        templateArray = self.templateMaker.makeTemplate(
+            "R22_S11", DefocalType.Extra, imageSize
+        )
+
+        smallTemplate = self.templateMaker.makeTemplate(
+            "R22_S11", DefocalType.Extra, imageSize - 20
+        )
+
+        self.assertEqual(np.shape(templateArray), (imageSize, imageSize))
+        self.assertEqual(np.shape(smallTemplate), (imageSize - 20, imageSize - 20))
+        np.testing.assert_array_equal(templateArray[10:-10, 10:-10], smallTemplate)
 
 
 if __name__ == "__main__":

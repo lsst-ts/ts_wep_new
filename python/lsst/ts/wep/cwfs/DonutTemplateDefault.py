@@ -40,7 +40,7 @@ class DonutTemplateDefault(object):
 
         Returns
         -------
-        numpy.ndarray [float]
+        numpy.ndarray [int]
             The donut template as a binary image
 
         Raises

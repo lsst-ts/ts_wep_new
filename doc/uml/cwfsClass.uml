@@ -10,6 +10,10 @@ CentroidFindFactory ..> CentroidRandomWalk
 CentroidFindFactory ..> CentroidOtsu
 CentroidFindFactory ..> CentroidConvolveTemplate
 CentroidConvolveTemplate *-- CentroidRandomWalk
+DonutTemplateDefault <|-- DonutTemplateModel
+DonutTemplateFactory ..> DonutTemplateModel
+DonutTemplateModel ..> CompensableImage
+DonutTemplateModel ..> Instrument
 Image ..> CentroidFindFactory
 Image *-- CentroidDefault
 BaseCwfsTestCase ..> CompensableImage

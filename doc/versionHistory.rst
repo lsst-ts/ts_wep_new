@@ -6,6 +6,15 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-1.5.1:
+
+-------------
+1.5.1
+-------------
+
+* Add donut template classes to make templates for ``CentroidConvolveTemplate``.
+* Add ``DonutTemplateFactory``, ``DonutTemplateDefault``, and ``DonutTemplateModel``.
+
 .. _lsst.ts.wep-1.5.0:
 
 -------------

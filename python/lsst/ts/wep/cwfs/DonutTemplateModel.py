@@ -112,4 +112,4 @@ class DonutTemplateModel(DonutTemplateDefault):
         img.setImg(fieldXY, defocalType, image=np.zeros((imageSize, imageSize)))
         img.makeMask(inst, opticalModel, boundaryT, maskScalingFactorLocal)
 
-        return np.array(img.getNonPaddedMask(), dtype=int)
+        return img.getNonPaddedMask()

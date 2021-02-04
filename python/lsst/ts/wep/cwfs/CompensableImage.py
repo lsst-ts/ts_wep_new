@@ -1448,13 +1448,13 @@ class CompensableImage(object):
 
             # Initialize both mask elements to the opposite of the pass/ block
             # boolean
-            pMaskii = (1 - masklist[ii, 3]) * np.ones(
+            pMaskii = (1 - int(masklist[ii, 3])) * np.ones(
                 [dimOfDonut, dimOfDonut], dtype=int
             )
             cMaskii = pMaskii.copy()
 
-            pMaskii[idx] = masklist[ii, 3]
-            cMaskii[aidx] = masklist[ii, 3]
+            pMaskii[idx] = int(masklist[ii, 3])
+            cMaskii[aidx] = int(masklist[ii, 3])
 
             # Multiplicatively add the current mask elements to the model
             # masks.

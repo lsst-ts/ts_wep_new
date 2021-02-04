@@ -65,6 +65,10 @@ class CentroidFindType(IntEnum):
     ConvolveTemplate = auto()
 
 
+class DonutTemplateType(IntEnum):
+    Model = 1
+
+
 class DeblendDonutType(IntEnum):
     Adapt = 1
 

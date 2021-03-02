@@ -69,3 +69,5 @@
 /tests/testData/testImages/auxTel/1579925662-16Pup_extra-0-1.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/testImages/auxTel/1579925833-16Pup_intra-0-1.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/testImages/auxTel/1579925882-16Pup_extra-0-1.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/phosimOutput/donutTemplates/R22/postISRCCD_09006001-g-R22-S11-det094.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/phosimOutput/donutTemplates/R99/postISRCCD_09006001-g-R99-S11-det094.fits filter=lfs diff=lfs merge=lfs -text

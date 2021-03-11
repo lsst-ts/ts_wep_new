@@ -1,11 +1,11 @@
-Opsim_obshistid 9005000 
+Opsim_obshistid 9006000 
 Opsim_filter 1 
 rightascension 0.000000 
 declination 0.000000 
 rotskypos 0.000000 
 rottelpos 0
-SIM_VISTIME 15.0 
-SIM_NSNAP 1 
+SIM_VISTIME 15.0
+SIM_NSNAP 1
 move 5  0.0000 
 move 6  0.0000 
 move 7  0.0000 

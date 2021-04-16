@@ -75,3 +75,5 @@
 /tests/testData/phosimOutput/realComCam/repackagedFiles/extra/MC_H_20211231_006001_R22_S11.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/phosimOutput/realComCam/repackagedFiles/intra/MC_H_20211231_006002_R22_S10.fits filter=lfs diff=lfs merge=lfs -text
 /tests/testData/phosimOutput/realComCam/repackagedFiles/intra/MC_H_20211231_006002_R22_S11.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/gen3TestRepo/LSSTCam/calib/unbounded/camera/camera_LSSTCam_LSSTCam_calib_unbounded.fits filter=lfs diff=lfs merge=lfs -text
+/tests/testData/gen3TestRepo/gen3.sqlite3 filter=lfs diff=lfs merge=lfs -text

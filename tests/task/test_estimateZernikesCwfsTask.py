@@ -21,15 +21,16 @@
 
 import os
 import numpy as np
+import pandas as pd
 from copy import copy
 from scipy.signal import correlate
 
 import lsst.utils.tests
 from lsst.afw import image as afwImage
 from lsst.daf import butler as dafButler
-from lsst.ts.wep.task.EstimateZernikesFamTask import (
-    EstimateZernikesFamTask,
-    EstimateZernikesFamTaskConfig,
+from lsst.ts.wep.task.EstimateZernikesCwfsTask import (
+    EstimateZernikesCwfsTask,
+    EstimateZernikesCwfsTaskConfig,
 )
 from lsst.ts.wep.Utility import (
     getModulePath,
@@ -40,7 +41,7 @@ from lsst.ts.wep.Utility import (
 )
 
 
-class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
+class TestEstimateZernikesCwfsTask(lsst.utils.tests.TestCase):
     @classmethod
     def setUpClass(cls):
         """
@@ -52,7 +53,9 @@ class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
+        cls.runName = "run2"
+        # The visit number for the test data
+        cls.visitNum = 4021123106000
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
@@ -64,37 +67,43 @@ class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
 
         collections = "refcats,LSSTCam/raw/all"
         instrument = "lsst.obs.lsst.LsstCam"
-        pipelineYaml = os.path.join(testPipelineConfigDir, "testFamPipeline.yaml")
+        pipelineYaml = os.path.join(testPipelineConfigDir, "testCwfsPipeline.yaml")
 
         pipeCmd = writePipetaskCmd(
             cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
         )
-        pipeCmd += " -d 'exposure IN (4021123106001, 4021123106002)'"
+        pipeCmd += f" -d 'exposure IN ({cls.visitNum})'"
         runProgram(pipeCmd)
+
+    @classmethod
+    def tearDownClass(cls):
+
+        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+        runProgram(cleanUpCmd)
 
     def setUp(self):
 
-        self.config = EstimateZernikesFamTaskConfig()
-        self.task = EstimateZernikesFamTask(config=self.config)
+        self.config = EstimateZernikesCwfsTaskConfig()
+        self.task = EstimateZernikesCwfsTask(config=self.config)
 
         self.butler = dafButler.Butler(self.repoDir)
         self.registry = self.butler.registry
 
         self.dataIdExtra = {
             "instrument": "LSSTCam",
-            "detector": 94,
-            "exposure": 4021123106001,
+            "detector": 191,
+            "exposure": self.visitNum,
         }
         self.dataIdIntra = {
             "instrument": "LSSTCam",
-            "detector": 94,
-            "exposure": 4021123106002,
+            "detector": 192,
+            "exposure": self.visitNum,
         }
 
     def _generateTestExposures(self):
 
         # Generate donut template
-        template = self.task.getTemplate("R22_S11", DefocalType.Extra)
+        template = self.task.getTemplate("R00_SW0", DefocalType.Extra)
         correlatedImage = correlate(template, template)
         maxIdx = np.argmax(correlatedImage)
         maxLoc = np.unravel_index(maxIdx, np.shape(correlatedImage))
@@ -134,54 +143,9 @@ class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
 
         return centeredExp, centerCoord, template, offCenterExp, offCenterCoord
 
-    def validateConfigs(self):
+    def _getDataFromButler(self):
 
-        self.config.donutTemplateSize = 120
-        self.config.donutStampSize = 120
-        self.config.initialCutoutSize = 290
-        self.task = EstimateZernikesFamTask(config=self.config)
-
-        self.assertEqual(self.task.donutTemplateSize, 120)
-        self.assertEqual(self.task.donutStampSize, 120)
-        self.assertEqual(self.task.initialCutoutPadding, 290)
-
-    def testAssignExtraIntraIdx(self):
-
-        focusZNegative = -1
-        focusZPositive = 1
-        focusZ0 = 0
-
-        extraIdx, intraIdx = self.task.assignExtraIntraIdx(
-            focusZNegative, focusZPositive
-        )
-        self.assertEqual(extraIdx, 1)
-        self.assertEqual(intraIdx, 0)
-
-        extraIdx, intraIdx = self.task.assignExtraIntraIdx(
-            focusZPositive, focusZNegative
-        )
-        self.assertEqual(extraIdx, 0)
-        self.assertEqual(intraIdx, 1)
-
-        with self.assertRaises(ValueError):
-            self.task.assignExtraIntraIdx(focusZPositive, focusZPositive)
-        with self.assertRaises(ValueError):
-            self.task.assignExtraIntraIdx(focusZPositive, focusZ0)
-        with self.assertRaises(ValueError):
-            self.task.assignExtraIntraIdx(focusZNegative, focusZNegative)
-        with self.assertRaises(ValueError):
-            self.task.assignExtraIntraIdx(focusZNegative, focusZ0)
-        with self.assertRaises(ValueError) as context:
-            self.task.assignExtraIntraIdx(focusZ0, focusZPositive)
-        self.assertEqual(
-            "Must have one extra-focal and one intra-focal image.",
-            str(context.exception),
-        )
-
-    def testTaskRun(self):
-
-        # Grab two exposures from the same detector at two different visits to
-        # get extra and intra
+        # Grab two exposures from the same visits of adjacent detectors
         exposureExtra = self.butler.get(
             "postISRCCD", dataId=self.dataIdExtra, collections=[self.runName]
         )
@@ -192,6 +156,41 @@ class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
         donutCatalog = self.butler.get(
             "donutCatalog", dataId=self.dataIdExtra, collections=[self.runName]
         )
+
+        return exposureExtra, exposureIntra, donutCatalog
+
+    def validateConfigs(self):
+
+        self.config.donutTemplateSize = 120
+        self.config.donutStampSize = 120
+        self.config.initialCutoutSize = 290
+        self.task = EstimateZernikesCwfsTask(config=self.config)
+
+        self.assertEqual(self.task.donutTemplateSize, 120)
+        self.assertEqual(self.task.donutStampSize, 120)
+        self.assertEqual(self.task.initialCutoutPadding, 290)
+
+    def testSelectCwfsSources(self):
+
+        testDf = pd.DataFrame()
+        testDf["coord_ra"] = np.zeros(5)
+        testDf["coord_dec"] = np.zeros(5)
+        testDf["source_flux"] = np.arange(5)
+        testDf["centroid_x"] = np.zeros(5)
+        testDf["centroid_y"] = np.zeros(5)
+        testDf["detector"] = ["R00_SW0", "R44_SW0", "R40_SW1", "R04_SW1", "R22_S11"]
+        extraCatalog, intraCatalog = self.task.selectCwfsSources(testDf, (4072, 2000))
+        testDf["centroid_x"] = 4072 - testDf["centroid_x"]
+        testDf["centroid_y"] = 2000 - testDf["centroid_y"]
+
+        np.testing.assert_array_equal(extraCatalog.values, testDf.iloc[:2].values[::-1])
+        np.testing.assert_array_equal(
+            intraCatalog.values, testDf.iloc[2:4].values[::-1]
+        )
+
+    def testTaskRunNoSources(self):
+
+        exposureExtra, exposureIntra, donutCatalog = self._getDataFromButler()
 
         # Test return values when no sources in catalog
         noSrcDonutCatalog = copy(donutCatalog)
@@ -207,14 +206,53 @@ class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
         self.assertEqual(len(testOutNoSrc.donutStampsExtra), 0)
         self.assertEqual(len(testOutNoSrc.donutStampsIntra), 0)
 
+        # Test no intra sources in catalog
+        extraOnlyDonutCatalog = copy(donutCatalog)
+        extraOnlyDonutCatalog["detector"] = "R00_SW0"
+        testOutNoIntra = self.task.run(
+            [exposureExtra, exposureIntra], extraOnlyDonutCatalog
+        )
+
+        np.testing.assert_array_equal(
+            testOutNoIntra.outputZernikesRaw, np.ones(19) * np.nan
+        )
+        np.testing.assert_array_equal(
+            testOutNoIntra.outputZernikesAvg, np.ones(19) * np.nan
+        )
+        self.assertEqual(len(testOutNoIntra.donutStampsExtra), 0)
+        self.assertEqual(len(testOutNoIntra.donutStampsIntra), 0)
+
+        # Test no extra sources in catalog
+        intraOnlyDonutCatalog = copy(donutCatalog)
+        intraOnlyDonutCatalog["detector"] = "R00_SW1"
+        testOutNoExtra = self.task.run(
+            [exposureExtra, exposureIntra], intraOnlyDonutCatalog
+        )
+
+        np.testing.assert_array_equal(
+            testOutNoExtra.outputZernikesRaw, np.ones(19) * np.nan
+        )
+        np.testing.assert_array_equal(
+            testOutNoExtra.outputZernikesAvg, np.ones(19) * np.nan
+        )
+        self.assertEqual(len(testOutNoExtra.donutStampsExtra), 0)
+        self.assertEqual(len(testOutNoExtra.donutStampsIntra), 0)
+
+    def testTaskRunNormal(self):
+
+        exposureExtra, exposureIntra, donutCatalog = self._getDataFromButler()
+
         # Test normal behavior
         taskOut = self.task.run([exposureIntra, exposureExtra], donutCatalog)
 
+        extraCatalog, intraCatalog = self.task.selectCwfsSources(
+            donutCatalog, (4072, 2000)
+        )
         testExtraStamps = self.task.cutOutStamps(
-            exposureExtra, donutCatalog, DefocalType.Extra
+            exposureExtra, extraCatalog, DefocalType.Extra
         )
         testIntraStamps = self.task.cutOutStamps(
-            exposureIntra, donutCatalog, DefocalType.Intra
+            exposureIntra, intraCatalog, DefocalType.Intra
         )
 
         for donutStamp, cutOutStamp in zip(taskOut.donutStampsExtra, testExtraStamps):
@@ -230,9 +268,3 @@ class TestEstimateZernikesFamTask(lsst.utils.tests.TestCase):
         testCoeffsAvg = self.task.combineZernikes(testCoeffsRaw)
         np.testing.assert_array_equal(taskOut.outputZernikesRaw, testCoeffsRaw)
         np.testing.assert_array_equal(taskOut.outputZernikesAvg, testCoeffsAvg)
-
-    @classmethod
-    def tearDownClass(cls):
-
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)

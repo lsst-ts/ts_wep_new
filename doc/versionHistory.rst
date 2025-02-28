@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.1.1:
+
+-------------
+14.1.1
+-------------
+
+* Move production pipelines to donut_viz to avoid circular imports.
+
 .. _lsst.ts.wep-14.1.0:
 
 -------------

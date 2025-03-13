@@ -33,11 +33,12 @@ class TestWfAlgorithm(unittest.TestCase):
         with self.assertRaises(TypeError) as err:
             WfAlgorithm()
 
-        self.assertEqual(
-            str(err.exception),
-            "Can't instantiate abstract class WfAlgorithm with "
-            + "abstract methods _estimateZk, requiresPairs",
-        )
+        error_message = str(err.exception)
+        # Try to future proof against type error message changes
+        # by checking for the class name and the method names
+        self.assertIn("Can't instantiate abstract class WfAlgorithm", error_message)
+        self.assertIn("_estimateZk", error_message)
+        self.assertIn("requiresPairs", error_message)
 
     def testHistDocstringRequired(self):
         with self.assertRaises(AttributeError) as err:

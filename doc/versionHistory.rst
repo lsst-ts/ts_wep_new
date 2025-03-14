@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.0.1:
+
+-------------
+14.0.1
+-------------
+
+* Update tests to be compatible with Python 3.12.
+
 .. _lsst.ts.wep-14.0.0:
 
 -------------

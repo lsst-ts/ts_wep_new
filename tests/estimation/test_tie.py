@@ -72,13 +72,15 @@ class TestTieAlgorithm(unittest.TestCase):
             tieBin = TieAlgorithm(binning=2)
 
             # Estimate Zernikes (in meters)
-            zkEst = tie.estimateZk(intra, extra)
+            zkEst = tie.estimateZk(intra, extra, optimizeLinAlg=False)
 
             # Check that results are fairly accurate
             self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
 
             # Test with binning
-            zkEst = tieBin.estimateZk(intra, extra, saveHistory=True)
+            zkEst = tieBin.estimateZk(
+                intra, extra, saveHistory=True, optimizeLinAlg=False
+            )
             self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
 
             # Test that we binned the images.

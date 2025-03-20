@@ -215,6 +215,7 @@ class WfAlgorithm(ABC):
         returnWfDev: bool = False,
         units: str = "m",
         saveHistory: bool = False,
+        **kwargs,
     ) -> np.ndarray:
         """Return the wavefront Zernike coefficients in meters.
 
@@ -309,6 +310,7 @@ class WfAlgorithm(ABC):
             nollIndices=nollIndices,
             instrument=instrument,
             saveHistory=saveHistory,
+            **kwargs,
         )
 
         # Calculate the wavefront deviation?

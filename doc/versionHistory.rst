@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.0.2:
+
+-------------
+14.0.2
+-------------
+
+* Fix hanging in Jenkins testing by easing convergence parameters in numpy optimization methods.
+
 .. _lsst.ts.wep-14.0.1:
 
 -------------

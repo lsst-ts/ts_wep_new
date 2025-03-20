@@ -52,11 +52,19 @@ class TestDanishAlgorithm(unittest.TestCase):
     def testAccuracy(self):
         for jointFitPair in [True, False]:
             # Create estimator
-            dan = DanishAlgorithm(jointFitPair=jointFitPair)
-            danBin = DanishAlgorithm(binning=2, jointFitPair=jointFitPair)
+            dan = DanishAlgorithm(
+                jointFitPair=jointFitPair,
+                lstsqKwargs={"ftol": 1e-2, "xtol": 1e-2, "gtol": 1e-2, "max_nfev": 30},
+            )
+            danBin = DanishAlgorithm(
+                binning=2,
+                jointFitPair=jointFitPair,
+                lstsqKwargs={"ftol": 1e-2, "xtol": 1e-2, "gtol": 1e-2, "max_nfev": 30},
+            )
 
             # Try several different random seeds
             for seed in [12345, 23451, 34512, 45123]:
+                print(seed)
                 # Get the test data
                 zkTrue, intra, extra = forwardModelPair(seed=seed)
 
@@ -74,12 +82,14 @@ class TestDanishAlgorithm(unittest.TestCase):
 
                 # Test estimation with pairs and single donuts:
                 for images in [[intra, extra], [intra], [extra]]:
+                    print(images)
                     # Estimate Zernikes (in meters)
                     zkEst = dan.estimateZk(*images)
 
                     # Check that results are fairly accurate
                     self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
 
+                    print("running with binning")
                     # Test with binning
                     zkEst = danBin.estimateZk(*images, saveHistory=True)
                     self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)

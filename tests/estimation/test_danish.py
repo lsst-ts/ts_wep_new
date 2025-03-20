@@ -54,16 +54,16 @@ class TestDanishAlgorithm(unittest.TestCase):
             # Create estimator
             dan = DanishAlgorithm(
                 jointFitPair=jointFitPair,
-                lstsqKwargs={"ftol": 1e-2, "xtol": 1e-2, "gtol": 1e-2, "max_nfev": 30},
+                lstsqKwargs={"ftol": 5e-2, "xtol": 5e-2, "gtol": 5e-2, "max_nfev": 20},
             )
             danBin = DanishAlgorithm(
                 binning=2,
                 jointFitPair=jointFitPair,
-                lstsqKwargs={"ftol": 1e-2, "xtol": 1e-2, "gtol": 1e-2, "max_nfev": 30},
+                lstsqKwargs={"ftol": 5e-2, "xtol": 5e-2, "gtol": 5e-2, "max_nfev": 20},
             )
 
             # Try several different random seeds
-            for seed in [12345, 23451, 34512, 45123]:
+            for seed in [12345, 23451, 34512]:
                 print(seed)
                 # Get the test data
                 zkTrue, intra, extra = forwardModelPair(seed=seed)

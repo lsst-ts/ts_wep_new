@@ -594,6 +594,7 @@ class TieAlgorithm(WfAlgorithm):
         dIdz: np.ndarray,
         nollIndices: np.ndarray,
         instrument: Instrument,
+        optimize: bool = True,
     ) -> np.ndarray:
         """Solve the TIE directly using a Zernike expansion.
 
@@ -608,6 +609,10 @@ class TieAlgorithm(WfAlgorithm):
         instrument : Instrument, optional
             The Instrument object associated with the DonutStamps.
             (the default is the default Instrument)
+        optimize : bool, optional
+            Whether to optimize the einsum calls for speed. If True, the
+            einsum calls are optimized for speed using the optimize keyword
+            (the default is True).
 
         Returns
         -------
@@ -626,9 +631,9 @@ class TieAlgorithm(WfAlgorithm):
 
         # Calculate quantities for the linear system
         # See Equations 43-45 of https://sitcomtn-111.lsst.io
-        b = np.einsum("ab,jab->j", dIdz, zk, optimize=True)
-        M = np.einsum("ab,jab,kab->jk", I0, dzkdu, dzkdu, optimize=True)
-        M += np.einsum("ab,jab,kab->jk", I0, dzkdv, dzkdv, optimize=True)
+        b = np.einsum("ab,jab->j", dIdz, zk, optimize=optimize)
+        M = np.einsum("ab,jab,kab->jk", I0, dzkdu, dzkdu, optimize=optimize)
+        M += np.einsum("ab,jab,kab->jk", I0, dzkdv, dzkdv, optimize=optimize)
         M /= -instrument.radius**2
 
         # Invert to get Zernike coefficients in meters
@@ -645,6 +650,7 @@ class TieAlgorithm(WfAlgorithm):
         nollIndices: np.ndarray,
         instrument: Instrument,
         saveHistory: bool,
+        optimizeLinAlg: bool = True,
     ) -> np.ndarray:
         """Return the wavefront Zernike coefficients in meters.
 
@@ -667,6 +673,10 @@ class TieAlgorithm(WfAlgorithm):
             Whether to save the algorithm history in the self.history
             attribute. If True, then self.history contains information
             about the most recent time the algorithm was run.
+        optimizeLinAlg : bool, optional
+            Whether to optimize the einsum calls in the TIE solver. If True,
+            the einsum calls are optimized for speed using the optimize
+            keyword (the default is True).
 
         Returns
         -------
@@ -844,7 +854,9 @@ class TieAlgorithm(WfAlgorithm):
                 )
 
                 # Estimate the Zernikes
-                zkResid = self._expSolve(I0, dIdz, nollIndices, instrument)
+                zkResid = self._expSolve(
+                    I0, dIdz, nollIndices, instrument, optimize=optimizeLinAlg
+                )
 
                 # If estimating with a single donut, double the coefficients
                 # This is because the simulated pupil image is aberration free

@@ -95,6 +95,10 @@ class TieAlgorithm(WfAlgorithm):
         Whether to require that the TIE converges. If True, and the TIE
         did not converge, the TIE returns NaNs.
         (the default is False)
+    optimizeLinAlg : bool, optional
+        Whether to optimize the einsum calls in the TIE solver. If True,
+        the einsum calls are optimized for speed using the optimize
+        keyword (the default is True).
     """
 
     def __init__(
@@ -110,6 +114,7 @@ class TieAlgorithm(WfAlgorithm):
         modelPupilKernelSize: float = 2,
         binning: int = 1,
         requireConverge: bool = False,
+        optimizeLinAlg: bool = True,
     ) -> None:
         self.opticalModel = opticalModel
         self.maxIter = maxIter
@@ -122,6 +127,7 @@ class TieAlgorithm(WfAlgorithm):
         self.modelPupilKernelSize = modelPupilKernelSize
         self.binning = binning
         self.requireConverge = requireConverge
+        self.optimizeLinAlg = optimizeLinAlg
 
     @property
     def requiresPairs(self) -> bool:
@@ -450,6 +456,26 @@ class TieAlgorithm(WfAlgorithm):
         self._requireConverge = value
 
     @property
+    def optimizeLinAlg(self) -> bool:
+        """Whether to optimize the linear algebra calls."""
+        return self._optimizeLinAlg
+
+    @optimizeLinAlg.setter
+    def optimizeLinAlg(self, value: bool) -> None:
+        """Set whether to optimize the linear algebra calls.
+
+        Parameters
+        ----------
+        value : bool
+            Whether to optimize the einsum calls for speed. If True, the
+            einsum calls are optimized for speed using the optimize keyword
+            (the default is True).
+        """
+        if not isinstance(value, bool):
+            raise TypeError("optimizeLinAlg must be a boolean.")
+        self._optimizeLinAlg = value
+
+    @property
     def history(self) -> dict:
         """The algorithm history.
 
@@ -650,7 +676,6 @@ class TieAlgorithm(WfAlgorithm):
         nollIndices: np.ndarray,
         instrument: Instrument,
         saveHistory: bool,
-        optimizeLinAlg: bool = True,
     ) -> np.ndarray:
         """Return the wavefront Zernike coefficients in meters.
 
@@ -673,10 +698,6 @@ class TieAlgorithm(WfAlgorithm):
             Whether to save the algorithm history in the self.history
             attribute. If True, then self.history contains information
             about the most recent time the algorithm was run.
-        optimizeLinAlg : bool, optional
-            Whether to optimize the einsum calls in the TIE solver. If True,
-            the einsum calls are optimized for speed using the optimize
-            keyword (the default is True).
 
         Returns
         -------
@@ -855,7 +876,7 @@ class TieAlgorithm(WfAlgorithm):
 
                 # Estimate the Zernikes
                 zkResid = self._expSolve(
-                    I0, dIdz, nollIndices, instrument, optimize=optimizeLinAlg
+                    I0, dIdz, nollIndices, instrument, optimize=self.optimizeLinAlg
                 )
 
                 # If estimating with a single donut, double the coefficients

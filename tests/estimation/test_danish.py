@@ -58,10 +58,9 @@ class TestDanishAlgorithm(unittest.TestCase):
             if key != "zk":
                 self.assertEqual(hist["lstsqResult"]["nfev"], 1)
 
-    def testAccuracy(self):
-        print("Starting accuracy tests")
+    def testAccuracyWithoutBinning(self):
+        print("Starting accuracy tests without binning")
         for jointFitPair in [True, False]:
-
             # Try several different random seeds
             for seed in [12345, 23451]:
                 # Create estimator
@@ -76,6 +75,25 @@ class TestDanishAlgorithm(unittest.TestCase):
                         "verbose": 2,
                     },
                 )
+                # Get the test data
+                zkTrue, intra, extra = forwardModelPair(seed=seed)
+
+                # Test estimation with pairs and single donuts:
+                for images in [[intra, extra], [intra], [extra]]:
+                    print(images)
+                    # Estimate Zernikes (in meters)
+                    zkEst = dan.estimateZk(*images)
+
+                    # Check that results are fairly accurate
+                    self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
+
+    def testAccuracyWithBinning(self):
+        print("Starting accuracy tests with binning")
+        for jointFitPair in [True, False]:
+            # Try several different random seeds
+            for seed in [12345, 23451]:
+                # Create estimator
+                print(seed)
                 danBin = DanishAlgorithm(
                     jointFitPair=jointFitPair,
                     lstsqKwargs={
@@ -106,13 +124,6 @@ class TestDanishAlgorithm(unittest.TestCase):
                 for images in [[intra, extra], [intra], [extra]]:
                     print(images)
                     # Estimate Zernikes (in meters)
-                    zkEst = dan.estimateZk(*images)
-
-                    # Check that results are fairly accurate
-                    self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
-
-                    print("running with binning")
-                    # Test with binning
                     zkEst = danBin.estimateZk(*images, saveHistory=True)
                     self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
 

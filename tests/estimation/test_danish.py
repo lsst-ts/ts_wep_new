@@ -22,10 +22,13 @@
 import os
 import unittest
 
+import threadpoolctl
+
 # Set environment variables first
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
+threadpoolctl.threadpool_limits(limits=1, user_api="blas")
 
 # Then import libraries
 import numpy as np  # noqa: E402

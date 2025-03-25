@@ -19,12 +19,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import unittest
 
-import numpy as np
-from lsst.ts.wep.estimation import WfEstimator
-from lsst.ts.wep.utils import WfAlgorithmName, convertZernikesToPsfWidth
-from lsst.ts.wep.utils.modelUtils import forwardModelPair
+# Set environment variables first
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+
+# Then import libraries
+import numpy as np  # noqa: E402
+from lsst.ts.wep.estimation import WfEstimator  # noqa: E402
+from lsst.ts.wep.utils import WfAlgorithmName, convertZernikesToPsfWidth  # noqa: E402
+from lsst.ts.wep.utils.modelUtils import forwardModelPair  # noqa: E402
 
 
 class TestWfEstimator(unittest.TestCase):

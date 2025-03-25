@@ -40,13 +40,11 @@ class TestDanishAlgorithm(unittest.TestCase):
     """Test DanishAlgorithm."""
 
     def testBadLstsqKwargs(self):
-        print("Starting testBadLstsqKwargs")
         for kwarg in ["fun", "x0", "jac", "args"]:
             with self.assertRaises(KeyError):
                 DanishAlgorithm(lstsqKwargs={kwarg: None})
 
     def testGoodLstsqKwargs(self):
-        print("Starting testGoodLstsqKwargs")
         # Create estimator
         dan = DanishAlgorithm(lstsqKwargs={"max_nfev": 1})
 
@@ -62,12 +60,10 @@ class TestDanishAlgorithm(unittest.TestCase):
                 self.assertEqual(hist["lstsqResult"]["nfev"], 1)
 
     def testAccuracyWithoutBinning(self):
-        print("Starting accuracy tests without binning")
         for jointFitPair in [True, False]:
             # Try several different random seeds
             for seed in [12345, 23451]:
                 # Create estimator
-                print(seed)
                 dan = DanishAlgorithm(
                     jointFitPair=jointFitPair,
                     lstsqKwargs={
@@ -83,7 +79,6 @@ class TestDanishAlgorithm(unittest.TestCase):
 
                 # Test estimation with pairs and single donuts:
                 for images in [[intra, extra], [intra], [extra]]:
-                    print(images)
                     # Estimate Zernikes (in meters)
                     zkEst = dan.estimateZk(*images)
 
@@ -91,12 +86,10 @@ class TestDanishAlgorithm(unittest.TestCase):
                     self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
 
     def testAccuracyWithBinning(self):
-        print("Starting accuracy tests with binning")
         for jointFitPair in [True, False]:
             # Try several different random seeds
             for seed in [12345, 23451]:
                 # Create estimator
-                print(seed)
                 danBin = DanishAlgorithm(
                     jointFitPair=jointFitPair,
                     lstsqKwargs={
@@ -125,7 +118,6 @@ class TestDanishAlgorithm(unittest.TestCase):
 
                 # Test estimation with pairs and single donuts:
                 for images in [[intra, extra], [intra], [extra]]:
-                    print(images)
                     # Estimate Zernikes (in meters)
                     zkEst = danBin.estimateZk(*images, saveHistory=True)
                     self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)

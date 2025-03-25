@@ -96,8 +96,8 @@ class TieAlgorithm(WfAlgorithm):
         did not converge, the TIE returns NaNs.
         (the default is False)
     optimizeLinAlg : bool, optional
-        Whether to optimize the einsum calls in the TIE solver. If True,
-        the einsum calls are optimized for speed using the optimize
+        Whether to optimize the numpy einsum calls in the TIE solver. If
+        True, the einsum calls are optimized for speed using the optimize
         keyword (the default is True).
     """
 
@@ -467,9 +467,9 @@ class TieAlgorithm(WfAlgorithm):
         Parameters
         ----------
         value : bool
-            Whether to optimize the einsum calls for speed. If True, the
-            einsum calls are optimized for speed using the optimize keyword
-            (the default is True).
+            Whether to optimize the numpy einsum calls for speed. If True,
+            the einsum calls are optimized for speed using the optimize
+            keyword (the default is True).
         """
         if not isinstance(value, bool):
             raise TypeError("optimizeLinAlg must be a boolean.")
@@ -620,7 +620,6 @@ class TieAlgorithm(WfAlgorithm):
         dIdz: np.ndarray,
         nollIndices: np.ndarray,
         instrument: Instrument,
-        optimize: bool = True,
     ) -> np.ndarray:
         """Solve the TIE directly using a Zernike expansion.
 
@@ -635,10 +634,6 @@ class TieAlgorithm(WfAlgorithm):
         instrument : Instrument, optional
             The Instrument object associated with the DonutStamps.
             (the default is the default Instrument)
-        optimize : bool, optional
-            Whether to optimize the einsum calls for speed. If True, the
-            einsum calls are optimized for speed using the optimize keyword
-            (the default is True).
 
         Returns
         -------
@@ -657,9 +652,9 @@ class TieAlgorithm(WfAlgorithm):
 
         # Calculate quantities for the linear system
         # See Equations 43-45 of https://sitcomtn-111.lsst.io
-        b = np.einsum("ab,jab->j", dIdz, zk, optimize=optimize)
-        M = np.einsum("ab,jab,kab->jk", I0, dzkdu, dzkdu, optimize=optimize)
-        M += np.einsum("ab,jab,kab->jk", I0, dzkdv, dzkdv, optimize=optimize)
+        b = np.einsum("ab,jab->j", dIdz, zk, optimize=self.optimizeLinAlg)
+        M = np.einsum("ab,jab,kab->jk", I0, dzkdu, dzkdu, optimize=self.optimizeLinAlg)
+        M += np.einsum("ab,jab,kab->jk", I0, dzkdv, dzkdv, optimize=self.optimizeLinAlg)
         M /= -instrument.radius**2
 
         # Invert to get Zernike coefficients in meters
@@ -875,9 +870,7 @@ class TieAlgorithm(WfAlgorithm):
                 )
 
                 # Estimate the Zernikes
-                zkResid = self._expSolve(
-                    I0, dIdz, nollIndices, instrument, optimize=self.optimizeLinAlg
-                )
+                zkResid = self._expSolve(I0, dIdz, nollIndices, instrument)
 
                 # If estimating with a single donut, double the coefficients
                 # This is because the simulated pupil image is aberration free

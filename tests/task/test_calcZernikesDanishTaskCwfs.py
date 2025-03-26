@@ -19,7 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# flake8: noqa
 import os
+
+from lsst.ts.wep.utils.testUtils import enforce_single_threading
+
+enforce_single_threading()
 
 import lsst.utils.tests
 import numpy as np

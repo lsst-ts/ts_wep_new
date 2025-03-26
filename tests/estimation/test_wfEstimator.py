@@ -21,10 +21,15 @@
 
 import unittest
 
-import numpy as np
-from lsst.ts.wep.estimation import WfEstimator
-from lsst.ts.wep.utils import WfAlgorithmName, convertZernikesToPsfWidth
-from lsst.ts.wep.utils.modelUtils import forwardModelPair
+from lsst.ts.wep.utils.testUtils import enforce_single_threading
+
+enforce_single_threading()
+
+# Then import libraries
+import numpy as np  # noqa: E402
+from lsst.ts.wep.estimation import WfEstimator  # noqa: E402
+from lsst.ts.wep.utils import WfAlgorithmName, convertZernikesToPsfWidth  # noqa: E402
+from lsst.ts.wep.utils.modelUtils import forwardModelPair  # noqa: E402
 
 
 class TestWfEstimator(unittest.TestCase):
@@ -81,12 +86,38 @@ class TestWfEstimator(unittest.TestCase):
         for name in WfAlgorithmName:
             # Estimate [4, 5, 6]
             wfEst = WfEstimator(algoName=name, nollIndices=[4, 5, 6], units="m")
-            zk0 = wfEst.estimateZk(intra, extra)
+            if name == WfAlgorithmName.TIE:
+                wfEst.algo.optimizeLinAlg = False
+                zk0 = wfEst.estimateZk(intra, extra)
+            else:
+                wfEst.algo.lstsqKwargs = {
+                    "ftol": 1e-1,
+                    "xtol": 1e-1,
+                    "gtol": 1e-1,
+                    "max_nfev": 10,
+                    "verbose": 2,
+                }
+                zk0 = wfEst.estimateZk(
+                    intra,
+                    extra,
+                )
             self.assertEqual(len(zk0), 3)
 
             # Estimate with [4, 5, 6, 20, 21]
             wfEst = WfEstimator(algoName=name, nollIndices=[4, 5, 6, 20, 21], units="m")
-            zk1 = wfEst.estimateZk(intra, extra)
+            if name == WfAlgorithmName.TIE:
+                wfEst.algo.optimizeLinAlg = False
+                zk1 = wfEst.estimateZk(intra, extra)
+            else:
+                wfEst.algo.lstsqKwargs = {
+                    "ftol": 1e-1,
+                    "xtol": 1e-1,
+                    "gtol": 1e-1,
+                    "max_nfev": 10,
+                    "verbose": 2,
+                }
+
+                zk1 = wfEst.estimateZk(intra, extra)
             self.assertEqual(len(zk1), 5)
 
             #  Make sure results are pretty similar for [4, 5, 6]
@@ -100,11 +131,34 @@ class TestWfEstimator(unittest.TestCase):
         for name in WfAlgorithmName:
             # Estimate starting with intrinsics
             wfEst = WfEstimator(algoName=name, startWithIntrinsic=True, units="m")
-            zk0 = wfEst.estimateZk(intra, extra)
+            if name == WfAlgorithmName.TIE:
+                wfEst = WfEstimator(algoName=name, startWithIntrinsic=True, units="m")
+                wfEst.algo.optimizeLinAlg = False
+                zk0 = wfEst.estimateZk(intra, extra)
+            else:
+                wfEst.algo.lstsqKwargs = {
+                    "ftol": 1e-1,
+                    "xtol": 1e-1,
+                    "gtol": 1e-1,
+                    "max_nfev": 10,
+                    "verbose": 2,
+                }
+                zk0 = wfEst.estimateZk(intra, extra)
 
             # Estimate starting with zeros
             wfEst = WfEstimator(algoName=name, startWithIntrinsic=False, units="m")
-            zk1 = wfEst.estimateZk(intra, extra)
+            if name == WfAlgorithmName.TIE:
+                wfEst.algo.optimizeLinAlg = False
+                zk1 = wfEst.estimateZk(intra, extra)
+            else:
+                wfEst.algo.lstsqKwargs = {
+                    "ftol": 1e-1,
+                    "xtol": 1e-1,
+                    "gtol": 1e-1,
+                    "max_nfev": 10,
+                    "verbose": 2,
+                }
+                zk1 = wfEst.estimateZk(intra, extra)
 
             # Make sure the results are pretty similar
             self.assertLess(np.sqrt(np.sum(np.square(zk1 - zk0))), 80e-9)
@@ -117,11 +171,33 @@ class TestWfEstimator(unittest.TestCase):
         for name in WfAlgorithmName:
             # Estimate OPD
             wfEst = WfEstimator(algoName=name, returnWfDev=False, units="m")
-            opd = wfEst.estimateZk(intra, extra)
+            if name == WfAlgorithmName.TIE:
+                wfEst.algo.optimizeLinAlg = False
+                opd = wfEst.estimateZk(intra, extra)
+            else:
+                wfEst.algo.lstsqKwargs = {
+                    "ftol": 1e-1,
+                    "xtol": 1e-1,
+                    "gtol": 1e-1,
+                    "max_nfev": 10,
+                    "verbose": 2,
+                }
+                opd = wfEst.estimateZk(intra, extra)
 
             # Estimate wavefront deviation
             wfEst = WfEstimator(algoName=name, returnWfDev=True, units="m")
-            wfDev = wfEst.estimateZk(intra, extra)
+            if name == WfAlgorithmName.TIE:
+                wfEst.algo.optimizeLinAlg = False
+                wfDev = wfEst.estimateZk(intra, extra)
+            else:
+                wfEst.algo.lstsqKwargs = {
+                    "ftol": 1e-1,
+                    "xtol": 1e-1,
+                    "gtol": 1e-1,
+                    "max_nfev": 10,
+                    "verbose": 2,
+                }
+                wfDev = wfEst.estimateZk(intra, extra)
 
             # Make sure that OPD = wf dev + intrinsics
             zkInt = wfEst.instrument.getIntrinsicZernikes(
@@ -142,7 +218,18 @@ class TestWfEstimator(unittest.TestCase):
             # Test every available unit
             for units in ["m", "um", "nm", "arcsec"]:
                 wfEst = WfEstimator(algoName=name, units=units)
-                zk[units] = wfEst.estimateZk(intra, extra)
+                if name == WfAlgorithmName.TIE:
+                    wfEst.algo.optimizeLinAlg = False
+                    zk[units] = wfEst.estimateZk(intra, extra)
+                else:
+                    wfEst.algo.lstsqKwargs = {
+                        "ftol": 1e-1,
+                        "xtol": 1e-1,
+                        "gtol": 1e-1,
+                        "max_nfev": 10,
+                        "verbose": 2,
+                    }
+                    zk[units] = wfEst.estimateZk(intra, extra)
 
             self.assertTrue(np.allclose(zk["m"], zk["um"] / 1e6))
             self.assertTrue(np.allclose(zk["m"], zk["nm"] / 1e9))

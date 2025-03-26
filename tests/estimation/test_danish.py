@@ -19,16 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 import unittest
 
-import threadpoolctl
+from lsst.ts.wep.utils.testUtils import enforce_single_threading
 
-# Set environment variables first
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["OMP_NUM_THREADS"] = "1"
-threadpoolctl.threadpool_limits(limits=1, user_api="blas")
+enforce_single_threading()
 
 # Then import libraries
 import numpy as np  # noqa: E402

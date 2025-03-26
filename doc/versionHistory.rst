@@ -6,14 +6,15 @@
 Version History
 ##################
 
-.. _lsst.ts.wep-14.0.2:
+.. _lsst.ts.wep-14.1.0:
 
 -------------
-14.0.2
+14.1.0
 -------------
 
 * Fix hanging in Jenkins testing by easing convergence parameters in numpy optimization methods and specifying single threading.
 * Update repository infrastructure to include pyproject.toml and setup.py in line with lsst-ts developer guide.
+* Add test_utils.py for helpful functions that are used in unit tests.
 
 .. _lsst.ts.wep-14.0.1:
 

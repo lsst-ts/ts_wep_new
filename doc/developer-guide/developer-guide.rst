@@ -168,6 +168,7 @@ This module contains utility functions that are used elsewhere in WEP.
 * **zernikeUtils**: Functions for evaluating and fitting Zernike polynomials.
 * **plotUtils**: Functions for plotting results.
 * **miscUtils**: Miscellaneous utility functions.
+* **testUtils**: Functions for testing.
 
 .. _WEP_API:
 

@@ -22,13 +22,9 @@
 # flake8: noqa
 import os
 
-import threadpoolctl
+from lsst.ts.wep.utils.testUtils import enforce_single_threading
 
-# Set environment variables first
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["OMP_NUM_THREADS"] = "1"
-threadpoolctl.threadpool_limits(limits=1, user_api="blas")
+enforce_single_threading()
 
 import lsst.utils.tests
 import numpy as np

@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.1.2:
+
+-------------
+14.1.2
+-------------
+
+* Fix test data by adjusting ROTPA values in headers after DM-49838.
+
 .. _lsst.ts.wep-14.1.1:
 
 -------------

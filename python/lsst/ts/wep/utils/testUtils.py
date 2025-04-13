@@ -38,5 +38,11 @@ def enforce_single_threading():
     os.environ["MKL_NUM_THREADS"] = "1"
     os.environ["OMP_NUM_THREADS"] = "1"
 
-    # Limit threadpool to 1 thread
+    # Additional environment variables
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"  # For NumExpr
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1"  # For Apple Accelerate
+    os.environ["BLIS_NUM_THREADS"] = "1"  # For BLIS
+
+    # Limit threadpool to 1 thread for BLAS and OpenMP
     threadpoolctl.threadpool_limits(limits=1, user_api="blas")
+    threadpoolctl.threadpool_limits(limits=1, user_api="openmp")

@@ -31,6 +31,12 @@ from lsst.ts.wep.estimation import WfEstimator  # noqa: E402
 from lsst.ts.wep.utils import WfAlgorithmName, convertZernikesToPsfWidth  # noqa: E402
 from lsst.ts.wep.utils.modelUtils import forwardModelPair  # noqa: E402
 
+# Directly configure NumPy if using version that supports it
+try:  # noqa: E402
+    np.config.threading.use_openmp = False  # noqa: E402
+except (AttributeError, ImportError):  # noqa: E402
+    pass  # noqa: E402
+
 
 class TestWfEstimator(unittest.TestCase):
     """Test the wavefront estimator class."""

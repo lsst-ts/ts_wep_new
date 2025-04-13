@@ -32,6 +32,18 @@ class TestSingleThreading(unittest.TestCase):
         self.original_openblas = os.environ.get("OPENBLAS_NUM_THREADS")
         self.original_mkl = os.environ.get("MKL_NUM_THREADS")
         self.original_omp = os.environ.get("OMP_NUM_THREADS")
+        self.original_numexpr = os.environ.get("NUMEXPR_NUM_THREADS")
+        self.original_veclib = os.environ.get("VECLIB_MAXIMUM_THREADS")
+        self.original_blis = os.environ.get("BLIS_NUM_THREADS")
+
+        # Save numpy configuration if available
+        self.numpy_openmp_config = None
+        try:
+            import numpy as np
+
+            self.numpy_openmp_config = getattr(np.config.threading, "use_openmp", None)
+        except (AttributeError, ImportError):
+            pass
 
     def test_enforce_single_threading(self):
         # Call the function to enforce single-threading
@@ -50,6 +62,21 @@ class TestSingleThreading(unittest.TestCase):
             os.environ["OMP_NUM_THREADS"], "1", "OMP_NUM_THREADS should be set to 1"
         )
 
+        # Check additional environment variables
+        self.assertEqual(
+            os.environ["NUMEXPR_NUM_THREADS"],
+            "1",
+            "NUMEXPR_NUM_THREADS should be set to 1",
+        )
+        self.assertEqual(
+            os.environ["VECLIB_MAXIMUM_THREADS"],
+            "1",
+            "VECLIB_MAXIMUM_THREADS should be set to 1",
+        )
+        self.assertEqual(
+            os.environ["BLIS_NUM_THREADS"], "1", "BLIS_NUM_THREADS should be set to 1"
+        )
+
     def test_threadpool_limits(self):
         # Call the function to enforce single-threading
         enforce_single_threading()
@@ -64,6 +91,14 @@ class TestSingleThreading(unittest.TestCase):
                     library["num_threads"],
                     1,
                     f"BLAS library {library['prefix']} should be limited to 1 thread",
+                )
+
+            # Check OpenMP libraries as well
+            if library["user_api"] == "openmp":
+                self.assertEqual(
+                    library["num_threads"],
+                    1,
+                    f"OpenMP library {library['prefix']} should be limited to 1 thread",
                 )
 
     def tearDown(self):
@@ -82,6 +117,21 @@ class TestSingleThreading(unittest.TestCase):
             os.environ["OMP_NUM_THREADS"] = self.original_omp
         else:
             os.environ.pop("OMP_NUM_THREADS", None)
+
+        if self.original_numexpr is not None:
+            os.environ["NUMEXPR_NUM_THREADS"] = self.original_numexpr
+        else:
+            os.environ.pop("NUMEXPR_NUM_THREADS", None)
+
+        if self.original_veclib is not None:
+            os.environ["VECLIB_MAXIMUM_THREADS"] = self.original_veclib
+        else:
+            os.environ.pop("VECLIB_MAXIMUM_THREADS", None)
+
+        if self.original_blis is not None:
+            os.environ["BLIS_NUM_THREADS"] = self.original_blis
+        else:
+            os.environ.pop("BLIS_NUM_THREADS", None)
 
 
 if __name__ == "__main__":

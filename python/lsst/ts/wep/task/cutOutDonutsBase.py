@@ -71,20 +71,6 @@ class CutOutDonutsBaseTaskConnections(
         isCalibration=True,
         lookupFunction=lookupStaticCalibrations,
     )
-    donutStampsExtra = connectionTypes.Output(
-        doc="Extra-focal Donut Postage Stamp Images",
-        dimensions=("visit", "detector", "instrument"),
-        storageClass="StampsBase",
-        name="donutStampsExtra",
-        multiple=True,
-    )
-    donutStampsIntra = connectionTypes.Output(
-        doc="Intra-focal Donut Postage Stamp Images",
-        dimensions=("visit", "detector", "instrument"),
-        storageClass="StampsBase",
-        name="donutStampsIntra",
-        multiple=True,
-    )
 
 
 class CutOutDonutsBaseTaskConfig(
@@ -586,9 +572,9 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
                 self.log.warning(
                     "Donut Recentering Failed. Flagging and "
                     + f"not shifting center of stamp for {defocalType.value}-focal "
-                    + f"source at {(donutRow['centroid_x'], donutRow['centroid_y'])}. "
+                    + f"source at {(donutRow['centroid_x'].item(), donutRow['centroid_y'].item())}. "
                     + f"Catalog row: {donutRow.index}. "
-                    + f"Proposed Shift: {(donutRow['xShift'], donutRow['yShift'])}."
+                    + f"Proposed Shift: {(donutRow['xShift'].item(), donutRow['yShift'].item())}."
                 )
 
             # Get the final cutout

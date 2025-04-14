@@ -25,36 +25,22 @@ __all__ = [
     "ReassignCwfsCutoutsTask",
 ]
 
-import lsst.obs.lsst as obs_lsst
 import lsst.pipe.base as pipeBase
-import numpy as np
-from lsst.fgcmcal.utilities import lookupStaticCalibrations
+from lsst.daf.butler import DataCoordinate
 from lsst.pipe.base import connectionTypes
+
+intra_focal_ids = set([192, 196, 200, 204])
+extra_focal_ids = set([191, 195, 199, 203])
 
 
 class ReassignCwfsCutoutsTaskConnections(
-    pipeBase.PipelineTaskConnections, dimensions=("visit", "instrument")
+    pipeBase.PipelineTaskConnections, dimensions=("visit", "detector", "instrument")
 ):
-    camera = connectionTypes.PrerequisiteInput(
-        name="camera",
-        storageClass="Camera",
-        doc="Input camera to construct complete exposures.",
-        dimensions=["instrument"],
-        isCalibration=True,
-        lookupFunction=lookupStaticCalibrations,
-    )
-    donutStampsExtraIn = connectionTypes.Input(
-        doc="Extra-focal Donut Postage Stamp Images with Extra-focal detector id.",
+    donutStampsIn = connectionTypes.Input(
+        doc="Donut Postage Stamp Images with either Intra-focal or Extra-focal detector id.",
         dimensions=("visit", "detector", "instrument"),
         storageClass="StampsBase",
-        name="donutStampsExtraCwfs",
-        multiple=True,
-    )
-    donutStampsIntraIn = connectionTypes.Input(
-        doc="Intra-focal Donut Postage Stamp Images with Intra-focal detector id.",
-        dimensions=("visit", "detector", "instrument"),
-        storageClass="StampsBase",
-        name="donutStampsIntraCwfs",
+        name="donutStampsCwfs",
         multiple=True,
     )
     donutStampsIntraOut = connectionTypes.Output(
@@ -62,15 +48,41 @@ class ReassignCwfsCutoutsTaskConnections(
         dimensions=("visit", "detector", "instrument"),
         storageClass="StampsBase",
         name="donutStampsIntra",
-        multiple=True,
+        multiple=False,
     )
     donutStampsExtraOut = connectionTypes.Output(
         doc="Extra-focal Donut Postage Stamp Images with Extra-focal detector id.",
         dimensions=("visit", "detector", "instrument"),
         storageClass="StampsBase",
         name="donutStampsExtra",
-        multiple=True,
+        multiple=False,
     )
+
+    def adjust_all_quanta(self, adjuster):
+        """This will drop intra quanta and assign
+        them to the extra detector quanta
+        """
+        to_do = set(adjuster.iter_data_ids())
+        seen = set()
+        while to_do:
+            data_id = to_do.pop()
+            if data_id["detector"] in extra_focal_ids:
+                seen.add(data_id)
+            elif data_id["detector"] in intra_focal_ids:
+                extra_focal_data_id = DataCoordinate.standardize(
+                    data_id, detector=data_id["detector"] - 1
+                )
+
+                assert extra_focal_data_id in seen or extra_focal_data_id in to_do
+
+                inputs = adjuster.get_inputs(data_id)
+                adjuster.add_input(
+                    extra_focal_data_id, "donutStampsIn", inputs["donutStampsIn"][0]
+                )
+                adjuster.remove_quantum(data_id)
+
+            else:
+                adjuster.remove_quantum(data_id)
 
 
 class ReassignCwfsCutoutsTaskConfig(
@@ -90,11 +102,6 @@ class ReassignCwfsCutoutsTask(pipeBase.PipelineTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Set which sensors are extra and intra focal
-        # See LCA-13381 for definition
-        self.extraFocalNames = ["R00_SW0", "R04_SW0", "R40_SW0", "R44_SW0"]
-        self.intraFocalNames = ["R00_SW1", "R04_SW1", "R40_SW1", "R44_SW1"]
-
     def runQuantum(
         self,
         butlerQC: pipeBase.QuantumContext,
@@ -112,50 +119,14 @@ class ReassignCwfsCutoutsTask(pipeBase.PipelineTask):
         so we put this in the dataId associated with the
         extra-focal detector.
         """
+        stamps = butlerQC.get(inputRefs.donutStampsIn)
 
-        camera = butlerQC.get(inputRefs.camera)
+        # We need to ensure we always have the stamps in the correct order
+        # We know extra < intra
+        detectors = [ref.dataId["detector"] for ref in inputRefs.donutStampsIn]
+        if detectors[0] < detectors[1]:
+            stamps.reverse()
+        intra_stamp, extra_stamp = stamps
 
-        # Get the detector IDs for the wavefront sensors so
-        # that we can appropriately match up pairs of detectors
-        if camera.getName() == "LSSTCam":
-            detectorMap = (
-                obs_lsst.translators.lsstCam.LsstCamTranslator.detector_mapping()
-            )
-        else:
-            raise ValueError(f"{camera.getName()} is not a valid camera name.")
-
-        extraFocalIds = [detectorMap[detName][0] for detName in self.extraFocalNames]
-        intraFocalIds = [detectorMap[detName][0] for detName in self.intraFocalNames]
-
-        detectorIdArrIntra = np.array(
-            [exp.dataId["detector"] for exp in inputRefs.donutStampsIntraIn]
-        )
-        detectorIdArrExtra = np.array(
-            [exp.dataId["detector"] for exp in inputRefs.donutStampsExtraIn]
-        )
-        detectorIdArrOut = np.array(
-            [exp.dataId["detector"] for exp in outputRefs.donutStampsExtraOut]
-        )
-
-        # Find cwfs detectors in the list of detectors being processed
-        runExtraIds = sorted(set(detectorIdArrExtra).intersection(extraFocalIds))
-        runIntraIds = sorted(set(detectorIdArrIntra).intersection(intraFocalIds))
-
-        if len(runExtraIds) != len(runIntraIds):
-            raise ValueError("Unequal number of intra and extra focal detectors.")
-
-        for extraId, intraId in zip(runExtraIds, runIntraIds):
-            if abs(extraId - intraId) != 1:
-                raise ValueError("Intra and extra focal detectors not adjacent.")
-            extraListIdx = np.where(detectorIdArrExtra == extraId)[0][0]
-            intraListIdx = np.where(detectorIdArrIntra == intraId)[0][0]
-            outputListIdx = np.where(detectorIdArrOut == extraId)[0][0]
-
-            outputExtra = butlerQC.get(inputRefs.donutStampsExtraIn[extraListIdx])
-            outputIntra = butlerQC.get(inputRefs.donutStampsIntraIn[intraListIdx])
-
-            # Assign both outputs to the same dataId so that we can run
-            # Zernike estimation fully in parallel through the dataIds
-            # of the extra-focal detectors using CalcZernikesTask.
-            butlerQC.put(outputExtra, outputRefs.donutStampsExtraOut[outputListIdx])
-            butlerQC.put(outputIntra, outputRefs.donutStampsIntraOut[outputListIdx])
+        butlerQC.put(extra_stamp, outputRefs.donutStampsExtraOut)
+        butlerQC.put(intra_stamp, outputRefs.donutStampsIntraOut)

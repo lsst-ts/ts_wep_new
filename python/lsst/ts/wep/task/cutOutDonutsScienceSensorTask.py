@@ -62,6 +62,20 @@ class CutOutDonutsScienceSensorTaskConnections(
         storageClass="AstropyTable",
         name="donutVisitPairTable",
     )
+    donutStampsExtra = ct.Output(
+        doc="Extra-focal Donut Postage Stamp Images",
+        dimensions=("visit", "detector", "instrument"),
+        storageClass="StampsBase",
+        name="donutStampsExtra",
+        multiple=True,
+    )
+    donutStampsIntra = ct.Output(
+        doc="Intra-focal Donut Postage Stamp Images",
+        dimensions=("visit", "detector", "instrument"),
+        storageClass="StampsBase",
+        name="donutStampsIntra",
+        multiple=True,
+    )
 
     def __init__(self, *, config=None):
         super().__init__(config=config)

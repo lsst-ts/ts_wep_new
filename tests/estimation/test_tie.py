@@ -68,8 +68,8 @@ class TestTieAlgorithm(unittest.TestCase):
             binned_shape = tuple(sh // 2 for sh in intra.image.shape)
 
             # Create estimator
-            tie = TieAlgorithm()
-            tieBin = TieAlgorithm(binning=2)
+            tie = TieAlgorithm(optimizeLinAlg=False)
+            tieBin = TieAlgorithm(binning=2, optimizeLinAlg=False)
 
             # Estimate Zernikes (in meters)
             zkEst = tie.estimateZk(intra, extra)
@@ -90,7 +90,7 @@ class TestTieAlgorithm(unittest.TestCase):
     def testSaveHistory(self):
         # Run the algorithm
         zkTrue, intra, extra = forwardModelPair()
-        tie = TieAlgorithm()
+        tie = TieAlgorithm(optimizeLinAlg=False)
         tie.estimateZk(intra, extra)
 
         # Check that no history was saved
@@ -151,7 +151,7 @@ class TestTieAlgorithm(unittest.TestCase):
     def testRecenter(self):
         # Run the algorithm with no recenter tolerance
         zkTrue, intra, extra = forwardModelPair()
-        tie = TieAlgorithm(centerTol=0)
+        tie = TieAlgorithm(centerTol=0, optimizeLinAlg=False)
         tie.estimateZk(intra, extra, saveHistory=True)
 
         # Check that every iteration recentered
@@ -160,7 +160,7 @@ class TestTieAlgorithm(unittest.TestCase):
             self.assertTrue(hist[i]["recenter"])
 
         # Run the algorithm with infinite recenter tolerance
-        tie = TieAlgorithm(centerTol=np.inf)
+        tie = TieAlgorithm(centerTol=np.inf, optimizeLinAlg=False)
         tie.estimateZk(intra, extra, saveHistory=True)
 
         # Check that it never recentered
@@ -174,7 +174,7 @@ class TestTieAlgorithm(unittest.TestCase):
         zkTrue, intra, extra = forwardModelPair()
 
         # TIE with zero tolerance; check number of iterations matches maxIter
-        tie = TieAlgorithm(convergeTol=0)
+        tie = TieAlgorithm(convergeTol=0, optimizeLinAlg=False)
         tie.estimateZk(intra, extra, saveHistory=True)
         hist = tie.history
         self.assertEqual(len(hist), tie.maxIter + 1)
@@ -187,7 +187,7 @@ class TestTieAlgorithm(unittest.TestCase):
         # on compSequence, because the algorithm can't converge until all
         # Zernikes are being compensated, so we will have to search where jmax
         # lies in the compSequence
-        tie = TieAlgorithm(convergeTol=np.inf)
+        tie = TieAlgorithm(convergeTol=np.inf, optimizeLinAlg=False)
         zkEst = tie.estimateZk(intra, extra, saveHistory=True)
         hist = tie.history
         jmax = len(zkEst) + 3
@@ -206,7 +206,7 @@ class TestTieAlgorithm(unittest.TestCase):
         zkTrue, intra, extra = forwardModelPair()
 
         # Use a huge gain to force a caustic
-        tie = TieAlgorithm(compGain=10)
+        tie = TieAlgorithm(compGain=10, optimizeLinAlg=False)
         tie.estimateZk(intra, extra, saveHistory=True)
         hist = tie.history
         finalIter = hist[max(hist)]
@@ -228,13 +228,13 @@ class TestTieAlgorithm(unittest.TestCase):
         intra.blendOffsets = [[40, 50]]
 
         # Run TIE with no blend masking
-        tie = TieAlgorithm()
+        tie = TieAlgorithm(optimizeLinAlg=False)
         tie.estimateZk(intra, extra, saveHistory=True)
         hist = tie.history
         mask1 = hist[max(hist)]["mask"]
 
         # Run TIE with with blend masking
-        tie = TieAlgorithm(maskKwargs=dict(doMaskBlends=True))
+        tie = TieAlgorithm(maskKwargs=dict(doMaskBlends=True), optimizeLinAlg=False)
         tie.estimateZk(intra, extra, saveHistory=True)
         hist = tie.history
         mask2 = hist[max(hist)]["mask"]
@@ -245,7 +245,7 @@ class TestTieAlgorithm(unittest.TestCase):
         zkTrue, intra, extra = forwardModelPair()
 
         # Estimate with singles and pairs
-        tie = TieAlgorithm()
+        tie = TieAlgorithm(optimizeLinAlg=False)
         zkPair = tie.estimateZk(intra, extra)
         zkIntra = tie.estimateZk(intra)
         self.assertLess(np.sqrt(np.sum((zkPair - zkIntra) ** 2)), 0.25e-6)

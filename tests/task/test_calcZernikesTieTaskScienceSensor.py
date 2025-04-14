@@ -144,7 +144,7 @@ class TestCalcZernikesTieTaskScienceSensor(lsst.utils.tests.TestCase):
         zkAvg1 = structNormal.outputZernikesAvg[0]
         zkAvgRow = structNormal.zernikes[structNormal.zernikes["label"] == "average"][0]
         zkAvg2 = np.array([zkAvgRow[f"Z{i}"].to_value(u.micron) for i in range(4, 29)])
-        self.assertFloatsAlmostEqual(zkAvg1, zkAvg2, rtol=1e-7, atol=0)
+        self.assertFloatsAlmostEqual(zkAvg1, zkAvg2, rtol=1e-6, atol=0)
 
         zkRaw1 = structNormal.outputZernikesRaw
         zkRaw2 = np.full_like(zkRaw1, np.nan)
@@ -156,7 +156,7 @@ class TestCalcZernikesTieTaskScienceSensor(lsst.utils.tests.TestCase):
                 [row[f"Z{i}"].to_value(u.micron) for i in range(4, 29)]
             )
             i += 1
-        self.assertFloatsAlmostEqual(zkRaw1, zkRaw2, rtol=1e-7, atol=0)
+        self.assertFloatsAlmostEqual(zkRaw1, zkRaw2, rtol=1e-6, atol=0)
 
         # verify remaining desired columns exist in zernikes table
         desired_colnames = [

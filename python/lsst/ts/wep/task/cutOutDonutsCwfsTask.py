@@ -57,18 +57,11 @@ class CutOutDonutsCwfsTaskConnections(
         name="donutTable",
         multiple=False,
     )
-    donutStampsExtra = connectionTypes.Output(
-        doc="Extra-focal Donut Postage Stamp Images",
+    donutStampsOut = connectionTypes.Output(
+        doc="Donut Postage Stamp Images (intra and extra)",
         dimensions=("visit", "detector", "instrument"),
         storageClass="StampsBase",
-        name="donutStampsExtraCwfs",
-        multiple=False,
-    )
-    donutStampsIntra = connectionTypes.Output(
-        doc="Intra-focal Donut Postage Stamp Images",
-        dimensions=("visit", "detector", "instrument"),
-        storageClass="StampsBase",
-        name="donutStampsIntraCwfs",
+        name="donutStampsCwfs",
         multiple=False,
     )
 
@@ -140,9 +133,4 @@ class CutOutDonutsCwfsTask(CutOutDonutsBaseTask):
         # then return the Zernike coefficients as nan.
         if len(donutStampsOut) == 0:
             donutStampsOut = DonutStamps([])
-        key = (
-            "donutStampsExtra"
-            if defocalType == DefocalType.Extra
-            else "donutStampsIntra"
-        )
-        return pipeBase.Struct(**{key: donutStampsOut})
+        return pipeBase.Struct(donutStampsOut=donutStampsOut)

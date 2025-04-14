@@ -71,20 +71,6 @@ class CutOutDonutsBaseTaskConnections(
         isCalibration=True,
         lookupFunction=lookupStaticCalibrations,
     )
-    donutStampsExtra = connectionTypes.Output(
-        doc="Extra-focal Donut Postage Stamp Images",
-        dimensions=("visit", "detector", "instrument"),
-        storageClass="StampsBase",
-        name="donutStampsExtra",
-        multiple=True,
-    )
-    donutStampsIntra = connectionTypes.Output(
-        doc="Intra-focal Donut Postage Stamp Images",
-        dimensions=("visit", "detector", "instrument"),
-        storageClass="StampsBase",
-        name="donutStampsIntra",
-        multiple=True,
-    )
 
 
 class CutOutDonutsBaseTaskConfig(

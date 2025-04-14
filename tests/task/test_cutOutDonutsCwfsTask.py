@@ -24,7 +24,6 @@ from copy import copy
 
 import lsst.utils.tests
 from lsst.daf import butler as dafButler
-from lsst.daf.butler import DatasetNotFoundError
 from lsst.ts.wep.task.cutOutDonutsCwfsTask import (
     CutOutDonutsCwfsTask,
     CutOutDonutsCwfsTaskConfig,
@@ -192,13 +191,13 @@ class TestCutOutDonutsCwfsTask(lsst.utils.tests.TestCase):
         )
 
         for donutStamp, cutOutStamp in zip(
-            taskOutExtra.donutStampsExtra, testExtraStamps
+            taskOutExtra.donutStampsOut, testExtraStamps
         ):
             self.assertMaskedImagesAlmostEqual(
                 donutStamp.stamp_im, cutOutStamp.stamp_im
             )
         for donutStamp, cutOutStamp in zip(
-            taskOutIntra.donutStampsIntra, testIntraStamps
+            taskOutIntra.donutStampsOut, testIntraStamps
         ):
             self.assertMaskedImagesAlmostEqual(
                 donutStamp.stamp_im, cutOutStamp.stamp_im
@@ -234,10 +233,10 @@ class TestCutOutDonutsCwfsTask(lsst.utils.tests.TestCase):
             camera,
         )
 
-        self.assertIsInstance(taskOutEmptyCat.donutStampsExtra, DonutStamps)
-        self.assertEqual(len(taskOutEmptyCat.donutStampsExtra), 0)
-        self.assertIsInstance(taskOutEmptyCatIntra.donutStampsIntra, DonutStamps)
-        self.assertEqual(len(taskOutEmptyCatIntra.donutStampsIntra), 0)
+        self.assertIsInstance(taskOutEmptyCat.donutStampsOut, DonutStamps)
+        self.assertEqual(len(taskOutEmptyCat.donutStampsOut), 0)
+        self.assertIsInstance(taskOutEmptyCatIntra.donutStampsOut, DonutStamps)
+        self.assertEqual(len(taskOutEmptyCatIntra.donutStampsOut), 0)
 
     def testPipeline(self):
         (
@@ -262,31 +261,19 @@ class TestCutOutDonutsCwfsTask(lsst.utils.tests.TestCase):
 
         # Compare the interactive run to pipetask run results
         donutStampsExtra_extraId = self.butler.get(
-            "donutStampsExtraCwfs", dataId=self.dataIdExtra, collections=[self.runName]
+            "donutStampsCwfs", dataId=self.dataIdExtra, collections=[self.runName]
         )
-        with self.assertRaises(DatasetNotFoundError):
-            self.butler.get(
-                "donutStampsIntraCwfs",
-                dataId=self.dataIdExtra,
-                collections=[self.runName],
-            )
 
         donutStampsIntra_intraId = self.butler.get(
-            "donutStampsIntraCwfs", dataId=self.dataIdIntra, collections=[self.runName]
+            "donutStampsCwfs", dataId=self.dataIdIntra, collections=[self.runName]
         )
-        with self.assertRaises(DatasetNotFoundError):
-            self.butler.get(
-                "donutStampsExtraCwfs",
-                dataId=self.dataIdIntra,
-                collections=[self.runName],
-            )
 
         for butlerStamp, taskStamp in zip(
-            donutStampsExtra_extraId, taskOutExtra.donutStampsExtra
+            donutStampsExtra_extraId, taskOutExtra.donutStampsOut
         ):
             self.assertMaskedImagesAlmostEqual(butlerStamp.stamp_im, taskStamp.stamp_im)
 
         for butlerStamp, taskStamp in zip(
-            donutStampsIntra_intraId, taskOutIntra.donutStampsIntra
+            donutStampsIntra_intraId, taskOutIntra.donutStampsOut
         ):
             self.assertMaskedImagesAlmostEqual(butlerStamp.stamp_im, taskStamp.stamp_im)

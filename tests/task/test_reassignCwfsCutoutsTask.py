@@ -131,10 +131,10 @@ class TestCutOutDonutsCwfsTask(lsst.utils.tests.TestCase):
             "donutStampsIntra", dataId=self.dataIdExtra, collections=[self.runName]
         )
         donutStampsExtraCwfs_extraId = self.butler.get(
-            "donutStampsExtraCwfs", dataId=self.dataIdExtra, collections=[self.runName]
+            "donutStampsCwfs", dataId=self.dataIdExtra, collections=[self.runName]
         )
         donutStampsIntraCwfs_intraId = self.butler.get(
-            "donutStampsIntraCwfs", dataId=self.dataIdIntra, collections=[self.runName]
+            "donutStampsCwfs", dataId=self.dataIdIntra, collections=[self.runName]
         )
 
         # Test that reassigned stamps are correctly assigned

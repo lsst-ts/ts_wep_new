@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.2.0:
+
+-------------
+14.2.0
+-------------
+
+* Add fitDonutRadiusTask.
+
 .. _lsst.ts.wep-14.1.2:
 
 -------------

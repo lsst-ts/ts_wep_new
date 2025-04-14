@@ -13,6 +13,8 @@ Version History
 -------------
 
 * Add fitDonutRadiusTask.
+* Update ReassignCwfsCutoutsTask to work per detector pair instead of visit id.
+* Update CutOutDonutsCwfsTask to output donutStampsOut per detector.
 
 .. _lsst.ts.wep-14.1.2:
 

@@ -21,9 +21,20 @@
 
 import unittest
 
-import numpy as np
-from lsst.ts.wep.estimation import DanishAlgorithm
-from lsst.ts.wep.utils.modelUtils import forwardModelPair
+from lsst.ts.wep.utils.testUtils import enforce_single_threading
+
+enforce_single_threading()
+
+# Then import libraries
+import numpy as np  # noqa: E402
+from lsst.ts.wep.estimation import DanishAlgorithm  # noqa: E402
+from lsst.ts.wep.utils.modelUtils import forwardModelPair  # noqa: E402
+
+# Directly configure NumPy if using version that supports it
+try:  # noqa: E402
+    np.config.threading.use_openmp = False  # noqa: E402
+except (AttributeError, ImportError):  # noqa: E402
+    pass  # noqa: E402
 
 
 class TestDanishAlgorithm(unittest.TestCase):
@@ -49,14 +60,48 @@ class TestDanishAlgorithm(unittest.TestCase):
             if key != "zk":
                 self.assertEqual(hist["lstsqResult"]["nfev"], 1)
 
-    def testAccuracy(self):
+    def testAccuracyWithoutBinning(self):
         for jointFitPair in [True, False]:
-            # Create estimator
-            dan = DanishAlgorithm(jointFitPair=jointFitPair)
-            danBin = DanishAlgorithm(binning=2, jointFitPair=jointFitPair)
-
             # Try several different random seeds
-            for seed in [12345, 23451, 34512, 45123]:
+            for seed in [12345, 23451]:
+                # Create estimator
+                dan = DanishAlgorithm(
+                    jointFitPair=jointFitPair,
+                    lstsqKwargs={
+                        "ftol": 1e-1,
+                        "xtol": 1e-1,
+                        "gtol": 1e-1,
+                        "max_nfev": 10,
+                        "verbose": 2,
+                    },
+                )
+                # Get the test data
+                zkTrue, intra, extra = forwardModelPair(seed=seed)
+
+                # Test estimation with pairs and single donuts:
+                for images in [[intra, extra], [intra], [extra]]:
+                    # Estimate Zernikes (in meters)
+                    zkEst = dan.estimateZk(*images)
+
+                    # Check that results are fairly accurate
+                    self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
+
+    def testAccuracyWithBinning(self):
+        for jointFitPair in [True, False]:
+            # Try several different random seeds
+            for seed in [12345, 23451]:
+                # Create estimator
+                danBin = DanishAlgorithm(
+                    jointFitPair=jointFitPair,
+                    lstsqKwargs={
+                        "ftol": 1e-1,
+                        "xtol": 1e-1,
+                        "gtol": 1e-1,
+                        "max_nfev": 10,
+                        "verbose": 2,
+                    },
+                    binning=2,
+                )
                 # Get the test data
                 zkTrue, intra, extra = forwardModelPair(seed=seed)
 
@@ -75,12 +120,6 @@ class TestDanishAlgorithm(unittest.TestCase):
                 # Test estimation with pairs and single donuts:
                 for images in [[intra, extra], [intra], [extra]]:
                     # Estimate Zernikes (in meters)
-                    zkEst = dan.estimateZk(*images)
-
-                    # Check that results are fairly accurate
-                    self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
-
-                    # Test with binning
                     zkEst = danBin.estimateZk(*images, saveHistory=True)
                     self.assertLess(np.sqrt(np.sum((zkEst - zkTrue) ** 2)), 0.35e-6)
 

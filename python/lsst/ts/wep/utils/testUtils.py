@@ -19,27 +19,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import unittest
-from glob import glob
-from pathlib import Path
+__all__ = ["enforce_single_threading"]
 
-from lsst.pipe.base import Pipeline
-from lsst.utils import getPackageDir
+import os
 
-
-class TestPipeline(unittest.TestCase):
-    """Test the pipeline."""
-
-    def testPipeline(self):
-        packageDir = getPackageDir("ts_wep")
-        # only test production pipelines
-        pipelinePattern = Path(packageDir) / "pipelines" / "production"
-        files = glob(pipelinePattern.as_posix() + "/*.yaml")
-        for filename in files:
-            pipeline = Pipeline.fromFile(filename)
-            self.assertIsInstance(pipeline, Pipeline)
+import threadpoolctl
 
 
-if __name__ == "__main__":
-    # Do the unit test
-    unittest.main()
+def enforce_single_threading():
+    """
+    Set OpenBLAS, MKL, and OMP to use only one thread.
+    We implemented this to avoid issues with test hanging
+    on Jenkins. Primarily used in tests that use
+    danish which is where we saw the most issues.
+    """
+    # Set environment variables for single-threading
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["OMP_NUM_THREADS"] = "1"
+
+    # Additional environment variables
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"  # For NumExpr
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1"  # For Apple Accelerate
+    os.environ["BLIS_NUM_THREADS"] = "1"  # For BLIS
+
+    # Limit threadpool to 1 thread for BLAS and OpenMP
+    threadpoolctl.threadpool_limits(limits=1, user_api="blas")
+    threadpoolctl.threadpool_limits(limits=1, user_api="openmp")

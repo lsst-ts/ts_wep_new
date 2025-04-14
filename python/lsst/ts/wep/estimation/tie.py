@@ -95,6 +95,10 @@ class TieAlgorithm(WfAlgorithm):
         Whether to require that the TIE converges. If True, and the TIE
         did not converge, the TIE returns NaNs.
         (the default is False)
+    optimizeLinAlg : bool, optional
+        Whether to optimize the numpy einsum calls in the TIE solver. If
+        True, the einsum calls are optimized for speed using the optimize
+        keyword (the default is True).
     """
 
     def __init__(
@@ -110,6 +114,7 @@ class TieAlgorithm(WfAlgorithm):
         modelPupilKernelSize: float = 2,
         binning: int = 1,
         requireConverge: bool = False,
+        optimizeLinAlg: bool = True,
     ) -> None:
         self.opticalModel = opticalModel
         self.maxIter = maxIter
@@ -122,6 +127,7 @@ class TieAlgorithm(WfAlgorithm):
         self.modelPupilKernelSize = modelPupilKernelSize
         self.binning = binning
         self.requireConverge = requireConverge
+        self.optimizeLinAlg = optimizeLinAlg
 
     @property
     def requiresPairs(self) -> bool:
@@ -450,6 +456,26 @@ class TieAlgorithm(WfAlgorithm):
         self._requireConverge = value
 
     @property
+    def optimizeLinAlg(self) -> bool:
+        """Whether to optimize the linear algebra calls."""
+        return self._optimizeLinAlg
+
+    @optimizeLinAlg.setter
+    def optimizeLinAlg(self, value: bool) -> None:
+        """Set whether to optimize the linear algebra calls.
+
+        Parameters
+        ----------
+        value : bool
+            Whether to optimize the numpy einsum calls for speed. If True,
+            the einsum calls are optimized for speed using the optimize
+            keyword (the default is True).
+        """
+        if not isinstance(value, bool):
+            raise TypeError("optimizeLinAlg must be a boolean.")
+        self._optimizeLinAlg = value
+
+    @property
     def history(self) -> dict:
         """The algorithm history.
 
@@ -626,9 +652,9 @@ class TieAlgorithm(WfAlgorithm):
 
         # Calculate quantities for the linear system
         # See Equations 43-45 of https://sitcomtn-111.lsst.io
-        b = np.einsum("ab,jab->j", dIdz, zk, optimize=True)
-        M = np.einsum("ab,jab,kab->jk", I0, dzkdu, dzkdu, optimize=True)
-        M += np.einsum("ab,jab,kab->jk", I0, dzkdv, dzkdv, optimize=True)
+        b = np.einsum("ab,jab->j", dIdz, zk, optimize=self.optimizeLinAlg)
+        M = np.einsum("ab,jab,kab->jk", I0, dzkdu, dzkdu, optimize=self.optimizeLinAlg)
+        M += np.einsum("ab,jab,kab->jk", I0, dzkdv, dzkdv, optimize=self.optimizeLinAlg)
         M /= -instrument.radius**2
 
         # Invert to get Zernike coefficients in meters

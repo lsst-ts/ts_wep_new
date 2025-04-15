@@ -217,7 +217,12 @@ class DonutSourceSelectorTask(pipeBase.Task):
         magSelected = np.ones(len(sourceCat), dtype=bool)
         magSelected &= mag < (magMax + minMagDiff)
         mag = mag[magSelected]
-
+        if len(mag) == 0:
+            return pipeBase.Struct(
+                selected=selected,
+                blendCentersX=None,
+                blendCentersY=None,
+            )
         xCoord = _getFieldFromCatalog(sourceCat[magSelected], self.config.xCoordField)
         yCoord = _getFieldFromCatalog(sourceCat[magSelected], self.config.yCoordField)
 

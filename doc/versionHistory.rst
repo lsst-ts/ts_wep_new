@@ -5,6 +5,13 @@
 ##################
 Version History
 ##################
+.. _lsst.ts.wep-14.2.0:
+
+-------------
+14.2.0
+-------------
+
+* Fix donutSourceSelector when no sources pass magnitude cut.
 
 .. _lsst.ts.wep-14.2.0:
 

@@ -261,17 +261,30 @@ class GenerateDonutDirectDetectTask(pipeBase.PipelineTask):
             offset,
             self.config.instConfigFile,
         )
-
-        # Create the image template for the detector
-        template = createTemplateForDetector(
-            detector=exposure.detector,
-            defocalType=defocalType,
-            bandLabel=bandLabel,
-            instrument=instrument,
-            opticalModel=self.config.opticalModel,
-            padding=self.config.initialCutoutPadding,
-            isBinary=True,
-        )
+        try:
+            # Create the image template for the detector
+            template = createTemplateForDetector(
+                detector=exposure.detector,
+                defocalType=defocalType,
+                bandLabel=bandLabel,
+                instrument=instrument,
+                opticalModel=self.config.opticalModel,
+                padding=self.config.initialCutoutPadding,
+                isBinary=True,
+            )
+        except ValueError as e:
+            err_msg = str(e)
+            s = (
+                f"Template creation erorr: {err_msg} \n\
+That means that the provided exposure is very close to focus"
+                if err_msg.startswith("negative dimensions")
+                else err_msg
+            )
+            self.log.warning(f"Cannot create template: {s}")
+            self.log.warning("Returning empty donut catalog")
+            donutCatUpd = self.emptyTable()
+            donutCatUpd = addVisitInfoToCatTable(exposure, donutCatUpd)
+            return pipeBase.Struct(donutCatalog=donutCatUpd)
 
         # Trim the exposure by the margin
         edgeMargin = self.config.edgeMargin

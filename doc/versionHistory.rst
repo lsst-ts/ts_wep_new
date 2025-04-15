@@ -12,6 +12,7 @@ Version History
 -------------
 
 * Fix donutSourceSelector when no sources pass magnitude cut.
+* Handle empty donutCatalogs with cutoutDonutsCwfsTask.
 
 .. _lsst.ts.wep-14.2.0:
 

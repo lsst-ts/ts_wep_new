@@ -122,10 +122,15 @@ class FitDonutRadiusTask(pipeBase.PipelineTask):
         donutStampsExtra: DonutStamps,
         donutStampsIntra: DonutStamps,
     ) -> pipeBase.Struct:
+        stampSets = [donutStampsIntra, donutStampsExtra]
         # If no donuts are in the DonutStamps
         # Then return an empty table
-        if len(donutStampsExtra) == 0 or len(donutStampsIntra) == 0:
+        if not donutStampsExtra and not donutStampsIntra:
             return self.empty()
+        elif donutStampsExtra and not donutStampsIntra:
+            stampSets = [donutStampsExtra]
+        elif donutStampsIntra and not donutStampsExtra:
+            stampSets = [donutStampsIntra]
 
         widthMultiplier = self.config.widthMultiplier
         filterSigma = self.config.filterSigma
@@ -149,7 +154,7 @@ class FitDonutRadiusTask(pipeBase.PipelineTask):
         # stampVisit = stamps.metadata["VISIT"]  # single int
 
         # looping over each  defocal pair
-        for stampSet in [donutStampsIntra, donutStampsExtra]:
+        for stampSet in stampSets:
             dfcType = stampSet.metadata["DFC_TYPE"]  # single string
             stampVisit = stampSet.metadata["VISIT"]  # single int
 

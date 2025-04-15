@@ -5,6 +5,15 @@
 ##################
 Version History
 ##################
+.. _lsst.ts.wep-14.2.1:
+
+-------------
+14.2.1
+-------------
+
+* Fix donutSourceSelector when no sources pass magnitude cut.
+* Handle empty donutCatalogs with cutoutDonutsCwfsTask.
+* Handle no donutStamps for one side of focus for fitDonutRadiusTask.
 
 .. _lsst.ts.wep-14.2.0:
 

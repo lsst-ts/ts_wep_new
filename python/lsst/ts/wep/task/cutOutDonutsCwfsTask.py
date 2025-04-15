@@ -121,16 +121,17 @@ class CutOutDonutsCwfsTask(CutOutDonutsBaseTask):
             defocalType = DefocalType.Intra
         else:
             raise ValueError("Detector provided is not a corner wavefront sensor.")
-
-        donutStampsOut = self.cutOutStamps(
-            exposure,
-            donutCatalog,
-            defocalType,
-            cameraName,
-        )
-
         # If no donuts are in the donutCatalog for a set of exposures
-        # then return the Zernike coefficients as nan.
-        if len(donutStampsOut) == 0:
+        # then return empty donut stamps list
+        # Catch that case before attempting to do any cutouts
+        if len(donutCatalog) == 0:
             donutStampsOut = DonutStamps([])
+        else:
+            donutStampsOut = self.cutOutStamps(
+                exposure,
+                donutCatalog,
+                defocalType,
+                cameraName,
+            )
+
         return pipeBase.Struct(donutStampsOut=donutStampsOut)

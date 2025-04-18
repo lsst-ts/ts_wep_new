@@ -159,14 +159,6 @@ class TestTaskUtils(unittest.TestCase):
             Instrument(configFile="policy:instruments/AuxTel.yaml"),
         )
 
-        # Test override defocal offset (in mm)
-        inst = Instrument()
-        inst.defocalOffset = 1.234e-3
-        assertInstEqual(
-            getTaskInstrument("LSSTCam", "R04_SW1", offset=1.234),
-            inst,
-        )
-
         with self.assertRaises(ValueError):
             getTaskInstrument("fake", None)
 

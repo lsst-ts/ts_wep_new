@@ -42,7 +42,6 @@ from lsst.ts.wep.task.donutStamp import DonutStamp
 from lsst.ts.wep.task.donutStamps import DonutStamps
 from lsst.ts.wep.utils import (
     createTemplateForDetector,
-    getOffsetFromExposure,
     getTaskInstrument,
 )
 from scipy.ndimage import binary_dilation
@@ -99,8 +98,7 @@ class CutOutDonutsBaseTaskConfig(
         doc="Path to a instrument configuration file to override the instrument "
         + "configuration. If begins with 'policy:' the path will be understood as "
         + "relative to the ts_wep policy directory. If not provided, the default "
-        + "instrument for the camera will be loaded, and the defocal offset will "
-        + "be determined from the focusZ value in the exposure header.",
+        + "instrument for the camera will be loaded.",
         dtype=str,
         optional=True,
     )
@@ -484,14 +482,10 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         # Run background subtraction
         self.subtractBackground.run(exposure=exposure).background
 
-        # Get the offset
-        offset = getOffsetFromExposure(exposure, cameraName, defocalType)
-
         # Load the instrument
         instrument = getTaskInstrument(
             cameraName,
             detectorName,
-            offset,
             self.instConfigFile,
         )
 

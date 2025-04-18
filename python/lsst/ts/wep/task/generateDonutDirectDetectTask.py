@@ -38,7 +38,6 @@ from lsst.ts.wep.task.generateDonutCatalogUtils import addVisitInfoToCatTable
 from lsst.ts.wep.utils import (
     DefocalType,
     createTemplateForDetector,
-    getOffsetFromExposure,
     getTaskInstrument,
 )
 from lsst.utils.timer import timeMethod
@@ -103,8 +102,7 @@ class GenerateDonutDirectDetectTaskConfig(
         doc="Path to a instrument configuration file to override the instrument "
         + "configuration. If begins with 'policy:' the path will be understood as "
         + "relative to the ts_wep policy directory. If not provided, the default "
-        + "instrument for the camera will be loaded, and the defocal offset will "
-        + "be determined from the focusZ value in the exposure header.",
+        + "instrument for the camera will be loaded.",
         dtype=str,
         optional=True,
     )
@@ -260,14 +258,10 @@ class GenerateDonutDirectDetectTask(pipeBase.PipelineTask):
         if detectorName in self.intraFocalNames:
             defocalType = DefocalType.Intra
 
-        # Get the offset
-        offset = getOffsetFromExposure(exposure, camName, defocalType)
-
         # Load the instrument
         instrument = getTaskInstrument(
             camName,
             detectorName,
-            offset,
             self.config.instConfigFile,
         )
         try:

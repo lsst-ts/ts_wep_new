@@ -35,11 +35,7 @@ from lsst.fgcmcal.utilities import lookupStaticCalibrations
 from lsst.ts.wep.task.donutQuickMeasurementTask import DonutQuickMeasurementTask
 from lsst.ts.wep.task.donutSourceSelectorTask import DonutSourceSelectorTask
 from lsst.ts.wep.task.generateDonutCatalogUtils import addVisitInfoToCatTable
-from lsst.ts.wep.utils import (
-    DefocalType,
-    createTemplateForDetector,
-    getTaskInstrument,
-)
+from lsst.ts.wep.utils import DefocalType, createTemplateForDetector, getTaskInstrument
 from lsst.utils.timer import timeMethod
 
 

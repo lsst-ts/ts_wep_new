@@ -40,7 +40,6 @@ import lsst.obs.lsst as obs_lsst
 import lsst.pipe.base as pipeBase
 import numpy as np
 from lsst.afw.cameraGeom import FIELD_ANGLE, Detector, DetectorType
-from lsst.afw.image import Exposure
 from lsst.obs.lsst import LsstCam
 from lsst.ts.wep.image import Image
 from lsst.ts.wep.imageMapper import ImageMapper
@@ -252,7 +251,7 @@ def getTaskInstrument(
         instrument = Instrument(configFile=instConfigFile)
 
     return instrument
-    
+
 
 def createTemplateForDetector(
     detector: Detector,

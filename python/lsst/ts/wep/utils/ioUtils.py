@@ -29,12 +29,10 @@ __all__ = [
     "getObsLsstCmdTaskConfigDir",
     "writeFile",
     "readPhoSimSettingData",
-    "getAmpImagesFromDir",
 ]
 
 import inspect
 import os
-import re
 from functools import lru_cache
 from typing import Any, Union
 
@@ -378,22 +376,3 @@ def readPhoSimSettingData(folderPath, fileName, atype):
     fid.close()
 
     return ccdData
-
-
-def getAmpImagesFromDir(rawExpDir):
-    """Apply regular expression to find
-    repackaged amplifier image files.
-    Use the negative lookahead to find those
-    fits files that do not contain '_e' in their name.
-
-    Parameters
-    ----------
-    rawExpDir : str
-        path to the input directory with raw repackaged files
-
-    Returns
-    -------
-    list [str]
-        raw amplifier image files
-    """
-    return list(filter(re.compile(r"^((?!_e).)*fits$").match, os.listdir(rawExpDir)))

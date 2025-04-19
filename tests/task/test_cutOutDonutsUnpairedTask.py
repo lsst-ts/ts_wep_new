@@ -77,7 +77,7 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
             cls.collections,
             pipelineYaml=cls.pipelineYaml,
         )
-        pipeCmd += f" -d 'exposure IN ({cls.visitNum})'"
+        pipeCmd += f" -d 'exposure IN ({cls.visitNum}) and detector IN (191, 192)'"
         runProgram(pipeCmd)
 
     @classmethod

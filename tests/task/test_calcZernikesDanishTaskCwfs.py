@@ -76,7 +76,7 @@ class TestCalcZernikesDanishTaskCwfs(lsst.utils.tests.TestCase):
         pipeCmd = writePipetaskCmd(
             cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
         )
-        pipeCmd += ' -d "detector IN (191, 192, 195, 196, 199, 200, 203, 204)"'
+        pipeCmd += ' -d "detector IN (191, 192)"'
         runProgram(pipeCmd)
 
     @classmethod

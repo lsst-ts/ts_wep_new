@@ -5,6 +5,17 @@
 ##################
 Version History
 ##################
+
+.. _lsst.ts.wep-14.3.0:
+
+-------------
+14.3.0
+-------------
+
+* Remove unused test data from testData/gen3TestRepo.
+* Remove old phosim data from testData.
+* Gzip test data and unzip when actually running tests.
+
 .. _lsst.ts.wep-14.2.1:
 
 -------------

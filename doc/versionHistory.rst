@@ -5,6 +5,13 @@
 ##################
 Version History
 ##################
+.. _lsst.ts.wep-14.3.1:
+
+ -------------
+ 14.3.1
+ -------------
+
+ * Fixed bugs associated with the defocal offset by removing functionality to infer defocal offsets from exposure metadata. Defocal offsets will now always use the value specified in the Instrument object used by the task.
 
 .. _lsst.ts.wep-14.3.0:
 

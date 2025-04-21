@@ -40,8 +40,7 @@ class EstimateZernikesBaseConfig(pexConfig.Config):
         doc="Path to a instrument configuration file to override the instrument "
         + "configuration. If begins with 'policy:' the path will be understood as "
         + "relative to the ts_wep policy directory. If not provided, the default "
-        + "instrument for the camera will be loaded, and the defocal offset will "
-        + "be determined from the focusZ value in the exposure header.",
+        + "instrument for the camera will be loaded.",
         dtype=str,
         optional=True,
     )
@@ -129,15 +128,6 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
         for i, (donutExtra, donutIntra) in enumerate(
             zip(donutStampsExtra, donutStampsIntra)
         ):
-            # Determine and set the defocal offset
-            defocalOffset = np.mean(
-                [
-                    donutExtra.defocal_distance,
-                    donutIntra.defocal_distance,
-                ]
-            )
-            wfEstimator.instrument.defocalOffset = defocalOffset / 1e3  # m -> mm
-
             # Estimate Zernikes
             zk = wfEstimator.estimateZk(donutExtra.wep_im, donutIntra.wep_im)
             zkList.append(zk)
@@ -179,10 +169,6 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
         zkList = []
         histories = dict()
         for i, donutExtra in enumerate(donutStampsExtra):
-            # Determine and set the defocal offset
-            defocalOffset = donutExtra.defocal_distance
-            wfEstimator.instrument.defocalOffset = defocalOffset / 1e3
-
             # Estimate Zernikes
             zk = wfEstimator.estimateZk(donutExtra.wep_im)
             zkList.append(zk)
@@ -191,10 +177,6 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             # this is just an empty dictionary)
             histories[f"extra{i}"] = convertHistoryToMetadata(wfEstimator.history)
         for i, donutIntra in enumerate(donutStampsIntra):
-            # Determine and set the defocal offset
-            defocalOffset = donutIntra.defocal_distance
-            wfEstimator.instrument.defocalOffset = defocalOffset / 1e3
-
             # Estimate Zernikes
             zk = wfEstimator.estimateZk(donutIntra.wep_im)
             zkList.append(zk)
@@ -239,7 +221,6 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
         instrument = getTaskInstrument(
             camName,
             detectorName,
-            None,
             self.config.instConfigFile,
         )
 

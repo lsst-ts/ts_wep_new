@@ -5,11 +5,21 @@
 ##################
 Version History
 ##################
+
+.. _lsst.ts.wep-14.3.2:
+
+-------------
+ 14.3.2
+-------------
+
+* Update dataset type definitions for cutOutDonutsCwfsPairTask outputs in test butler.
+* Move additional test butler files to git lfs.
+
 .. _lsst.ts.wep-14.3.1:
 
- -------------
+-------------
  14.3.1
- -------------
+-------------
 
  * Fixed bugs associated with the defocal offset by removing functionality to infer defocal offsets from exposure metadata. Defocal offsets will now always use the value specified in the Instrument object used by the task.
 

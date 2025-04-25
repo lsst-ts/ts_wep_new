@@ -23,6 +23,14 @@ See the docs: <https://ts-wep.lsst.io/>
 - [plantuml](http://plantuml.com) (optional)
 - [sphinxcontrib-plantuml](https://pypi.org/project/sphinxcontrib-plantuml/) (optional)
 
+## Download Test Data from `git-lfs`
+
+This package uses `git-lfs` to store large files. These large files are mainly test data for unit testing. To download the test data from `git-lfs` run the following commands after cloning:
+```bash
+git lfs fetch
+git lfs checkout
+```
+
 ## Install the LSST Packages and ts_wep
 
 1. Setup the LSST environment by `source $LSST_DIR/loadLSST.bash`. The `LSST_DIR` is the directory of scientific pipeline.

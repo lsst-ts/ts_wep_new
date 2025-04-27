@@ -6,6 +6,15 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.3.3:
+
+-------------
+ 14.3.3
+-------------
+
+* Update .gitattributes to include all test data files.
+* Revert ROTPA change in test data.
+
 .. _lsst.ts.wep-14.3.2:
 
 -------------

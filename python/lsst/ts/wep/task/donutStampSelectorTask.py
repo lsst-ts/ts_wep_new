@@ -57,9 +57,13 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         dtype=bool,
         default=True,
         doc="Whether to use the max of the gradient of the stamp power spectrum "
-        + "(at k < 10) to select donuts. This is designed to reject "
-        + "galaxy-donuts which are super blurry, so they have all their power "
-        + "at low k.",
+        + "(at k < 10) to select donuts. By setting this to a low positive "
+        + "value, this ensures the stamp power spectrum is not monotonically "
+        + "decreasing within the tolerace specified by minPowerGrad. This makes "
+        + "sure we select stamps whose power isn't all at large scales, as "
+        + "these stamps lack sharp(-ish) donut edges. This is designed to "
+        + "reject galaxy-donuts which are very blurry and therefore have most "
+        + "of their power at low k.",
     )
     useCustomSnLimit = pexConfig.Field(
         dtype=bool,

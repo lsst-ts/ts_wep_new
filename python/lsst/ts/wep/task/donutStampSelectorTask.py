@@ -86,10 +86,14 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         default=0.0,
         doc=str("Maximum fraction of bad pixels in selected donuts."),
     )
-    maxPowerGrad = pexConfig.Field(
+    minPowerGrad = pexConfig.Field(
         dtype=float,
         default=1e-4,
-        doc=str("Max of the gradient of the stamp power spectrum (at k < 10)."),
+        doc=str(
+            "Min of the gradient of the stamp power spectrum (at k < 10). "
+            + "the stamp's MAX_POWER_GRAD must be above this minimum value "
+            + "to be selected."
+        ),
     )
 
 
@@ -250,7 +254,7 @@ class DonutStampSelectorTask(pipeBase.Task):
             fillVals = np.asarray(donutStamps.metadata.getArray("MAX_POWER_GRAD"))
             maxPowerGrad[: len(fillVals)] = fillVals
             if self.config.selectWithMaxPowerGrad:
-                maxPowerGradSelect = maxPowerGrad <= self.config.maxPowerGrad
+                maxPowerGradSelect = maxPowerGrad > self.config.minPowerGrad
         else:
             self.log.warning("No max-power-grad cut.")
 

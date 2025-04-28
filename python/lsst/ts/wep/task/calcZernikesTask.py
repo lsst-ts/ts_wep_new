@@ -164,6 +164,8 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
             ("extra_entropy", "<f4"),
             ("intra_frac_bad_pix", "<f4"),
             ("extra_frac_bad_pix", "<f4"),
+            ("intra_max_power_grad", "<f4"),
+            ("extra_max_power_grad", "<f4"),
         ]
         for j in self.nollIndices:
             dtype.append((f"Z{j}", "<f4"))
@@ -228,6 +230,10 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
                 "extra_sn": np.nan,
                 "intra_entropy": np.nan,
                 "extra_entropy": np.nan,
+                "intra_frac_bad_pix": np.nan,
+                "extra_frac_bad_pix": np.nan,
+                "intra_max_power_grad": np.nan,
+                "extra_max_power_grad": np.nan,
             }
         )
         for i, (intra, extra, zk, flag) in enumerate(
@@ -294,7 +300,7 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
                     * u.pixel
                 )
             )
-            for key in ["MAG", "SN", "ENTROPY", "FRAC_BAD_PIX"]:
+            for key in ["MAG", "SN", "ENTROPY", "FRAC_BAD_PIX", "MAX_POWER_GRAD"]:
                 for stamps, foc in [
                     (intraStamps, "intra"),
                     (extraStamps, "extra"),

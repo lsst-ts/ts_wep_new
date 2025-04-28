@@ -204,8 +204,14 @@ class DonutStampSelectorTask(pipeBase.Task):
             entropyValue[: len(fillVals)] = fillVals
             if self.config.selectWithEntropy:
                 entropySelect = entropyValue < self.config.maxEntropy
-        else:
-            self.log.warning("No entropy cut. Checking other conditions.")
+                self.log.info(
+                    f"{sum(entropySelect)} of {len(entropySelect)} donuts "
+                    "passed entropy selection."
+                )
+        elif self.config.selectWithEntropy:
+            self.log.warning(
+                "selectWithEntropy==True but ENTROPY not in stamp metadata."
+            )
 
         # By default select all donuts,  only overwritten
         # if selectWithSignalToNoise is True
@@ -229,9 +235,14 @@ class DonutStampSelectorTask(pipeBase.Task):
 
                 # Select using the given threshold
                 snSelect = snThreshold < snValue
-        else:
+                self.log.info(
+                    f"{sum(snSelect)} of {len(snSelect)} donuts "
+                    "passed SNR selection."
+                )
+
+        elif self.config.selectWithSignalToNoise:
             self.log.warning(
-                "No signal-to-noise selection applied. Checking other conditions"
+                "selectWithSignalToNoise==True but SN not in stamp metadata."
             )
 
         # By default select all donuts,  only overwritten
@@ -245,8 +256,15 @@ class DonutStampSelectorTask(pipeBase.Task):
             fracBadPix[: len(fillVals)] = fillVals
             if self.config.selectWithFracBadPixels:
                 fracBadPixSelect = fracBadPix <= self.config.maxFracBadPixels
-        else:
-            self.log.warning("No fraction-of-bad-pixels cut.")
+                self.log.info(
+                    f"{sum(fracBadPixSelect)} of {len(fracBadPixSelect)} donuts "
+                    "passed bad pixel selection."
+                )
+        elif self.config.selectWithFracBadPixels:
+            self.log.warning(
+                "selectWithFracBadPixels==True but "
+                "FRAC_BAD_PIX not in stamp metadata."
+            )
 
         # By default select all donuts,  only overwritten
         # if selectWithMaxPowerGrad is True
@@ -259,8 +277,15 @@ class DonutStampSelectorTask(pipeBase.Task):
             maxPowerGrad[: len(fillVals)] = fillVals
             if self.config.selectWithMaxPowerGrad:
                 maxPowerGradSelect = maxPowerGrad > self.config.minPowerGrad
-        else:
-            self.log.warning("No max-power-grad cut.")
+                self.log.info(
+                    f"{sum(maxPowerGradSelect)} of {len(maxPowerGradSelect)} "
+                    "donuts passed power spectrum selection."
+                )
+        elif self.config.selectWithMaxPowerGrad:
+            self.log.warning(
+                "selectWithMaxPowerGrad==True but "
+                "MAX_POWER_GRAD not in stamp metadata."
+            )
 
         # choose only donuts that satisfy all selected conditions
         selected = entropySelect * snSelect * fracBadPixSelect * maxPowerGradSelect

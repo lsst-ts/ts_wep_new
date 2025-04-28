@@ -189,6 +189,10 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                     "extra_sn",
                     "intra_entropy",
                     "extra_entropy",
+                    "intra_frac_bad_pix",
+                    "extra_frac_bad_pix",
+                    "intra_max_power_grad",
+                    "extra_max_power_grad",
                 ]
                 self.assertLessEqual(
                     set(desired_colnames), set(structNormal.zernikes.colnames)
@@ -221,6 +225,8 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                     "SN_SELECT",
                     "FRAC_BAD_PIX",
                     "FRAC_BAD_PIX_SELECT",
+                    "MAX_POWER_GRAD",
+                    "MAX_POWER_GRAD_SELECT",
                     "FINAL_SELECT",
                     "DEFOCAL_TYPE",
                 ]

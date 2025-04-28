@@ -53,6 +53,14 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         doc="Whether to use fraction of bad pixels in deciding to use the donut. "
         + "Bad pixels correspond to mask values of 'SAT', 'BAD', 'NO_DATA'.",
     )
+    selectWithMaxPowerGrad = pexConfig.Field(
+        dtype=bool,
+        default=True,
+        doc="Whether to use the max of the gradient of the stamp power spectrum "
+        + "(at k < 10) to select donuts. This is designed to reject "
+        + "galaxy-donuts which are super blurry, so they have all their power "
+        + "at low k.",
+    )
     useCustomSnLimit = pexConfig.Field(
         dtype=bool,
         default=False,
@@ -77,6 +85,11 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         dtype=float,
         default=0.0,
         doc=str("Maximum fraction of bad pixels in selected donuts."),
+    )
+    maxPowerGrad = pexConfig.Field(
+        dtype=float,
+        default=1e-4,
+        doc=str("Max of the gradient of the stamp power spectrum (at k < 10)."),
     )
 
 
@@ -124,7 +137,7 @@ class DonutStampSelectorTask(pipeBase.Task):
         )
         selectedStamps._refresh_metadata()
         # Need to copy a few other fields by hand
-        for k in ["SN", "ENTROPY", "FRAC_BAD_PIX", "VISIT"]:
+        for k in ["SN", "ENTROPY", "FRAC_BAD_PIX", "MAX_POWER_GRAD", "VISIT"]:
             if k in donutStamps.metadata:
                 selectedStamps.metadata[k] = np.array(
                     [
@@ -227,8 +240,22 @@ class DonutStampSelectorTask(pipeBase.Task):
         else:
             self.log.warning("No fraction-of-bad-pixels cut.")
 
+        # By default select all donuts,  only overwritten
+        # if selectWithMaxPowerGrad is True
+        maxPowerGradSelect = np.ones(len(donutStamps), dtype="bool")
+
+        # collect fraction-of-bad-pixels information if available
+        maxPowerGrad = np.full(len(donutStamps), np.nan)
+        if "MAX_POWER_GRAD" in list(donutStamps.metadata):
+            fillVals = np.asarray(donutStamps.metadata.getArray("MAX_POWER_GRAD"))
+            maxPowerGrad[: len(fillVals)] = fillVals
+            if self.config.selectWithMaxPowerGrad:
+                maxPowerGradSelect = maxPowerGrad <= self.config.maxPowerGrad
+        else:
+            self.log.warning("No max-power-grad cut.")
+
         # choose only donuts that satisfy all selected conditions
-        selected = entropySelect * snSelect * fracBadPixSelect
+        selected = entropySelect * snSelect * fracBadPixSelect * maxPowerGradSelect
 
         # make sure we don't select more than maxSelect
         if self.config.maxSelect != -1:
@@ -243,18 +270,22 @@ class DonutStampSelectorTask(pipeBase.Task):
                 snValue,
                 entropyValue,
                 fracBadPix,
+                maxPowerGrad,
                 snSelect,
                 entropySelect,
                 fracBadPixSelect,
+                maxPowerGradSelect,
                 selected,
             ],
             names=[
                 "SN",
                 "ENTROPY",
                 "FRAC_BAD_PIX",
+                "MAX_POWER_GRAD",
                 "SN_SELECT",
                 "ENTROPY_SELECT",
                 "FRAC_BAD_PIX_SELECT",
+                "MAX_POWER_GRAD_SELECT",
                 "FINAL_SELECT",
             ],
         )

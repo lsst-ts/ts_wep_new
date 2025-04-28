@@ -138,6 +138,10 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         # only one of these test donuts is selected
         self.assertEqual(np.sum(donutsQuality["FRAC_BAD_PIX_SELECT"]), 1)
 
+        # by default, it thresholds on the max gradient in the stamp
+        # power spectrum (at k < 10). All should be selected
+        self.assertEqual(np.sum(donutsQuality["MAX_POWER_GRAD_SELECT"]), 3)
+
         # Test that overall selection also shows only one donut
         self.assertEqual(np.sum(donutsQuality["FINAL_SELECT"]), 1)
         self.assertEqual(np.sum(selection.selected), 1)
@@ -179,11 +183,13 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         self.config.selectWithEntropy = False
         self.config.selectWithSignalToNoise = False
         self.config.selectWithFracBadPixels = False
+        self.config.selectMaxPowerGrad = False
         task = DonutStampSelectorTask(config=self.config, name="All off")
         selection = task.selectStamps(donutStampsIntra)
         self.assertEqual(np.sum(selection.donutsQuality["ENTROPY_SELECT"]), 3)
         self.assertEqual(np.sum(selection.donutsQuality["SN_SELECT"]), 3)
         self.assertEqual(np.sum(selection.donutsQuality["FRAC_BAD_PIX_SELECT"]), 3)
+        self.assertEqual(np.sum(selection.donutsQuality["MAX_POWER_GRAD_SELECT"]), 3)
         self.assertEqual(np.sum(selection.donutsQuality["FINAL_SELECT"]), 3)
 
         # set maxSelect = 1 and make sure the final selection is only 1
@@ -193,6 +199,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         self.assertEqual(np.sum(selection.donutsQuality["ENTROPY_SELECT"]), 3)
         self.assertEqual(np.sum(selection.donutsQuality["SN_SELECT"]), 3)
         self.assertEqual(np.sum(selection.donutsQuality["FRAC_BAD_PIX_SELECT"]), 3)
+        self.assertEqual(np.sum(selection.donutsQuality["MAX_POWER_GRAD_SELECT"]), 3)
         self.assertEqual(np.sum(selection.donutsQuality["FINAL_SELECT"]), 1)
 
     def testTaskRun(self):

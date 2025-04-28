@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.4.0:
+
+-------------
+ 14.4.0
+-------------
+
+* Added selectWithMaxPowerGrad to DonutStampSelectorTask to reject galaxy-donuts.
+
 .. _lsst.ts.wep-14.3.3:
 
 -------------

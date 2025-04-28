@@ -12,7 +12,7 @@ Version History
  14.4.1
 -------------
 
-* Fixed test broken by last PR
+* Fixed tests broken by last PR
 
 .. _lsst.ts.wep-14.4.0:
 

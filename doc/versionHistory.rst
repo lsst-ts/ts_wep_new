@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.5.0:
+
+-------------
+ 14.5.0
+-------------
+
+* Added util to correct the AOS residual for over-estimation
+
 .. _lsst.ts.wep-14.4.0:
 
 -------------

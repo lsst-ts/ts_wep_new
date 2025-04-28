@@ -13,6 +13,7 @@ Version History
 -------------
 
 * Fixed tests broken by last PR
+* Updated linting to work with ts_pre_commit_conf v0.9.16.
 
 .. _lsst.ts.wep-14.4.0:
 

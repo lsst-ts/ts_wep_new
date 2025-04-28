@@ -53,6 +53,18 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         doc="Whether to use fraction of bad pixels in deciding to use the donut. "
         + "Bad pixels correspond to mask values of 'SAT', 'BAD', 'NO_DATA'.",
     )
+    selectWithMaxPowerGrad = pexConfig.Field(
+        dtype=bool,
+        default=True,
+        doc="Whether to use the max of the gradient of the stamp power spectrum "
+        + "(at k < 10) to select donuts. By setting this to a low positive "
+        + "value, this ensures the stamp power spectrum is not monotonically "
+        + "decreasing within the tolerace specified by minPowerGrad. This makes "
+        + "sure we select stamps whose power isn't all at large scales, as "
+        + "these stamps lack sharp(-ish) donut edges. This is designed to "
+        + "reject galaxy-donuts which are very blurry and therefore have most "
+        + "of their power at low k.",
+    )
     useCustomSnLimit = pexConfig.Field(
         dtype=bool,
         default=False,
@@ -77,6 +89,15 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         dtype=float,
         default=0.0,
         doc=str("Maximum fraction of bad pixels in selected donuts."),
+    )
+    minPowerGrad = pexConfig.Field(
+        dtype=float,
+        default=1e-4,
+        doc=str(
+            "Min of the gradient of the stamp power spectrum (at k < 10). "
+            + "the stamp's MAX_POWER_GRAD must be above this minimum value "
+            + "to be selected."
+        ),
     )
 
 
@@ -124,7 +145,7 @@ class DonutStampSelectorTask(pipeBase.Task):
         )
         selectedStamps._refresh_metadata()
         # Need to copy a few other fields by hand
-        for k in ["SN", "ENTROPY", "FRAC_BAD_PIX", "VISIT"]:
+        for k in ["SN", "ENTROPY", "FRAC_BAD_PIX", "MAX_POWER_GRAD", "VISIT"]:
             if k in donutStamps.metadata:
                 selectedStamps.metadata[k] = np.array(
                     [
@@ -183,8 +204,14 @@ class DonutStampSelectorTask(pipeBase.Task):
             entropyValue[: len(fillVals)] = fillVals
             if self.config.selectWithEntropy:
                 entropySelect = entropyValue < self.config.maxEntropy
-        else:
-            self.log.warning("No entropy cut. Checking other conditions.")
+                self.log.info(
+                    f"{sum(entropySelect)} of {len(entropySelect)} donuts "
+                    "passed entropy selection."
+                )
+        elif self.config.selectWithEntropy:
+            self.log.warning(
+                "selectWithEntropy==True but ENTROPY not in stamp metadata."
+            )
 
         # By default select all donuts,  only overwritten
         # if selectWithSignalToNoise is True
@@ -208,9 +235,14 @@ class DonutStampSelectorTask(pipeBase.Task):
 
                 # Select using the given threshold
                 snSelect = snThreshold < snValue
-        else:
+                self.log.info(
+                    f"{sum(snSelect)} of {len(snSelect)} donuts "
+                    "passed SNR selection."
+                )
+
+        elif self.config.selectWithSignalToNoise:
             self.log.warning(
-                "No signal-to-noise selection applied. Checking other conditions"
+                "selectWithSignalToNoise==True but SN not in stamp metadata."
             )
 
         # By default select all donuts,  only overwritten
@@ -224,11 +256,39 @@ class DonutStampSelectorTask(pipeBase.Task):
             fracBadPix[: len(fillVals)] = fillVals
             if self.config.selectWithFracBadPixels:
                 fracBadPixSelect = fracBadPix <= self.config.maxFracBadPixels
-        else:
-            self.log.warning("No fraction-of-bad-pixels cut.")
+                self.log.info(
+                    f"{sum(fracBadPixSelect)} of {len(fracBadPixSelect)} donuts "
+                    "passed bad pixel selection."
+                )
+        elif self.config.selectWithFracBadPixels:
+            self.log.warning(
+                "selectWithFracBadPixels==True but "
+                "FRAC_BAD_PIX not in stamp metadata."
+            )
+
+        # By default select all donuts,  only overwritten
+        # if selectWithMaxPowerGrad is True
+        maxPowerGradSelect = np.ones(len(donutStamps), dtype="bool")
+
+        # collect fraction-of-bad-pixels information if available
+        maxPowerGrad = np.full(len(donutStamps), np.nan)
+        if "MAX_POWER_GRAD" in list(donutStamps.metadata):
+            fillVals = np.asarray(donutStamps.metadata.getArray("MAX_POWER_GRAD"))
+            maxPowerGrad[: len(fillVals)] = fillVals
+            if self.config.selectWithMaxPowerGrad:
+                maxPowerGradSelect = maxPowerGrad > self.config.minPowerGrad
+                self.log.info(
+                    f"{sum(maxPowerGradSelect)} of {len(maxPowerGradSelect)} "
+                    "donuts passed power spectrum selection."
+                )
+        elif self.config.selectWithMaxPowerGrad:
+            self.log.warning(
+                "selectWithMaxPowerGrad==True but "
+                "MAX_POWER_GRAD not in stamp metadata."
+            )
 
         # choose only donuts that satisfy all selected conditions
-        selected = entropySelect * snSelect * fracBadPixSelect
+        selected = entropySelect * snSelect * fracBadPixSelect * maxPowerGradSelect
 
         # make sure we don't select more than maxSelect
         if self.config.maxSelect != -1:
@@ -243,18 +303,22 @@ class DonutStampSelectorTask(pipeBase.Task):
                 snValue,
                 entropyValue,
                 fracBadPix,
+                maxPowerGrad,
                 snSelect,
                 entropySelect,
                 fracBadPixSelect,
+                maxPowerGradSelect,
                 selected,
             ],
             names=[
                 "SN",
                 "ENTROPY",
                 "FRAC_BAD_PIX",
+                "MAX_POWER_GRAD",
                 "SN_SELECT",
                 "ENTROPY_SELECT",
                 "FRAC_BAD_PIX_SELECT",
+                "MAX_POWER_GRAD_SELECT",
                 "FINAL_SELECT",
             ],
         )

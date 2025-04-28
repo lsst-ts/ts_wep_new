@@ -40,7 +40,11 @@ from lsst.pipe.base import connectionTypes
 from lsst.ts.wep.donutImageCheck import DonutImageCheck
 from lsst.ts.wep.task.donutStamp import DonutStamp
 from lsst.ts.wep.task.donutStamps import DonutStamps
-from lsst.ts.wep.utils import createTemplateForDetector, getTaskInstrument
+from lsst.ts.wep.utils import (
+    calcStampPowerSpectrum,
+    createTemplateForDetector,
+    getTaskInstrument,
+)
 from scipy.ndimage import binary_dilation
 from scipy.signal import correlate
 
@@ -550,6 +554,9 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         # Fraction of bad pixels
         fracBadPixels = list()
 
+        # Max gradient in the stamp power spectrum for k < 10
+        maxPowerGradKLess10 = list()
+
         for idx, donutRow in enumerate(donutCatalog):
             # Make an initial cutout larger than the actual final stamp
             # so that we can centroid to get the stamp centered exactly
@@ -659,6 +666,12 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
             badPixels = np.bitwise_and(finalStamp.mask.array, bits) > 0
             fracBadPixels.append(np.mean(badPixels))
 
+            # Calculate the max gradient in the stamp power spectrum for k < 10
+            _, spectrum = calcStampPowerSpectrum(donutStamp.wep_im.image)
+            spectrum /= spectrum[0]  # Normalize the spectrum
+            # Max gradient below k=10
+            maxPowerGradKLess10.append(np.max(np.diff(spectrum[:10])))
+
             finalStamps.append(donutStamp)
 
         # Add additional information into metadata
@@ -760,6 +773,10 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
 
         # Save the fraction of bad pixels
         stampsMetadata["FRAC_BAD_PIX"] = np.array(fracBadPixels).astype(float)
+
+        # Save max gradient in the stamp power spectrum for k < 10
+        maxPowerGradKLess10 = np.array(maxPowerGradKLess10).astype(float)
+        stampsMetadata["MAX_POWER_GRAD"] = maxPowerGradKLess10
 
         finalDonutStamps = DonutStamps(
             finalStamps, metadata=stampsMetadata, use_archive=True

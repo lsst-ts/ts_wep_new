@@ -33,7 +33,12 @@ import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
 import numpy as np
 from astropy.table import QTable, vstack
-from lsst.pipe.base import connectionTypes
+from lsst.pipe.base import (
+    InputQuantizedConnection,
+    OutputQuantizedConnection,
+    QuantumContext,
+    connectionTypes,
+)
 from lsst.ts.wep.task.combineZernikesSigmaClipTask import CombineZernikesSigmaClipTask
 from lsst.ts.wep.task.donutStamps import DonutStamps
 from lsst.ts.wep.task.donutStampSelectorTask import DonutStampSelectorTask
@@ -388,11 +393,22 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
             donutQualityTable=donutQualityTable,
         )
 
+    def runQuantum(
+        self,
+        butlerQC: QuantumContext,
+        inputRefs: InputQuantizedConnection,
+        outputRefs: OutputQuantizedConnection,
+    ):
+        inputs = butlerQC.get(inputRefs)
+        outputs = self.run(**inputs, numCores=butlerQC.resources.num_cores)
+        butlerQC.put(outputs, outputRefs)
+
     @timeMethod
     def run(
         self,
         donutStampsExtra: DonutStamps,
         donutStampsIntra: DonutStamps,
+        numCores: int = 1,
     ) -> pipeBase.Struct:
         # If no donuts are in the donutCatalog for a set of exposures
         # then return the Zernike coefficients as nan.
@@ -426,7 +442,9 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
             donutQualityTable = QTable([])
 
         # Estimate Zernikes from the collection of selected stamps
-        zkCoeffRaw = self.estimateZernikes.run(donutStampsExtra, donutStampsIntra)
+        zkCoeffRaw = self.estimateZernikes.run(
+            donutStampsExtra, donutStampsIntra, numCores=numCores
+        )
         zkCoeffCombined = self.combineZernikes.run(zkCoeffRaw.zernikes)
 
         zkTable = self.createZkTable(

@@ -1,0 +1,73 @@
+import os
+
+from lsst.daf import butler as dafButler
+from lsst.ts.wep.utils import (
+    getModulePath,
+    runProgram,
+    writeCleanUpRepoCmd,
+    writePipetaskCmd,
+)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-pretest",
+        action="store_true",
+        default=False,
+        help="Run WEP pipeline before all tests.",
+    )
+
+
+def pytest_configure(config):
+    if config.getoption("--run-pretest"):
+        print("Running pre-test command...")
+
+        # Set up the butler repository config
+        config.testInfo = dict()
+        moduleDir = getModulePath()
+        testDataDir = os.path.join(moduleDir, "tests", "testData")
+        testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
+        config.testInfo["repoDir"] = os.path.join(testDataDir, "gen3TestRepo")
+        config.testInfo["runNameCwfs"] = "pretest_run_cwfs"
+        config.testInfo["runNameScience"] = "pretest_run_science"
+
+        # Check that run doesn't already exist due to previous improper cleanup
+        butler = dafButler.Butler(config.testInfo["repoDir"])
+        registry = butler.registry
+        collectionsList = list(registry.queryCollections())
+        for runName in [
+            config.testInfo["runNameCwfs"],
+            config.testInfo["runNameScience"],
+        ]:
+            if runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(config.testInfo["repoDir"], runName)
+                runProgram(cleanUpCmd)
+
+        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+        instrument = "lsst.obs.lsst.LsstCam"
+
+        # Run CWFS Pipeline
+        pipelineYamlCwfs = os.path.join(
+            testPipelineConfigDir, "testCalcZernikesCwfsSetupPipeline.yaml"
+        )
+
+        pipeCmdCwfs = writePipetaskCmd(
+            config.testInfo["repoDir"],
+            config.testInfo["runNameCwfs"],
+            instrument,
+            collections,
+            pipelineYaml=pipelineYamlCwfs,
+        )
+        pipeCmdCwfs += ' -d "detector IN (191, 192)"'
+        runProgram(pipeCmdCwfs)
+
+
+def pytest_unconfigure(config):
+    if config.getoption("--run-pretest"):
+        print("Running cleanup...")
+        for runName in [
+            config.testInfo["runNameCwfs"],
+            config.testInfo["runNameScience"],
+        ]:
+            cleanUpCmd = writeCleanUpRepoCmd(config.testInfo["repoDir"], runName)
+            runProgram(cleanUpCmd)

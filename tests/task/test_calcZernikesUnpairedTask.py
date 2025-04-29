@@ -150,8 +150,6 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                 task = CalcZernikesUnpairedTask(config=config)
                 structNormal = task.run(stamps)
 
-                # import pytest; pytest.set_trace()
-
                 # check that 4 elements are created
                 self.assertEqual(len(structNormal), 4)
 

@@ -255,9 +255,14 @@ class TestCalcZernikesDanishTaskCwfs(lsst.utils.tests.TestCase):
         )
 
         # First estimate without pairs
-        zkAllExtra = self.task.estimateZernikes.run(donutStampsExtra, []).zernikes
+        emptyStamps = DonutStamps([])
+        zkAllExtra = self.task.estimateZernikes.run(
+            donutStampsExtra, emptyStamps
+        ).zernikes
         zkAvgExtra = self.task.combineZernikes.run(zkAllExtra).combinedZernikes
-        zkAllIntra = self.task.estimateZernikes.run([], donutStampsIntra).zernikes
+        zkAllIntra = self.task.estimateZernikes.run(
+            emptyStamps, donutStampsIntra
+        ).zernikes
         zkAvgIntra = self.task.combineZernikes.run(zkAllIntra).combinedZernikes
 
         # Now estimate with pairs

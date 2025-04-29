@@ -220,6 +220,8 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                     "FRAC_BAD_PIX",
                     "FRAC_BAD_PIX_SELECT",
                     "FINAL_SELECT",
+                    "MAX_POWER_GRAD",
+                    "MAX_POWER_GRAD_SELECT",
                     "DEFOCAL_TYPE",
                 ]
                 np.testing.assert_array_equal(

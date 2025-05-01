@@ -59,9 +59,9 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         doc="Whether to use the max of the gradient of the stamp power spectrum "
         + "(at k < 10) to select donuts. By setting this to a low positive "
         + "value, this ensures the stamp power spectrum is not monotonically "
-        + "decreasing within the tolerace specified by minPowerGrad. This makes "
-        + "sure we select stamps whose power isn't all at large scales, as "
-        + "these stamps lack sharp(-ish) donut edges. This is designed to "
+        + "decreasing within the tolerace specified by maxPowerGradThresh. This "
+        + "makes sure we select stamps whose power isn't all at large scales, "
+        + "as these stamps lack sharp(-ish) donut edges. This is designed to "
         + "reject galaxy-donuts which are very blurry and therefore have most "
         + "of their power at low k.",
     )
@@ -90,7 +90,7 @@ class DonutStampSelectorTaskConfig(pexConfig.Config):
         default=0.0,
         doc=str("Maximum fraction of bad pixels in selected donuts."),
     )
-    minPowerGrad = pexConfig.Field(
+    maxPowerGradThresh = pexConfig.Field(
         dtype=float,
         default=1e-4,
         doc=str(
@@ -276,7 +276,7 @@ class DonutStampSelectorTask(pipeBase.Task):
             fillVals = np.asarray(donutStamps.metadata.getArray("MAX_POWER_GRAD"))
             maxPowerGrad[: len(fillVals)] = fillVals
             if self.config.selectWithMaxPowerGrad:
-                maxPowerGradSelect = maxPowerGrad > self.config.minPowerGrad
+                maxPowerGradSelect = maxPowerGrad > self.config.maxPowerGradThresh
                 self.log.info(
                     f"{sum(maxPowerGradSelect)} of {len(maxPowerGradSelect)} "
                     "donuts passed power spectrum selection."

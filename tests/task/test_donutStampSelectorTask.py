@@ -97,6 +97,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         self.assertEqual(self.OrigTask.config.selectWithEntropy, False)
         self.assertEqual(self.OrigTask.config.selectWithSignalToNoise, True)
         self.assertEqual(self.OrigTask.config.selectWithFracBadPixels, True)
+        self.assertEqual(self.OrigTask.config.selectWithMaxPowerGrad, True)
         self.assertEqual(self.OrigTask.config.useCustomSnLimit, False)
 
         # Test changing configs
@@ -107,6 +108,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         self.config.minSignalToNoise = 999
         self.config.maxEntropy = 4
         self.config.maxFracBadPixels = 0.2
+        self.config.maxPowerGradThresh = 0.002
         self.ModifiedTask = DonutStampSelectorTask(config=self.config, name="Mod Task")
 
         self.assertEqual(self.ModifiedTask.config.maxSelect, 10)
@@ -116,6 +118,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         self.assertEqual(self.ModifiedTask.config.minSignalToNoise, 999)
         self.assertEqual(self.ModifiedTask.config.maxEntropy, 4)
         self.assertEqual(self.ModifiedTask.config.maxFracBadPixels, 0.2)
+        self.assertEqual(self.ModifiedTask.config.maxPowerGradThresh, 0.002)
 
     def testSelectStamps(self):
         donutStampsIntra = self.butler.get(
@@ -183,7 +186,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         self.config.selectWithEntropy = False
         self.config.selectWithSignalToNoise = False
         self.config.selectWithFracBadPixels = False
-        self.config.selectMaxPowerGrad = False
+        self.config.selectWithMaxPowerGrad = False
         task = DonutStampSelectorTask(config=self.config, name="All off")
         selection = task.selectStamps(donutStampsIntra)
         self.assertEqual(np.sum(selection.donutsQuality["ENTROPY_SELECT"]), 3)

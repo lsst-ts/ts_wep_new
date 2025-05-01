@@ -20,11 +20,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-    Pure Python/Numpy implementation of the Nelder-Mead algorithm.
-    Reference: https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
+Pure Python/Numpy implementation of the Nelder-Mead algorithm.
+Reference: https://en.wikipedia.org/wiki/Nelder%E2%80%93Mead_method
 
-    Download from https://github.com/fchollet/nelder-mead.
-    Modify this script to fit the interger step for need.
+Download from https://github.com/fchollet/nelder-mead.
+Modify this script to fit the interger step for need.
 """
 
 __all__ = ["feval", "nelderMeadModify"]

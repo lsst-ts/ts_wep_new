@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.5.0:
+
+-------------
+ 14.5.0
+-------------
+
+* Add CalcZernikesTask multiprocessing.
+
 .. _lsst.ts.wep-14.4.1:
 
 -------------

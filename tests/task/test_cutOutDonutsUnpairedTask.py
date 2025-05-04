@@ -48,7 +48,6 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run2"
         # The visit number for the test data
         cls.visitNum = 4021123106000
 
@@ -56,8 +55,8 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if "pretest_run_science" in collectionsList:
-            cls.runName = "pretest_run_science"
+        if "pretest_run_cwfs" in collectionsList:
+            cls.runName = "pretest_run_cwfs"
         else:
             cls.runName = "run1"
             if cls.runName in collectionsList:

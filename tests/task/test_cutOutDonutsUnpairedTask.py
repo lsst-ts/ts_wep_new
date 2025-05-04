@@ -56,28 +56,35 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
         if "pretest_run_cwfs" in collectionsList:
-            cls.runName = "pretest_run_cwfs"
+            cls.baseRunName = "pretest_run_cwfs"
         else:
-            cls.runName = "run1"
-            if cls.runName in collectionsList:
+            cls.baseRunName = "run1"
+            if cls.baseRunName in collectionsList:
                 cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
                 runProgram(cleanUpCmd)
 
-            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-            instrument = "lsst.obs.lsst.LsstCam"
-            pipelineYaml = os.path.join(
-                testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
-            )
+        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+        instrument = "lsst.obs.lsst.LsstCam"
+        pipelineYaml = os.path.join(
+            testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
+        )
 
-            pipeCmd = writePipetaskCmd(
-                cls.repoDir,
-                cls.runName,
-                instrument,
-                collections,
-                pipelineYaml=pipelineYaml,
-            )
-            pipeCmd += ' -d "detector IN (191, 192)"'
-            runProgram(pipeCmd)
+        if cls.baseRunName == "pretest_run_cwfs":
+            collections += ",pretest_run_cwfs"
+            cls.runName = "run1"
+            pipelineYaml += "#cutOutDonutsUnpairedTask"
+        else:
+            cls.runName = "run1"
+
+        pipeCmd = writePipetaskCmd(
+            cls.repoDir,
+            cls.runName,
+            instrument,
+            collections,
+            pipelineYaml=pipelineYaml,
+        )
+        pipeCmd += ' -d "detector IN (191, 192)"'
+        runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
@@ -108,17 +115,17 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
     def _getDataFromButler(self):
         # Grab two exposures from the same visits of adjacent detectors
         exposureExtra = self.butler.get(
-            "postISRCCD", dataId=self.dataIdExtra, collections=[self.runName]
+            "postISRCCD", dataId=self.dataIdExtra, collections=[self.baseRunName]
         )
         exposureIntra = self.butler.get(
-            "postISRCCD", dataId=self.dataIdIntra, collections=[self.runName]
+            "postISRCCD", dataId=self.dataIdIntra, collections=[self.baseRunName]
         )
         # Get the donut catalogs for each detector
         donutCatalogExtra = self.butler.get(
-            "donutTable", dataId=self.dataIdExtra, collections=[self.runName]
+            "donutTable", dataId=self.dataIdExtra, collections=[self.baseRunName]
         )
         donutCatalogIntra = self.butler.get(
-            "donutTable", dataId=self.dataIdIntra, collections=[self.runName]
+            "donutTable", dataId=self.dataIdIntra, collections=[self.baseRunName]
         )
         # Get the camera from the butler
         camera = self.butler.get(

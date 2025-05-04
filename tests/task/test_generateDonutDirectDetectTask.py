@@ -51,35 +51,37 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
 
         # Check that run doesn't already exist due to previous improper cleanup
         collectionsList = list(registry.queryCollections())
+        cls.runName = "run1"
+        cls.baseRunName = "run1"
+        if cls.runName in collectionsList:
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
+
+        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+        instrument = "lsst.obs.lsst.LsstCam"
+        cls.cameraName = "LSSTCam"
+        pipelineYaml = os.path.join(
+            testPipelineConfigDir, "testDonutDirectDetectPipeline.yaml"
+        )
+
         if "pretest_run_science" in collectionsList:
-            cls.runName = "pretest_run_science"
-        else:
-            cls.runName = "run1"
-            if cls.runName in collectionsList:
-                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-                runProgram(cleanUpCmd)
+            pipelineYaml += "#generateDonutDirectDetectTask"
+            collections += ",pretest_run_science"
+            cls.baseRunName = "pretest_run_science"
 
-            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-            instrument = "lsst.obs.lsst.LsstCam"
-            cls.cameraName = "LSSTCam"
-            pipelineYaml = os.path.join(
-                testPipelineConfigDir, "testDonutDirectDetectPipeline.yaml"
-            )
-
-            pipeCmd = writePipetaskCmd(
-                cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-            )
-            # Make sure we are using the right exposure+detector combinations
-            pipeCmd += ' -d "exposure IN (4021123106001, 4021123106002) AND '
-            pipeCmd += 'detector NOT IN (191, 192, 195, 196, 199, 200, 203, 204)"'
-            runProgram(pipeCmd)
+        pipeCmd = writePipetaskCmd(
+            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
+        )
+        # Make sure we are using the right exposure+detector combinations
+        pipeCmd += ' -d "exposure IN (4021123106001, 4021123106002) AND '
+        pipeCmd += 'detector NOT IN (191, 192, 195, 196, 199, 200, 203, 204)"'
+        runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
@@ -198,7 +200,7 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         exposure_S11 = self.butler.get(
             "postISRCCD",
             dataId=self.testDataIdS11,
-            collections=[self.runName],
+            collections=[self.baseRunName],
         )
         bkgnd = 100 * (
             np.random.random_sample(size=np.shape(exposure_S11.image.array)) - 0.5
@@ -244,7 +246,7 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         exposure_S10 = self.butler.get(
             "postISRCCD",
             dataId=self.testDataIdS10,
-            collections=[self.runName],
+            collections=[self.baseRunName],
         )
         taskOut_S11 = self.task.run(
             exposure_S11,

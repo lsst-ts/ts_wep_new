@@ -51,12 +51,14 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
+        cls.expNum = 4021123106001
+        cls.detNum = 94
+        cls.cameraName = "LSSTCam"
         if "pretest_run_science" in collectionsList:
             cls.runName = "pretest_run_science"
         else:
@@ -67,14 +69,11 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
 
             collections = "LSSTCam/calib/unbounded,LSSTCam/raw/all"
             instrument = "lsst.obs.lsst.LsstCam"
-            cls.cameraName = "LSSTCam"
             pipelineYaml = os.path.join(testPipelineConfigDir, "testIsrPipeline.yaml")
 
             pipeCmd = writePipetaskCmd(
                 cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
             )
-            cls.expNum = 4021123106001
-            cls.detNum = 94
             pipeCmd += f" -d 'detector in ({cls.detNum}) and exposure in ({cls.expNum})'"
             runProgram(pipeCmd)
 
@@ -103,7 +102,7 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
             "visit": self.expNum,
         }
         self.postIsrExp = self.butler.get(
-            "postISRCCD", dataId=testDataId, collections="run1"
+            "postISRCCD", dataId=testDataId, collections=self.runName
         )
 
     def _getTemplate(self):

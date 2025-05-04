@@ -50,7 +50,11 @@ def pytest_configure(config):
         pipelineYamlCwfs = os.path.join(
             testPipelineConfigDir, "testCalcZernikesCwfsSetupPipeline.yaml"
         )
+        pipelineYamlScience = os.path.join(
+            testPipelineConfigDir, "testCalcZernikesScienceSensorSetupPipeline.yaml"
+        )
 
+        print("Running CWFS pipeline...")
         pipeCmdCwfs = writePipetaskCmd(
             config.testInfo["repoDir"],
             config.testInfo["runNameCwfs"],
@@ -61,6 +65,17 @@ def pytest_configure(config):
         pipeCmdCwfs += ' -d "detector IN (191, 192)"'
         runProgram(pipeCmdCwfs)
 
+        print("Running Science pipeline...")
+        pipeCmdScience = writePipetaskCmd(
+            config.testInfo["repoDir"],
+            config.testInfo["runNameScience"],
+            instrument,
+            collections,
+            pipelineYaml=pipelineYamlScience,
+        )
+        pipeCmdScience += ' -d "exposure IN (4021123106001, 4021123106002) AND '
+        pipeCmdScience += 'detector NOT IN (191, 192, 195, 196, 199, 200, 203, 204)"'
+        runProgram(pipeCmdScience)
 
 def pytest_unconfigure(config):
     if config.getoption("--run-pretest"):

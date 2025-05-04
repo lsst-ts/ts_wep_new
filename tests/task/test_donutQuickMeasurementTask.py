@@ -57,27 +57,32 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
+        if "pretest_run_science" in collectionsList:
+            cls.runName = "pretest_run_science"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
 
-        collections = "LSSTCam/calib/unbounded,LSSTCam/raw/all"
-        instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        pipelineYaml = os.path.join(testPipelineConfigDir, "testIsrPipeline.yaml")
+            collections = "LSSTCam/calib/unbounded,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            cls.cameraName = "LSSTCam"
+            pipelineYaml = os.path.join(testPipelineConfigDir, "testIsrPipeline.yaml")
 
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-        )
-        cls.expNum = 4021123106001
-        cls.detNum = 94
-        pipeCmd += f" -d 'detector in ({cls.detNum}) and exposure in ({cls.expNum})'"
-        runProgram(pipeCmd)
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
+            )
+            cls.expNum = 4021123106001
+            cls.detNum = 94
+            pipeCmd += f" -d 'detector in ({cls.detNum}) and exposure in ({cls.expNum})'"
+            runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = DonutQuickMeasurementTaskConfig()

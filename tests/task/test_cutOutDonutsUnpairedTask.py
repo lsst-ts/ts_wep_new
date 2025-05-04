@@ -56,34 +56,35 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
+        if "pretest_run_science" in collectionsList:
+            cls.runName = "pretest_run_science"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
 
-        # Point to the collections for the reference catalogs,
-        # the raw images and the camera model in the calib directory
-        # that comes from `butler write-curated-calibrations`.
-        cls.collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        cls.instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        cls.pipelineYaml = os.path.join(
-            testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
-        )
+            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            pipelineYaml = os.path.join(
+                testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
+            )
 
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir,
-            cls.runName,
-            cls.instrument,
-            cls.collections,
-            pipelineYaml=cls.pipelineYaml,
-        )
-        pipeCmd += f" -d 'exposure IN ({cls.visitNum}) and detector IN (191, 192)'"
-        runProgram(pipeCmd)
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir,
+                cls.runName,
+                instrument,
+                collections,
+                pipelineYaml=pipelineYaml,
+            )
+            pipeCmd += ' -d "detector IN (191, 192)"'
+            runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = CutOutDonutsUnpairedTaskConfig()
@@ -104,22 +105,6 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
             "exposure": self.visitNum,
             "visit": self.visitNum,
         }
-
-        self.testRunName = "testTaskRun"
-        self.collectionsList = list(self.registry.queryCollections())
-        if self.testRunName in self.collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(self.repoDir, self.testRunName)
-            runProgram(cleanUpCmd)
-
-    def tearDown(self):
-        # Get Butler with updated registry
-        self.butler = dafButler.Butler(self.repoDir)
-        self.registry = self.butler.registry
-
-        self.collectionsList = list(self.registry.queryCollections())
-        if self.testRunName in self.collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(self.repoDir, self.testRunName)
-            runProgram(cleanUpCmd)
 
     def _getDataFromButler(self):
         # Grab two exposures from the same visits of adjacent detectors

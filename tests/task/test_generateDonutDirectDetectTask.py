@@ -47,7 +47,6 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         couple minutes with the ISR.
         """
         # Run pipeline command
-        runName = "run1"
         moduleDir = getModulePath()
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
@@ -59,26 +58,34 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
 
         # Check that run doesn't already exist due to previous improper cleanup
         collectionsList = list(registry.queryCollections())
-        if runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, runName)
+        if "pretest_run_science" in collectionsList:
+            cls.runName = "pretest_run_science"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
+
+            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            cls.cameraName = "LSSTCam"
+            pipelineYaml = os.path.join(
+                testPipelineConfigDir, "testDonutDirectDetectPipeline.yaml"
+            )
+
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
+            )
+            # Make sure we are using the right exposure+detector combinations
+            pipeCmd += ' -d "exposure IN (4021123106001, 4021123106002) AND '
+            pipeCmd += 'detector NOT IN (191, 192, 195, 196, 199, 200, 203, 204)"'
+            runProgram(pipeCmd)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
             runProgram(cleanUpCmd)
-
-        instrument = "lsst.obs.lsst.LsstCam"
-        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        cls.cameraName = "LSSTCam"
-
-        exposureId = 4021123106001  # Exposure ID for test extra-focal image
-        pipelineYaml = os.path.join(
-            testPipelineConfigDir, "testDonutDirectDetectPipeline.yaml"
-        )
-        pipetaskCmd = writePipetaskCmd(
-            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-        )
-        # Update task configuration to match pointing information
-        pipetaskCmd += f" -d 'exposure IN ({exposureId})'"
-
-        # Run pipeline task
-        runProgram(pipetaskCmd)
 
     def setUp(self):
         self.config = GenerateDonutDirectDetectTaskConfig()
@@ -384,8 +391,3 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
             outputTable.meta.keys(),
             ["blend_centroid_x", "blend_centroid_y", "visit_info"],
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)

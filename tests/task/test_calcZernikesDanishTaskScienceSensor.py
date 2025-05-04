@@ -55,7 +55,6 @@ class TestCalcZernikesDanishTaskScienceSensor(lsst.utils.tests.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)

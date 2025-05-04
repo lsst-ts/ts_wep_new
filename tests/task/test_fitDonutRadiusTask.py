@@ -48,6 +48,9 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
             testPipelineConfigDir, "testFitDonutRadiusFamPipeline.yaml"
         )
 
+        if "pretest_run_science" in collectionsList:
+            pipelineYaml += "#fitDonutRadiusTask"
+            collections += ",pretest_run_science"
         pipeCmd = writePipetaskCmd(
             cls.repoDir,
             cls.runNameScience,
@@ -62,10 +65,14 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
         runProgram(pipeCmd)
 
         # Run CWFS sensors
+        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
         pipelineYaml = os.path.join(
             testPipelineConfigDir, "testFitDonutRadiusCwfsPipeline.yaml"
         )
 
+        if "pretest_run_cwfs" in collectionsList:
+            pipelineYaml += "#fitDonutRadiusTask"
+            collections += ",pretest_run_cwfs"
         pipeCmd = writePipetaskCmd(
             cls.repoDir,
             cls.runNameCwfs,

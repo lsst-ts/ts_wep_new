@@ -376,20 +376,9 @@ class Instrument:
                 nx=128,
             )[4]
 
-            # Define a function to calculate dZ4 for an offset detector
-            def dZ4det(offset):
-                return batoid.zernike(
-                    batoidModel.withLocallyShiftedOptic("Detector", [0, 0, offset]),
-                    *np.zeros(2),
-                    wavelength,
-                    eps=eps,
-                    jmax=4,
-                    nx=128,
-                )[4]
-
             # Calculate the equivalent detector offset
             result = minimize_scalar(
-                lambda offset: np.abs((dZ4det(offset) - dZ4optic) / dZ4optic),
+                lambda offset: np.abs((self.offsetToZ4Defocus(offset) - dZ4optic) / dZ4optic),
                 bounds=(-0.1, 0.1),
             )
             if not result.success or result.fun > 1e-3:
@@ -425,6 +414,29 @@ class Instrument:
         self._getIntrinsicZernikesTACached.cache_clear()
         self.createZernikeBasis.cache_clear()
         self.createZernikeGradBasis.cache_clear()
+
+    def offsetToZ4Defocus(self, offset: float) -> float:
+        """Convert the defocus offset to Z4.
+
+        Parameters
+        ----------
+        offset : float
+            The defocus offset in meters.
+
+        Returns
+        -------
+        float
+            The Z4 value in meters.
+        """
+        batoidModel = self.getBatoidModel()
+        return batoid.zernike(
+            batoidModel.withLocallyShiftedOptic("Detector", [0, 0, offset]),
+            *np.zeros(2),
+            self.wavelength[BandLabel.REF],
+            eps=batoidModel.pupilObscuration,
+            jmax=4,
+            nx=128,
+        )[4]
 
     @property
     def pupilOffset(self) -> float:

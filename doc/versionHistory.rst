@@ -6,6 +6,14 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.6.0:
+
+-------------
+ 14.6.0
+-------------
+
+* In CalcZernikeTask compute zernikes from donut radii fit if no donuts are good for zernikeEstimation.
+  
 .. _lsst.ts.wep-14.5.0:
 
 -------------

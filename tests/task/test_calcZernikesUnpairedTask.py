@@ -53,12 +53,12 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
+        cls.runName = "run1"
         if cls.runName in collectionsList:
             cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
             runProgram(cleanUpCmd)
@@ -69,6 +69,9 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
         pipelineYaml = os.path.join(
             testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
         )
+        if "pretest_run_science" in collectionsList:
+            pipelineYaml += "#cutOutDonutsUnpairedTask"
+            collections += ",pretest_run_science"
 
         pipeCmd = writePipetaskCmd(
             cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml

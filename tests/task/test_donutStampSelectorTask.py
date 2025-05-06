@@ -46,12 +46,13 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
+        cls.runName = "run1"
+        cls.baseRunName = "run1"
         if cls.runName in collectionsList:
             cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
             runProgram(cleanUpCmd)
@@ -62,6 +63,10 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         pipelineYaml = os.path.join(
             testPipelineConfigDir, "testDonutStampSelectorPipeline.yaml"
         )
+        if "pretest_run_science" in collectionsList:
+            cls.baseRunName = "pretest_run_science"
+            collections += ",pretest_run_science"
+            pipelineYaml += "#calcZernikesTask"
 
         pipeCmd = writePipetaskCmd(
             cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
@@ -73,8 +78,9 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = DonutStampSelectorTaskConfig()
@@ -122,12 +128,14 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
 
     def testSelectStamps(self):
         donutStampsIntra = self.butler.get(
-            "donutStampsIntra", dataId=self.dataIdExtra, collections=[self.runName]
+            "donutStampsIntra", dataId=self.dataIdExtra, collections=[self.baseRunName]
         )
+        donutStampsIntra.metadata['FRAC_BAD_PIX'] = [0.1, 0.1, 0.0]
 
         # test defaults
         selection = self.task.selectStamps(donutStampsIntra)
         donutsQuality = selection.donutsQuality
+        print(donutsQuality)
 
         # by default, config.selectWithEntropy is False,
         # so we select all donuts
@@ -171,7 +179,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
         # test custom SNR thresholds
         self.config.selectWithEntropy = False
         self.config.useCustomSnLimit = True
-        minSignalToNoise = 1658
+        minSignalToNoise = 1000.
         self.config.minSignalToNoise = minSignalToNoise
         task = DonutStampSelectorTask(config=self.config, name="SN Task")
         selection = task.selectStamps(donutStampsIntra)
@@ -207,7 +215,7 @@ class TestDonutStampSelectorTask(lsst.utils.tests.TestCase):
 
     def testTaskRun(self):
         donutStampsIntra = self.butler.get(
-            "donutStampsIntra", dataId=self.dataIdExtra, collections=[self.runName]
+            "donutStampsIntra", dataId=self.dataIdExtra, collections=[self.baseRunName]
         )
 
         # test defaults

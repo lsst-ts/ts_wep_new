@@ -48,7 +48,6 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run2"
         # The visit number for the test data
         cls.visitNum = 4021123106000
 
@@ -56,34 +55,42 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
+        if "pretest_run_cwfs" in collectionsList:
+            cls.baseRunName = "pretest_run_cwfs"
+        else:
+            cls.baseRunName = "run1"
+            if cls.baseRunName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
 
-        # Point to the collections for the reference catalogs,
-        # the raw images and the camera model in the calib directory
-        # that comes from `butler write-curated-calibrations`.
-        cls.collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        cls.instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        cls.pipelineYaml = os.path.join(
+        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+        instrument = "lsst.obs.lsst.LsstCam"
+        pipelineYaml = os.path.join(
             testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
         )
+
+        if cls.baseRunName == "pretest_run_cwfs":
+            collections += ",pretest_run_cwfs"
+            cls.runName = "run1"
+            pipelineYaml += "#cutOutDonutsUnpairedTask"
+        else:
+            cls.runName = "run1"
 
         pipeCmd = writePipetaskCmd(
             cls.repoDir,
             cls.runName,
-            cls.instrument,
-            cls.collections,
-            pipelineYaml=cls.pipelineYaml,
+            instrument,
+            collections,
+            pipelineYaml=pipelineYaml,
         )
-        pipeCmd += f" -d 'exposure IN ({cls.visitNum}) and detector IN (191, 192)'"
+        pipeCmd += ' -d "detector IN (191, 192)"'
         runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = CutOutDonutsUnpairedTaskConfig()
@@ -105,36 +112,20 @@ class TestCutOutDonutsUnpairedTask(lsst.utils.tests.TestCase):
             "visit": self.visitNum,
         }
 
-        self.testRunName = "testTaskRun"
-        self.collectionsList = list(self.registry.queryCollections())
-        if self.testRunName in self.collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(self.repoDir, self.testRunName)
-            runProgram(cleanUpCmd)
-
-    def tearDown(self):
-        # Get Butler with updated registry
-        self.butler = dafButler.Butler(self.repoDir)
-        self.registry = self.butler.registry
-
-        self.collectionsList = list(self.registry.queryCollections())
-        if self.testRunName in self.collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(self.repoDir, self.testRunName)
-            runProgram(cleanUpCmd)
-
     def _getDataFromButler(self):
         # Grab two exposures from the same visits of adjacent detectors
         exposureExtra = self.butler.get(
-            "postISRCCD", dataId=self.dataIdExtra, collections=[self.runName]
+            "postISRCCD", dataId=self.dataIdExtra, collections=[self.baseRunName]
         )
         exposureIntra = self.butler.get(
-            "postISRCCD", dataId=self.dataIdIntra, collections=[self.runName]
+            "postISRCCD", dataId=self.dataIdIntra, collections=[self.baseRunName]
         )
         # Get the donut catalogs for each detector
         donutCatalogExtra = self.butler.get(
-            "donutTable", dataId=self.dataIdExtra, collections=[self.runName]
+            "donutTable", dataId=self.dataIdExtra, collections=[self.baseRunName]
         )
         donutCatalogIntra = self.butler.get(
-            "donutTable", dataId=self.dataIdIntra, collections=[self.runName]
+            "donutTable", dataId=self.dataIdIntra, collections=[self.baseRunName]
         )
         # Get the camera from the butler
         camera = self.butler.get(

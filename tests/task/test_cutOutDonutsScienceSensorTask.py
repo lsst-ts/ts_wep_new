@@ -52,16 +52,22 @@ class TestCutOutDonutsScienceSensorTask(lsst.utils.tests.TestCase):
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
         cls.pairTableName = "run2_pair_table"
         cls.run2Name = "run2"
         cls.run3Name = "run3"
+        cls.cameraName = "LSSTCam"
 
         # Check that runs don't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        for runName in [cls.runName, cls.pairTableName, cls.run2Name, cls.run3Name]:
+        cleanUpList = [cls.pairTableName, cls.run2Name, cls.run3Name]
+        if "pretest_run_science" in collectionsList:
+            cls.runName = "pretest_run_science"
+        else:
+            cls.runName = "run1"
+            cleanUpList.append(cls.runName)
+        for runName in cleanUpList:
             if runName in collectionsList:
                 cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, runName)
                 runProgram(cleanUpCmd)
@@ -71,16 +77,18 @@ class TestCutOutDonutsScienceSensorTask(lsst.utils.tests.TestCase):
         # that comes from `butler write-curated-calibrations`.
         collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
         instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        pipelineYaml = os.path.join(
-            testPipelineConfigDir, "testCutoutsFamPipeline.yaml"
-        )
+        if runName == "run1":
+            instrument = "lsst.obs.lsst.LsstCam"
+            cls.cameraName = "LSSTCam"
+            pipelineYaml = os.path.join(
+                testPipelineConfigDir, "testCutoutsFamPipeline.yaml"
+            )
 
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-        )
-        pipeCmd += " -d 'exposure IN (4021123106001..4021123106007)'"
-        runProgram(pipeCmd)
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
+            )
+            pipeCmd += " -d 'exposure IN (4021123106001..4021123106007)'"
+            runProgram(pipeCmd)
 
         # Test ingestion of pair table
         cmd = "ingestPairTable.py"
@@ -413,6 +421,9 @@ class TestCutOutDonutsScienceSensorTask(lsst.utils.tests.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        for runName in [cls.runName, cls.pairTableName, cls.run2Name, cls.run3Name]:
+        tearDownRunList = [cls.pairTableName, cls.run2Name, cls.run3Name]
+        if cls.runName == "run1":
+            tearDownRunList.append(cls.runName)
+        for runName in tearDownRunList:
             cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, runName)
             runProgram(cleanUpCmd)

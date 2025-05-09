@@ -677,7 +677,9 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         # Add additional information into metadata
         catalogLength = len(donutCatalog)
         stampsMetadata = PropertyList()
-        stampsMetadata["VISIT"] = np.array([visitId] * catalogLength, dtype=int)
+        stampsMetadata["VISIT"] = visitId
+        stampsMetadata["MJD"] = donutCatalog.meta["visit_info"]["mjd"]
+
         # Save the donut flux as magnitude
         fluxLabel = next(
             (
@@ -721,7 +723,6 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         stampsMetadata["BORESIGHT_DEC_RAD"] = (
             donutCatalog.meta["visit_info"]["boresight_dec"].to(u.rad).value
         )
-        stampsMetadata["MJD"] = donutCatalog.meta["visit_info"]["mjd"]
 
         if len(finalStamps) > 0:
             self.metadata[f"recenterFlags{defocalType.value.capitalize()}"] = list(
@@ -784,5 +785,12 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         # Refresh to pull original metadata into stamps
         # Necessary when running full pipeline interactively.
         finalDonutStamps._refresh_metadata()
+
+        if catalogLength == 0:
+            finalDonutStamps.metadata["DET_NAME"] = detectorName
+            finalDonutStamps.metadata["DFC_DIST"] = instrument.defocalOffset * 1e3
+            finalDonutStamps.metadata["DFC_TYPE"] = defocalType.value
+            finalDonutStamps.metadata["CAM_NAME"] = cameraName
+            finalDonutStamps.metadata["BANDPASS"] = bandLabel
 
         return finalDonutStamps

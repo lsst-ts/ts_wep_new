@@ -327,12 +327,32 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
                     row[f"{foc}_{key.lower()}"] = val
             zkTable.add_row(row)
 
-        zkTable.meta["intra"] = {}
-        zkTable.meta["extra"] = {}
+        zkTable.meta = self.createZkTableMetadata(intraStamps, extraStamps)
+
+        return zkTable
+
+    def createZkTableMetadata(self, extraStamps, intraStamps):
+        """Create the metadata for the Zernike table.
+
+        Parameters
+        ----------
+        extraStamps : DonutStamps
+            The extrafocal stamps
+        intraStamps : DonutStamps
+            The intrafocal stamps
+
+        Returns
+        -------
+        metadata : dict
+            Metadata for the Zernike table
+        """
+        meta = {}
+        meta["intra"] = {}
+        meta["extra"] = {}
 
         for dict_, stamps in [
-            (zkTable.meta["intra"], intraStamps),
-            (zkTable.meta["extra"], extraStamps),
+            (meta["intra"], intraStamps),
+            (meta["extra"], extraStamps),
         ]:
             dict_["det_name"] = stamps.metadata["DET_NAME"]
             dict_["visit"] = stamps.metadata["VISIT"]
@@ -358,14 +378,12 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
             )
             dict_["mjd"] = stamps.metadata["MJD"]
 
-        if len(intraStamps) > 0:
-            zkTable.meta["cam_name"] = intraStamps.metadata["CAM_NAME"]
-        else:
-            zkTable.meta["cam_name"] = extraStamps.metadata["CAM_NAME"]
+        meta["cam_name"] = intraStamps.metadata["CAM_NAME"]
+
         if len(intraStamps) > 0 and len(extraStamps) > 0:
             assert intraStamps.metadata["CAM_NAME"] == extraStamps.metadata["CAM_NAME"]
 
-        return zkTable
+        return meta
 
     def empty(self, qualityTable=None, zernikeTable=None) -> pipeBase.Struct:
         """Return empty results if no donuts are available. If
@@ -534,6 +552,12 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
                 "extra_max_power_grad": np.nan,
             }
         )
+
+        zkTable.meta = self.createZkTableMetadata(
+            extraStamps=donutStampsExtra,
+            intraStamps=donutStampsIntra,
+        )
+
         return self.empty(zernikeTable=zkTable, qualityTable=qualityTable)
 
     @timeMethod

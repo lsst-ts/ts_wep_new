@@ -334,29 +334,29 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
             (zkTable.meta["intra"], intraStamps),
             (zkTable.meta["extra"], extraStamps),
         ]:
-            dict_["det_name"] = "" if len(stamps) == 0 else stamps.metadata["DET_NAME"]
-            dict_["visit"] = "" if len(stamps) == 0 else stamps.metadata["VISIT"]
-            dict_["dfc_dist"] = "" if len(stamps) == 0 else stamps.metadata["DFC_DIST"]
-            dict_["band"] = "" if len(stamps) == 0 else stamps.metadata["BANDPASS"]
+            dict_["det_name"] = stamps.metadata["DET_NAME"]
+            dict_["visit"] = stamps.metadata["VISIT"]
+            dict_["dfc_dist"] =stamps.metadata["DFC_DIST"]
+            dict_["band"] = stamps.metadata["BANDPASS"]
             dict_["boresight_rot_angle_rad"] = (
-                "" if len(stamps) == 0 else stamps.metadata["BORESIGHT_ROT_ANGLE_RAD"]
+                stamps.metadata["BORESIGHT_ROT_ANGLE_RAD"]
             )
             dict_["boresight_par_angle_rad"] = (
-                "" if len(stamps) == 0 else stamps.metadata["BORESIGHT_PAR_ANGLE_RAD"]
+                stamps.metadata["BORESIGHT_PAR_ANGLE_RAD"]
             )
             dict_["boresight_alt_rad"] = (
-                "" if len(stamps) == 0 else stamps.metadata["BORESIGHT_ALT_RAD"]
+               stamps.metadata["BORESIGHT_ALT_RAD"]
             )
             dict_["boresight_az_rad"] = (
-                "" if len(stamps) == 0 else stamps.metadata["BORESIGHT_AZ_RAD"]
+                 stamps.metadata["BORESIGHT_AZ_RAD"]
             )
             dict_["boresight_ra_rad"] = (
-                "" if len(stamps) == 0 else stamps.metadata["BORESIGHT_RA_RAD"]
+                stamps.metadata["BORESIGHT_RA_RAD"]
             )
             dict_["boresight_dec_rad"] = (
-                "" if len(stamps) == 0 else stamps.metadata["BORESIGHT_DEC_RAD"]
+                stamps.metadata["BORESIGHT_DEC_RAD"]
             )
-            dict_["mjd"] = "" if len(stamps) == 0 else stamps.metadata["MJD"]
+            dict_["mjd"] = stamps.metadata["MJD"]
 
         if len(intraStamps) > 0:
             zkTable.meta["cam_name"] = intraStamps.metadata["CAM_NAME"]

@@ -126,6 +126,12 @@ class CutOutDonutsCwfsTask(CutOutDonutsBaseTask):
         # Catch that case before attempting to do any cutouts
         if len(donutCatalog) == 0:
             donutStampsOut = DonutStamps([])
+            donutStampsOut = self.addVisitLevelMetadata(
+                exposure,
+                donutStampsOut,
+                defocalType,
+                cameraName,
+            )
         else:
             donutStampsOut = self.cutOutStamps(
                 exposure,

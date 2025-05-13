@@ -452,6 +452,51 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         shiftFailureIdx = np.where(totalShifts > self.maxRecenterDistance)[0]
         return shiftFailureIdx
 
+    def addVisitLevelMetadata(self, exposure, inputDonutStamps, defocalType, cameraName):
+        """
+        Get visit level metadata and save in the donutStamps object.
+
+        Parameters
+        ----------
+        exposure : lsst.afw.image.Exposure
+            Exposure to get metadata from.
+        inputDonutStamps : DonutStamps
+            DonutStamps object to save metadata in.
+        defocalType : enum 'DefocalType'
+            Defocal type of the donut image.
+        cameraName : str
+            Name of camera for the exposure.
+
+        Returns
+        -------
+        DonutStamps
+            DonutStamps object with metadata added.
+        """
+        if inputDonutStamps.metadata is None:
+            inputDonutStamps.metadata = PropertyList()
+
+        visitInfo = exposure.getInfo().getVisitInfo()
+        detector = exposure.getDetector()
+        detectorName = detector.getName()
+        bandLabel = exposure.filter.bandLabel
+        visitId = exposure.getInfo().getVisitInfo().id
+
+        instrument = getTaskInstrument(
+            cameraName,
+            detectorName,
+            self.instConfigFile,
+        )
+
+        inputDonutStamps.metadata["VISIT"] = visitId
+        inputDonutStamps.metadata["MJD"] =  visitInfo.date.toAstropy().tai.mjd
+        inputDonutStamps.metadata["DET_NAME"] = detectorName
+        inputDonutStamps.metadata["DFC_DIST"] = instrument.defocalOffset * 1e3
+        inputDonutStamps.metadata["DFC_TYPE"] = defocalType.value
+        inputDonutStamps.metadata["CAM_NAME"] = cameraName
+        inputDonutStamps.metadata["BANDPASS"] = bandLabel
+
+        return inputDonutStamps
+
     def cutOutStamps(self, exposure, donutCatalog, defocalType, cameraName):
         """
         Cut out postage stamps for sources in catalog.
@@ -477,7 +522,6 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         detector = exposure.getDetector()
         detectorName = detector.getName()
         bandLabel = exposure.filter.bandLabel
-        visitId = exposure.getInfo().getVisitInfo().id
         catalogMeta = donutCatalog.meta
 
         # Run background subtraction
@@ -675,10 +719,7 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
             finalStamps.append(donutStamp)
 
         # Add additional information into metadata
-        catalogLength = len(donutCatalog)
         stampsMetadata = PropertyList()
-        stampsMetadata["VISIT"] = visitId
-        stampsMetadata["MJD"] = donutCatalog.meta["visit_info"]["mjd"]
 
         # Save the donut flux as magnitude
         fluxLabel = next(
@@ -786,11 +827,11 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         # Necessary when running full pipeline interactively.
         finalDonutStamps._refresh_metadata()
 
-        if catalogLength == 0:
-            finalDonutStamps.metadata["DET_NAME"] = detectorName
-            finalDonutStamps.metadata["DFC_DIST"] = instrument.defocalOffset * 1e3
-            finalDonutStamps.metadata["DFC_TYPE"] = defocalType.value
-            finalDonutStamps.metadata["CAM_NAME"] = cameraName
-            finalDonutStamps.metadata["BANDPASS"] = bandLabel
+        finalDonutStamps = self.addVisitLevelMetadata(
+            exposure,
+            finalDonutStamps,
+            defocalType,
+            cameraName
+        )
 
         return finalDonutStamps

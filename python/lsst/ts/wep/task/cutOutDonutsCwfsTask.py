@@ -129,8 +129,8 @@ class CutOutDonutsCwfsTask(CutOutDonutsBaseTask):
             donutStampsOut = self.addVisitLevelMetadata(
                 exposure,
                 donutStampsOut,
+                donutCatalog,
                 defocalType,
-                cameraName,
             )
         else:
             donutStampsOut = self.cutOutStamps(

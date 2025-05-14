@@ -452,7 +452,7 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         shiftFailureIdx = np.where(totalShifts > self.maxRecenterDistance)[0]
         return shiftFailureIdx
 
-    def addVisitLevelMetadata(self, exposure, inputDonutStamps, defocalType, cameraName):
+    def addVisitLevelMetadata(self, exposure, inputDonutStamps, donutCatalog, defocalType):
         """
         Get visit level metadata and save in the donutStamps object.
 
@@ -462,10 +462,10 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
             Exposure to get metadata from.
         inputDonutStamps : DonutStamps
             DonutStamps object to save metadata in.
+        donutCatalog : astropy.table.QTable
+            Source catalog for the pointing.
         defocalType : enum 'DefocalType'
             Defocal type of the donut image.
-        cameraName : str
-            Name of camera for the exposure.
 
         Returns
         -------
@@ -479,21 +479,41 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         detector = exposure.getDetector()
         detectorName = detector.getName()
         bandLabel = exposure.filter.bandLabel
-        visitId = exposure.getInfo().getVisitInfo().id
+        cameraName = donutCatalog.meta['visit_info']['instrument_label']
 
         instrument = getTaskInstrument(
             cameraName,
             detectorName,
             self.instConfigFile,
         )
-
-        inputDonutStamps.metadata["VISIT"] = visitId
-        inputDonutStamps.metadata["MJD"] =  visitInfo.date.toAstropy().tai.mjd
-        inputDonutStamps.metadata["DET_NAME"] = detectorName
+        inputDonutStamps.metadata["BANDPASS"] = bandLabel
         inputDonutStamps.metadata["DFC_DIST"] = instrument.defocalOffset * 1e3
         inputDonutStamps.metadata["DFC_TYPE"] = defocalType.value
+        inputDonutStamps.metadata["DET_NAME"] = detectorName
+        inputDonutStamps.metadata["VISIT"] = donutCatalog.meta['visit_info']['visit_id']
+        inputDonutStamps.metadata["MJD"] =  visitInfo.date.toAstropy().tai.mjd
         inputDonutStamps.metadata["CAM_NAME"] = cameraName
         inputDonutStamps.metadata["BANDPASS"] = bandLabel
+
+        # Save visit info
+        inputDonutStamps.metadata["BORESIGHT_ROT_ANGLE_RAD"] = (
+            donutCatalog.meta["visit_info"]["boresight_rot_angle"].to(u.rad).value
+        )
+        inputDonutStamps.metadata["BORESIGHT_PAR_ANGLE_RAD"] = (
+            donutCatalog.meta["visit_info"]["boresight_par_angle"].to(u.rad).value
+        )
+        inputDonutStamps.metadata["BORESIGHT_ALT_RAD"] = (
+            donutCatalog.meta["visit_info"]["boresight_alt"].to(u.rad).value
+        )
+        inputDonutStamps.metadata["BORESIGHT_AZ_RAD"] = (
+            donutCatalog.meta["visit_info"]["boresight_az"].to(u.rad).value
+        )
+        inputDonutStamps.metadata["BORESIGHT_RA_RAD"] = (
+            donutCatalog.meta["visit_info"]["boresight_ra"].to(u.rad).value
+        )
+        inputDonutStamps.metadata["BORESIGHT_DEC_RAD"] = (
+            donutCatalog.meta["visit_info"]["boresight_dec"].to(u.rad).value
+        )
 
         return inputDonutStamps
 
@@ -744,25 +764,6 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         stampsMetadata["CENT_DY"] = donutCatalog["yShift"]
         stampsMetadata["CENT_DR"] = np.sqrt(
             donutCatalog["xShift"] ** 2 + donutCatalog["yShift"] ** 2
-        )
-        # Save visit info
-        stampsMetadata["BORESIGHT_ROT_ANGLE_RAD"] = (
-            donutCatalog.meta["visit_info"]["boresight_rot_angle"].to(u.rad).value
-        )
-        stampsMetadata["BORESIGHT_PAR_ANGLE_RAD"] = (
-            donutCatalog.meta["visit_info"]["boresight_par_angle"].to(u.rad).value
-        )
-        stampsMetadata["BORESIGHT_ALT_RAD"] = (
-            donutCatalog.meta["visit_info"]["boresight_alt"].to(u.rad).value
-        )
-        stampsMetadata["BORESIGHT_AZ_RAD"] = (
-            donutCatalog.meta["visit_info"]["boresight_az"].to(u.rad).value
-        )
-        stampsMetadata["BORESIGHT_RA_RAD"] = (
-            donutCatalog.meta["visit_info"]["boresight_ra"].to(u.rad).value
-        )
-        stampsMetadata["BORESIGHT_DEC_RAD"] = (
-            donutCatalog.meta["visit_info"]["boresight_dec"].to(u.rad).value
         )
 
         if len(finalStamps) > 0:

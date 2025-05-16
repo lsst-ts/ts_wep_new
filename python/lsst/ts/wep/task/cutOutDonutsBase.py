@@ -493,7 +493,6 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         inputDonutStamps.metadata["VISIT"] = donutCatalog.meta['visit_info']['visit_id']
         inputDonutStamps.metadata["MJD"] =  visitInfo.date.toAstropy().tai.mjd
         inputDonutStamps.metadata["CAM_NAME"] = cameraName
-        inputDonutStamps.metadata["BANDPASS"] = bandLabel
 
         # Save visit info
         inputDonutStamps.metadata["BORESIGHT_ROT_ANGLE_RAD"] = (
@@ -831,8 +830,8 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         finalDonutStamps = self.addVisitLevelMetadata(
             exposure,
             finalDonutStamps,
+            donutCatalog,
             defocalType,
-            cameraName
         )
 
         return finalDonutStamps

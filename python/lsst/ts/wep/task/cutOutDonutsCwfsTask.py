@@ -132,6 +132,7 @@ class CutOutDonutsCwfsTask(CutOutDonutsBaseTask):
                 donutCatalog,
                 defocalType,
             )
+            donutStampsOut.use_archive = False
         else:
             donutStampsOut = self.cutOutStamps(
                 exposure,

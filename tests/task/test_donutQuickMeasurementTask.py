@@ -51,33 +51,36 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
-
-        collections = "LSSTCam/calib/unbounded,LSSTCam/raw/all"
-        instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        pipelineYaml = os.path.join(testPipelineConfigDir, "testIsrPipeline.yaml")
-
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-        )
         cls.expNum = 4021123106001
         cls.detNum = 94
-        pipeCmd += f" -d 'detector in ({cls.detNum}) and exposure in ({cls.expNum})'"
-        runProgram(pipeCmd)
+        if "pretest_run_science" in collectionsList:
+            cls.runName = "pretest_run_science"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
+
+            collections = "LSSTCam/calib/unbounded,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            pipelineYaml = os.path.join(testPipelineConfigDir, "testIsrPipeline.yaml")
+
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
+            )
+            pipeCmd += f" -d 'detector in ({cls.detNum}) and exposure in ({cls.expNum})'"
+            runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = DonutQuickMeasurementTaskConfig()
@@ -98,7 +101,7 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
             "visit": self.expNum,
         }
         self.postIsrExp = self.butler.get(
-            "postISRCCD", dataId=testDataId, collections="run1"
+            "postISRCCD", dataId=testDataId, collections=self.runName
         )
 
     def _getTemplate(self):

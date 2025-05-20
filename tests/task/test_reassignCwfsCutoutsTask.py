@@ -36,54 +36,51 @@ from lsst.ts.wep.utils import (
 )
 
 
-class TestCutOutDonutsCwfsTask(lsst.utils.tests.TestCase):
+class TestReassignDonutsCwfsTask(lsst.utils.tests.TestCase):
     @classmethod
     def setUpClass(cls):
         """
-        Run the pipeline only once since it takes a
-        couple minutes with the ISR.
+        Generate donutCatalog needed for task.
         """
 
         moduleDir = getModulePath()
-        testDataDir = os.path.join(moduleDir, "tests", "testData")
-        testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
-        cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run2"
-        # The visit number for the test data
-        cls.visitNum = 4021123106000
+        cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
+        testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
+        cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
+        if "pretest_run_cwfs" in collectionsList:
+            cls.runName = "pretest_run_cwfs"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
 
-        # Point to the collections for the reference catalogs,
-        # the raw images and the camera model in the calib directory
-        # that comes from `butler write-curated-calibrations`.
-        cls.collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        cls.instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        cls.pipelineYaml = os.path.join(
-            testPipelineConfigDir, "testCalcZernikesCwfsSetupPipeline.yaml"
-        )
+            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            pipelineYaml = os.path.join(
+                testPipelineConfigDir, "testCalcZernikesCwfsSetupPipeline.yaml"
+            )
 
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir,
-            cls.runName,
-            cls.instrument,
-            cls.collections,
-            pipelineYaml=cls.pipelineYaml,
-        )
-        pipeCmd += f" -d 'exposure IN ({cls.visitNum}) and detector IN (191, 192)'"
-        runProgram(pipeCmd)
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir,
+                cls.runName,
+                instrument,
+                collections,
+                pipelineYaml=pipelineYaml,
+            )
+            pipeCmd += ' -d "detector IN (191, 192)"'
+            runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = CutOutDonutsCwfsTaskConfig()
@@ -91,6 +88,7 @@ class TestCutOutDonutsCwfsTask(lsst.utils.tests.TestCase):
 
         self.butler = dafButler.Butler(self.repoDir)
         self.registry = self.butler.registry
+        self.visitNum = 4021123106000
 
         self.dataIdExtra = {
             "instrument": "LSSTCam",

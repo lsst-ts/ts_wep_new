@@ -47,38 +47,46 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         couple minutes with the ISR.
         """
         # Run pipeline command
-        runName = "run1"
         moduleDir = getModulePath()
         testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
 
         # Check that run doesn't already exist due to previous improper cleanup
         collectionsList = list(registry.queryCollections())
-        if runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, runName)
+        cls.runName = "run1"
+        cls.baseRunName = "run1"
+        if cls.runName in collectionsList:
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
             runProgram(cleanUpCmd)
 
-        instrument = "lsst.obs.lsst.LsstCam"
         collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        cls.cameraName = "LSSTCam"
-
-        exposureId = 4021123106001  # Exposure ID for test extra-focal image
+        instrument = "lsst.obs.lsst.LsstCam"
         pipelineYaml = os.path.join(
             testPipelineConfigDir, "testDonutDirectDetectPipeline.yaml"
         )
-        pipetaskCmd = writePipetaskCmd(
+
+        if "pretest_run_science" in collectionsList:
+            pipelineYaml += "#generateDonutDirectDetectTask"
+            collections += ",pretest_run_science"
+            cls.baseRunName = "pretest_run_science"
+
+        pipeCmd = writePipetaskCmd(
             cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
         )
-        # Update task configuration to match pointing information
-        pipetaskCmd += f" -d 'exposure IN ({exposureId})'"
+        # Make sure we are using the right exposure+detector combinations
+        pipeCmd += ' -d "exposure IN (4021123106001, 4021123106002) AND '
+        pipeCmd += 'detector NOT IN (191, 192, 195, 196, 199, 200, 203, 204)"'
+        runProgram(pipeCmd)
 
-        # Run pipeline task
-        runProgram(pipetaskCmd)
+    @classmethod
+    def tearDownClass(cls):
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = GenerateDonutDirectDetectTaskConfig()
@@ -191,7 +199,7 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         exposure_S11 = self.butler.get(
             "postISRCCD",
             dataId=self.testDataIdS11,
-            collections=[self.runName],
+            collections=[self.baseRunName],
         )
         bkgnd = 100 * (
             np.random.random_sample(size=np.shape(exposure_S11.image.array)) - 0.5
@@ -237,7 +245,7 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
         exposure_S10 = self.butler.get(
             "postISRCCD",
             dataId=self.testDataIdS10,
-            collections=[self.runName],
+            collections=[self.baseRunName],
         )
         taskOut_S11 = self.task.run(
             exposure_S11,
@@ -384,8 +392,3 @@ class TestGenerateDonutDirectDetectTask(lsst.utils.tests.TestCase):
             outputTable.meta.keys(),
             ["blend_centroid_x", "blend_centroid_y", "visit_info"],
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)

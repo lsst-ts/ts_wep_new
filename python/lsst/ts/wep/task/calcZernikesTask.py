@@ -331,15 +331,15 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
 
         return zkTable
 
-    def createZkTableMetadata(self, extraStamps, intraStamps):
+    def createZkTableMetadata(self, intraStamps, extraStamps):
         """Create the metadata for the Zernike table.
 
         Parameters
         ----------
-        extraStamps : DonutStamps
-            The extrafocal stamps
         intraStamps : DonutStamps
             The intrafocal stamps
+        extraStamps : DonutStamps
+            The extrafocal stamps
 
         Returns
         -------
@@ -554,8 +554,8 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
         )
 
         zkTable.meta = self.createZkTableMetadata(
-            extraStamps=donutStampsExtra,
             intraStamps=donutStampsIntra,
+            extraStamps=donutStampsExtra,
         )
 
         return self.empty(zernikeTable=zkTable, qualityTable=qualityTable)

@@ -58,7 +58,6 @@ class TestDonutQuickMeasurementTask(unittest.TestCase):
         collectionsList = list(registry.queryCollections())
         cls.expNum = 4021123106001
         cls.detNum = 94
-        cls.cameraName = "LSSTCam"
         if "pretest_run_science" in collectionsList:
             cls.runName = "pretest_run_science"
         else:

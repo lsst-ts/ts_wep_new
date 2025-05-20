@@ -70,7 +70,6 @@ class TestCalcZernikesDanishTaskScienceSensor(lsst.utils.tests.TestCase):
 
             collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
             instrument = "lsst.obs.lsst.LsstCam"
-            cls.cameraName = "LSSTCam"
             pipelineYaml = os.path.join(
                 testPipelineConfigDir, "testCalcZernikesScienceSensorSetupPipeline.yaml"
             )

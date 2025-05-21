@@ -346,11 +346,19 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
         meta = {}
         meta["intra"] = {}
         meta["extra"] = {}
+        cam_name = None
+
+        if self.stampsIntra is None and self.stampsExtra is None:
+            raise ValueError(
+                "No stamps available. Cannot create metadata."
+            )
 
         for dict_, stamps in [
             (meta["intra"], self.stampsIntra),
             (meta["extra"], self.stampsExtra),
         ]:
+            if stamps is None:
+                continue
             dict_["det_name"] = stamps.metadata["DET_NAME"]
             dict_["visit"] = stamps.metadata["VISIT"]
             dict_["dfc_dist"] =stamps.metadata["DFC_DIST"]
@@ -374,10 +382,12 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
                 stamps.metadata["BORESIGHT_DEC_RAD"]
             )
             dict_["mjd"] = stamps.metadata["MJD"]
+            if cam_name is None:
+                cam_name = stamps.metadata["CAM_NAME"]
 
-        meta["cam_name"] = self.stampsIntra.metadata["CAM_NAME"]
+        meta["cam_name"] = cam_name
 
-        if len(self.stampsIntra) > 0 and len(self.stampsExtra) > 0:
+        if self.stampsIntra is not None and self.stampsExtra is not None:
             assert self.stampsIntra.metadata["CAM_NAME"] == self.stampsExtra.metadata["CAM_NAME"]
 
         return meta
@@ -595,6 +605,10 @@ class CalcZernikesTask(pipeBase.PipelineTask, metaclass=abc.ABCMeta):
                 return empty_struct
         else:
             donutQualityTable = QTable([])
+
+        # Update stampsExtra and stampsIntra with the selected donuts
+        self.stampsExtra = selectedExtraStamps
+        self.stampsIntra = selectedIntraStamps
 
         # Estimate Zernikes from the collection of selected stamps
         zkCoeffRaw = self.estimateZernikes.run(

@@ -201,6 +201,7 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
 
                 # Check metadata keys exist
                 self.assertIn("cam_name", structNormal.zernikes.meta)
+                print(structNormal.zernikes.meta)
                 for k in ["intra", "extra"]:
                     dict_ = structNormal.zernikes.meta[k]
                     self.assertIn("det_name", dict_)

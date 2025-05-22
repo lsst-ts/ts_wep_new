@@ -28,6 +28,7 @@ __all__ = [
     "polygonContains",
     "conditionalSigmaClip",
     "binArray",
+    "calcStampPowerSpectrum",
 ]
 
 import numba
@@ -35,6 +36,7 @@ import numpy as np
 from astropy.stats import sigma_clip
 from scipy.ndimage import center_of_mass
 from scipy.signal import correlate
+from scipy.stats import binned_statistic
 
 
 def searchDonutPos(img):
@@ -460,3 +462,49 @@ def binArray(array: np.ndarray, binning: int) -> np.ndarray:
     ).mean(axis=(1, 3))
 
     return binned
+
+
+def calcStampPowerSpectrum(image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Calculate the power spectrum of the stamp image.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Array of stamp image
+
+    Returns
+    -------
+    np.ndarray
+        Array of Fourier modes k (technically |k|)
+    np.ndarray
+        Power at each mode k
+    """
+    # Get number of pixels
+    npix = image.shape[0]
+
+    # FFT image
+    fourier_image = np.fft.fftn(image)
+
+    # Get the square amplitudes
+    fourier_amplitudes = np.abs(fourier_image) ** 2
+
+    # Create grid of modes
+    k = np.fft.fftfreq(npix) * npix
+    k2D = np.meshgrid(k, k)
+    knorm = np.sqrt(k2D[0] ** 2 + k2D[1] ** 2)
+
+    # Flatten both arrays
+    fourier_amplitudes = fourier_amplitudes.flatten()
+    knorm = knorm.flatten()
+
+    # Binned mean of spectrum
+    kbins = np.arange(0.5, npix // 2 + 1, 1.0)
+    kvals = 0.5 * (kbins[1:] + kbins[:-1])
+    binned_power, _, _ = binned_statistic(
+        knorm,
+        fourier_amplitudes,
+        statistic="mean",
+        bins=kbins,
+    )
+
+    return kvals, binned_power

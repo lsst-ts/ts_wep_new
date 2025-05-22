@@ -53,12 +53,12 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
+        cls.runName = "run1"
         if cls.runName in collectionsList:
             cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
             runProgram(cleanUpCmd)
@@ -69,6 +69,9 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
         pipelineYaml = os.path.join(
             testPipelineConfigDir, "testCutoutsUnpairedPipeline.yaml"
         )
+        if "pretest_run_science" in collectionsList:
+            pipelineYaml += "#cutOutDonutsUnpairedTask"
+            collections += ",pretest_run_science"
 
         pipeCmd = writePipetaskCmd(
             cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
@@ -150,8 +153,6 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                 task = CalcZernikesUnpairedTask(config=config)
                 structNormal = task.run(stamps)
 
-                # import pytest; pytest.set_trace()
-
                 # check that 4 elements are created
                 self.assertEqual(len(structNormal), 4)
 
@@ -189,6 +190,10 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                     "extra_sn",
                     "intra_entropy",
                     "extra_entropy",
+                    "intra_frac_bad_pix",
+                    "extra_frac_bad_pix",
+                    "intra_max_power_grad",
+                    "extra_max_power_grad",
                 ]
                 self.assertLessEqual(
                     set(desired_colnames), set(structNormal.zernikes.colnames)
@@ -221,6 +226,8 @@ class TestCalcZernikeUnpaired(lsst.utils.tests.TestCase):
                     "SN_SELECT",
                     "FRAC_BAD_PIX",
                     "FRAC_BAD_PIX_SELECT",
+                    "MAX_POWER_GRAD",
+                    "MAX_POWER_GRAD_SELECT",
                     "FINAL_SELECT",
                     "DEFOCAL_TYPE",
                 ]

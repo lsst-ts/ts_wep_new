@@ -22,12 +22,13 @@
 import os
 
 import lsst.utils.tests
+import numpy as np
 from lsst.daf import butler as dafButler
-from lsst.daf.butler import DatasetNotFoundError
-from lsst.ts.wep.task.cutOutDonutsCwfsTask import (
-    CutOutDonutsCwfsTask,
-    CutOutDonutsCwfsTaskConfig,
+from lsst.ts.wep.task import (
+    CalcZernikesTask,
+    CalcZernikesTaskConfig,
 )
+from lsst.ts.wep.task.donutStamps import DonutStamps
 from lsst.ts.wep.utils import (
     getModulePath,
     runProgram,
@@ -36,13 +37,12 @@ from lsst.ts.wep.utils import (
 )
 
 
-class TestReassignDonutsCwfsTask(lsst.utils.tests.TestCase):
+class TestCalcZernikesFitRadius(lsst.utils.tests.TestCase):
     @classmethod
     def setUpClass(cls):
         """
         Generate donutCatalog needed for task.
         """
-
         moduleDir = getModulePath()
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
@@ -76,6 +76,7 @@ class TestReassignDonutsCwfsTask(lsst.utils.tests.TestCase):
             pipeCmd += ' -d "detector IN (191, 192)"'
             runProgram(pipeCmd)
 
+
     @classmethod
     def tearDownClass(cls):
         if cls.runName == "run1":
@@ -83,78 +84,67 @@ class TestReassignDonutsCwfsTask(lsst.utils.tests.TestCase):
             runProgram(cleanUpCmd)
 
     def setUp(self):
-        self.config = CutOutDonutsCwfsTaskConfig()
-        self.task = CutOutDonutsCwfsTask(config=self.config)
+        self.config = CalcZernikesTaskConfig()
+        self.task = CalcZernikesTask(config=self.config, name="Base Task")
 
         self.butler = dafButler.Butler(self.repoDir)
         self.registry = self.butler.registry
-        self.visitNum = 4021123106000
 
         self.dataIdExtra = {
             "instrument": "LSSTCam",
             "detector": 191,
-            "exposure": self.visitNum,
-            "visit": self.visitNum,
+            "exposure": 4021123106000,
+            "visit": 4021123106000,
         }
         self.dataIdIntra = {
             "instrument": "LSSTCam",
-            "detector": 192,
-            "exposure": self.visitNum,
-            "visit": self.visitNum,
+            "detector": 191,
+            "exposure": 4021123106000,
+            "visit": 4021123106000,
         }
-
-        self.testRunName = "testTaskRun"
-        self.collectionsList = list(self.registry.queryCollections())
-        if self.testRunName in self.collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(self.repoDir, self.testRunName)
-            runProgram(cleanUpCmd)
-
-    def tearDown(self):
-        # Get Butler with updated registry
-        self.butler = dafButler.Butler(self.repoDir)
-        self.registry = self.butler.registry
-
-        self.collectionsList = list(self.registry.queryCollections())
-        if self.testRunName in self.collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(self.repoDir, self.testRunName)
-            runProgram(cleanUpCmd)
-
-    def testPipeline(self):
-
-        # Compare the interactive run to pipetask run results
-        donutStampsExtra_extraId = self.butler.get(
+        self.donutStampsExtra = self.butler.get(
             "donutStampsExtra", dataId=self.dataIdExtra, collections=[self.runName]
         )
-        donutStampsIntra_extraId = self.butler.get(
+        self.donutStampsIntra = self.butler.get(
             "donutStampsIntra", dataId=self.dataIdExtra, collections=[self.runName]
         )
-        donutStampsExtraCwfs_extraId = self.butler.get(
-            "donutStampsCwfs", dataId=self.dataIdExtra, collections=[self.runName]
+
+    def testEstimateZernikesEmpty(self):
+        # We are passing empty donutStamps in intra so the zernikes
+        # table should only contain the zernikesFromDonutRadius in
+        # the average row.
+        struct = self.task.run(
+            self.donutStampsExtra, DonutStamps([])
         )
-        donutStampsIntraCwfs_intraId = self.butler.get(
-            "donutStampsCwfs", dataId=self.dataIdIntra, collections=[self.runName]
+        zkTable = struct.zernikes
+        self.assertEqual(len(zkTable), 1.0)
+        row = zkTable[zkTable['label'] == 'average'][0]
+        for key in row.colnames:
+            if key.startswith("Z") and key != "Z4":
+                self.assertAlmostEqual(row[key].value, 0.0)
+            elif key == 'Z4':
+                self.assertAlmostEqual(row[key].value, 2050.4304)
+        assert np.all(np.isnan(struct.outputZernikesAvg[0]))
+        assert np.all(np.isnan(struct.outputZernikesRaw[0]))
+
+    def testEstimateZernikesBadDonutQuality(self):
+        # We are passing non-empty donutStamps in intra and extra
+        # but setting the donut quality selection flag to false
+        # so the zernikes
+        # table should only contain the zernikesFromDonutRadius in
+        # the average row.
+        self.task.donutStampSelector.config.maxSelect = 0
+        struct = self.task.run(
+            self.donutStampsExtra, self.donutStampsIntra
         )
 
-        # Test that reassigned stamps are correctly assigned
-        for reassignStamp, origStamp in zip(
-            donutStampsExtra_extraId, donutStampsExtraCwfs_extraId
-        ):
-            self.assertMaskedImagesAlmostEqual(
-                reassignStamp.stamp_im, origStamp.stamp_im
-            )
-        for reassignStamp, origStamp in zip(
-            donutStampsIntra_extraId, donutStampsIntraCwfs_intraId
-        ):
-            self.assertMaskedImagesAlmostEqual(
-                reassignStamp.stamp_im, origStamp.stamp_im
-            )
-
-        # Test that the intra-focal id does not get reassigned stamps
-        with self.assertRaises(DatasetNotFoundError):
-            self.butler.get(
-                "donutStampsExtra", dataId=self.dataIdIntra, collections=[self.runName]
-            )
-        with self.assertRaises(DatasetNotFoundError):
-            self.butler.get(
-                "donutStampsIntra", dataId=self.dataIdIntra, collections=[self.runName]
-            )
+        zkTable = struct.zernikes
+        self.assertEqual(len(zkTable), 1.0)
+        row = zkTable[zkTable['label'] == 'average'][0]
+        for key in row.colnames:
+            if key.startswith("Z") and key != "Z4":
+                self.assertAlmostEqual(row[key].value, 0.0)
+            elif key == 'Z4':
+                self.assertAlmostEqual(row[key].value, 1905.5042)
+        assert np.all(np.isnan(struct.outputZernikesAvg[0]))
+        assert np.all(np.isnan(struct.outputZernikesRaw[0]))

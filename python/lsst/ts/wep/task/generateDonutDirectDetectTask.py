@@ -35,12 +35,7 @@ from lsst.fgcmcal.utilities import lookupStaticCalibrations
 from lsst.ts.wep.task.donutQuickMeasurementTask import DonutQuickMeasurementTask
 from lsst.ts.wep.task.donutSourceSelectorTask import DonutSourceSelectorTask
 from lsst.ts.wep.task.generateDonutCatalogUtils import addVisitInfoToCatTable
-from lsst.ts.wep.utils import (
-    DefocalType,
-    createTemplateForDetector,
-    getOffsetFromExposure,
-    getTaskInstrument,
-)
+from lsst.ts.wep.utils import DefocalType, createTemplateForDetector, getTaskInstrument
 from lsst.utils.timer import timeMethod
 
 
@@ -103,8 +98,7 @@ class GenerateDonutDirectDetectTaskConfig(
         doc="Path to a instrument configuration file to override the instrument "
         + "configuration. If begins with 'policy:' the path will be understood as "
         + "relative to the ts_wep policy directory. If not provided, the default "
-        + "instrument for the camera will be loaded, and the defocal offset will "
-        + "be determined from the focusZ value in the exposure header.",
+        + "instrument for the camera will be loaded.",
         dtype=str,
         optional=True,
     )
@@ -146,6 +140,10 @@ class GenerateDonutDirectDetectTask(pipeBase.PipelineTask):
         # Set up the donut selector task if we need it
         if self.config.doDonutSelection:
             self.makeSubtask("donutSelector")
+
+        # Set which sensors are intra focal
+        # to create correct template
+        self.intraFocalNames = ["R00_SW1", "R04_SW1", "R40_SW1", "R44_SW1"]
 
     def updateDonutCatalog(self, donutCat, exposure):
         """
@@ -251,27 +249,41 @@ class GenerateDonutDirectDetectTask(pipeBase.PipelineTask):
         # true in the rotated DVCS coordinate system)
         defocalType = DefocalType.Extra
 
-        # Get the offset
-        offset = getOffsetFromExposure(exposure, camName, defocalType)
+        # Switch for the case of some corner detectors being in-focus, and the
+        # other making giant donuts
+        if detectorName in self.intraFocalNames:
+            defocalType = DefocalType.Intra
 
         # Load the instrument
         instrument = getTaskInstrument(
             camName,
             detectorName,
-            offset,
             self.config.instConfigFile,
         )
-
-        # Create the image template for the detector
-        template = createTemplateForDetector(
-            detector=exposure.detector,
-            defocalType=defocalType,
-            bandLabel=bandLabel,
-            instrument=instrument,
-            opticalModel=self.config.opticalModel,
-            padding=self.config.initialCutoutPadding,
-            isBinary=True,
-        )
+        try:
+            # Create the image template for the detector
+            template = createTemplateForDetector(
+                detector=exposure.detector,
+                defocalType=defocalType,
+                bandLabel=bandLabel,
+                instrument=instrument,
+                opticalModel=self.config.opticalModel,
+                padding=self.config.initialCutoutPadding,
+                isBinary=True,
+            )
+        except ValueError as e:
+            err_msg = str(e)
+            s = (
+                f"Template creation error: {err_msg} \n\
+That means that the provided exposure is very close to focus"
+                if err_msg.startswith("negative dimensions")
+                else err_msg
+            )
+            self.log.warning(f"Cannot create template: {s}")
+            self.log.warning("Returning empty donut catalog")
+            donutCatUpd = self.emptyTable()
+            donutCatUpd = addVisitInfoToCatTable(exposure, donutCatUpd)
+            return pipeBase.Struct(donutCatalog=donutCatUpd)
 
         # Trim the exposure by the margin
         edgeMargin = self.config.edgeMargin

@@ -225,6 +225,10 @@ class TestInstrument(unittest.TestCase):
         inst.batoidOffsetValue = 0.8e-3
         self.assertTrue(np.isclose(inst.defocalOffset, 34.94e-3, rtol=1e-3))
 
+    def test_offsetToZ4Defocus(self):
+        inst = Instrument("policy:instruments/LsstCam.yaml")
+        self.assertAlmostEqual(inst.offsetToZ4Defocus(0.8e-3), 20.2943, places=4)
+
     def testImports(self):
         # Get LSST and ComCam instruments
         lsst = Instrument("policy:instruments/LsstCam.yaml")

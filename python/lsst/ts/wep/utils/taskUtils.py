@@ -24,7 +24,6 @@ __all__ = [
     "writePipetaskCmd",
     "writeCleanUpRepoCmd",
     "getCameraFromButlerName",
-    "getOffsetFromExposure",
     "getTaskInstrument",
     "createTemplateForDetector",
     "convertHistoryToMetadata",
@@ -41,7 +40,6 @@ import lsst.obs.lsst as obs_lsst
 import lsst.pipe.base as pipeBase
 import numpy as np
 from lsst.afw.cameraGeom import FIELD_ANGLE, Detector, DetectorType
-from lsst.afw.image import Exposure
 from lsst.obs.lsst import LsstCam
 from lsst.ts.wep.image import Image
 from lsst.ts.wep.imageMapper import ImageMapper
@@ -205,68 +203,9 @@ def getCameraFromButlerName(camName):
         raise ValueError(f"Camera {camName} is not supported.")
 
 
-def getOffsetFromExposure(
-    exposure: Exposure,
-    camName: str,
-    defocalType: Union[DefocalType, str],
-) -> float:
-    """Get the offset from the exposure.
-
-    For LSSTCam and ComCam this corresponds to the offset of the detector
-    where the donut was imaged, while for AuxTel it corresponds to the offset
-    of M2.
-
-    Parameters
-    ----------
-    exposure : lsst.afw.image.Exposure
-        The exposure
-    camName : str
-        Name of instrument using butler convention. Available instruments
-        are LSSTCam, LSSTComCam, LSSTComCamSim, and LATISS.
-    defocalType : DefocalType, str, or None
-        The DefocalType enum, or corresponding string.
-
-    Returns
-    -------
-    float
-        The offset in mm
-
-    Raises
-    ------
-    ValueError
-        If the detector/camera combo is not supported
-    """
-    # Get the focus position from the exposure
-    focusZ = exposure.visitInfo.focusZ  # mm
-
-    # Get the detector type
-    detectorType = exposure.detector.getType().name
-
-    # If this isn't a wavefront sensor, we're done
-    if detectorType != "WAVEFRONT":
-        return focusZ
-
-    # Wavefront sensors only supported for LsstCam
-    if camName != "LSSTCam":
-        raise ValueError(f"Wavefront sensors for camera {camName} are not supported.")
-
-    # Cast defocalType to a DefocalType enum
-    defocalType = DefocalType(defocalType)
-
-    if defocalType == DefocalType.Extra:
-        offset = focusZ + 1.5
-    elif defocalType == DefocalType.Intra:
-        offset = focusZ - 1.5
-    else:
-        raise ValueError(f"defocalType {defocalType} not supported.")
-
-    return offset
-
-
 def getTaskInstrument(
     camName: str,
     detectorName: str,
-    offset: Union[float, None] = None,
     instConfigFile: Union[str, None] = None,
 ) -> Instrument:
     """Get the instrument to use for the task.
@@ -283,10 +222,6 @@ def getTaskInstrument(
         The name of the camera
     detectorName : str
         The name of the detector.
-    offset : float or None, optional
-        The true offset for the exposure in mm. For LSSTCam this corresponds
-        to the offset of the detector, while for AuxTel it corresponds to the
-        offset of M2. (the default is None)
     instConfigFile : str or None
         An instrument config file to override the default instrument
         for the camName. If begins with "policy:", this path is understood
@@ -312,25 +247,8 @@ def getTaskInstrument(
             instrument = Instrument(configFile="policy:instruments/AuxTel.yaml")
         else:
             raise ValueError(f"No default instrument for camera {camName}")
-        overrideOffset = True
     else:
         instrument = Instrument(configFile=instConfigFile)
-        try:
-            instrument.defocalOffset
-        except ValueError:
-            overrideOffset = True
-        else:
-            overrideOffset = False
-
-    if offset is None or not overrideOffset:
-        # We're done!
-        return instrument
-
-    # Override the defocalOffset
-    if instrument.batoidOffsetOptic is None:
-        instrument.defocalOffset = offset / 1e3
-    else:
-        instrument.batoidOffsetValue = offset / 1e3
 
     return instrument
 

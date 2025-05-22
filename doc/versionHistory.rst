@@ -6,6 +6,93 @@
 Version History
 ##################
 
+.. _lsst.ts.wep-14.7.0:
+
+-------------
+ 14.7.0
+-------------
+
+* Add global pytest pretests to run the CWFS and Science WEP pipelines only once before running the tests.
+
+.. _lsst.ts.wep-14.6.0:
+
+-------------
+ 14.6.0
+-------------
+
+* In CalcZernikeTask compute zernikes from donut radii fit if no donuts are good for zernikeEstimation.
+
+.. _lsst.ts.wep-14.5.0:
+
+-------------
+ 14.5.0
+-------------
+
+* Add CalcZernikesTask multiprocessing.
+
+.. _lsst.ts.wep-14.4.1:
+
+-------------
+ 14.4.1
+-------------
+
+* Fixed tests broken by last PR
+* Updated linting to work with ts_pre_commit_conf v0.9.16.
+
+.. _lsst.ts.wep-14.4.0:
+
+-------------
+ 14.4.0
+-------------
+
+* Added selectWithMaxPowerGrad to DonutStampSelectorTask to reject galaxy-donuts.
+
+.. _lsst.ts.wep-14.3.3:
+
+-------------
+ 14.3.3
+-------------
+
+* Update .gitattributes to include all test data files.
+* Revert ROTPA change in test data.
+
+.. _lsst.ts.wep-14.3.2:
+
+-------------
+ 14.3.2
+-------------
+
+* Update dataset type definitions for cutOutDonutsCwfsPairTask outputs in test butler.
+* Move additional test butler files to git lfs.
+
+.. _lsst.ts.wep-14.3.1:
+
+-------------
+ 14.3.1
+-------------
+
+ * Fixed bugs associated with the defocal offset by removing functionality to infer defocal offsets from exposure metadata. Defocal offsets will now always use the value specified in the Instrument object used by the task.
+
+.. _lsst.ts.wep-14.3.0:
+
+-------------
+14.3.0
+-------------
+
+* Remove unused test data from testData/gen3TestRepo.
+* Remove old phosim data from testData.
+* Gzip test data and unzip when actually running tests.
+
+.. _lsst.ts.wep-14.2.1:
+
+-------------
+14.2.1
+-------------
+
+* Fix donutSourceSelector when no sources pass magnitude cut.
+* Handle empty donutCatalogs with cutoutDonutsCwfsTask.
+* Handle no donutStamps for one side of focus for fitDonutRadiusTask.
+
 .. _lsst.ts.wep-14.2.0:
 
 -------------

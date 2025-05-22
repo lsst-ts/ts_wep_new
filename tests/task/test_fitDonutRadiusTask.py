@@ -28,7 +28,9 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
         cls.runNameScience = "run1"
+        cls.baseRunNameScience = "pretest_run_science"
         cls.runNameCwfs = "run2"
+        cls.baseRunNameCwfs = "pretest_run_cwfs"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = Butler(cls.repoDir)
@@ -48,6 +50,10 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
             testPipelineConfigDir, "testFitDonutRadiusFamPipeline.yaml"
         )
 
+        if "pretest_run_science" in collectionsList:
+            pipelineYaml += "#fitDonutRadiusTask"
+            collections += ",pretest_run_science"
+            cls.baseRunNameScience = "pretest_run_science"
         pipeCmd = writePipetaskCmd(
             cls.repoDir,
             cls.runNameScience,
@@ -62,10 +68,15 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
         runProgram(pipeCmd)
 
         # Run CWFS sensors
+        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
         pipelineYaml = os.path.join(
             testPipelineConfigDir, "testFitDonutRadiusCwfsPipeline.yaml"
         )
 
+        if "pretest_run_cwfs" in collectionsList:
+            pipelineYaml += "#fitDonutRadiusTask"
+            collections += ",pretest_run_cwfs"
+            cls.baseRunNameCwfs = "pretest_run_cwfs"
         pipeCmd = writePipetaskCmd(
             cls.repoDir,
             cls.runNameCwfs,
@@ -121,12 +132,12 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
         donutStampsExtra = self.butler.get(
             "donutStampsExtra",
             dataId=self.dataIdExtraScience,
-            collections=[self.runNameScience],
+            collections=[self.baseRunNameScience],
         )
         donutStampsIntra = self.butler.get(
             "donutStampsIntra",
             dataId=self.dataIdExtraScience,
-            collections=[self.runNameScience],
+            collections=[self.baseRunNameScience],
         )
 
         taskOut = self.task.run(donutStampsExtra, donutStampsIntra)
@@ -182,12 +193,12 @@ class TestFitDonutRadiusTaskScienceSensor(lsst.utils.tests.TestCase):
         donutStampsExtra = self.butler.get(
             "donutStampsExtra",
             dataId=self.dataIdExtraCwfs,
-            collections=[self.runNameCwfs],
+            collections=[self.baseRunNameCwfs],
         )
         donutStampsIntra = self.butler.get(
             "donutStampsIntra",
             dataId=self.dataIdExtraCwfs,
-            collections=[self.runNameCwfs],
+            collections=[self.baseRunNameCwfs],
         )
 
         taskOut = self.task.run(donutStampsExtra, donutStampsIntra)

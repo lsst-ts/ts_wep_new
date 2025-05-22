@@ -22,6 +22,8 @@
 __all__ = ["EstimateZernikesBaseConfig", "EstimateZernikesBaseTask"]
 
 import abc
+import itertools
+import multiprocessing as mp
 
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
@@ -35,13 +37,26 @@ from lsst.ts.wep.utils import (
 )
 
 
+def estimate_zk_pair(args):
+    """Estimate Zernike coefficients for a pair of donuts."""
+    donutExtra, donutIntra, wfEstimator = args
+    zk = wfEstimator.estimateZk(donutExtra.wep_im, donutIntra.wep_im)
+    return zk, wfEstimator.history
+
+
+def estimate_zk_single(args):
+    """Estimate Zernike coefficients for a single donut."""
+    donut, wfEstimator = args
+    zk = wfEstimator.estimateZk(donut.wep_im)
+    return zk, wfEstimator.history
+
+
 class EstimateZernikesBaseConfig(pexConfig.Config):
     instConfigFile = pexConfig.Field(
         doc="Path to a instrument configuration file to override the instrument "
         + "configuration. If begins with 'policy:' the path will be understood as "
         + "relative to the ts_wep policy directory. If not provided, the default "
-        + "instrument for the camera will be loaded, and the defocal offset will "
-        + "be determined from the focusZ value in the exposure header.",
+        + "instrument for the camera will be loaded.",
         dtype=str,
         optional=True,
     )
@@ -104,6 +119,7 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
         donutStampsExtra: DonutStamps,
         donutStampsIntra: DonutStamps,
         wfEstimator: WfEstimator,
+        numCores: int = 1,
     ) -> np.array:
         """Estimate Zernike coefficients from pairs of donut stamps.
 
@@ -115,6 +131,8 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             Intra-focal donut postage stamps.
         wfEstimator : WfEstimator
             The wavefront estimator object.
+        numCores : int
+            Number of cores to parallelize over.
 
         Returns
         -------
@@ -123,38 +141,34 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             axis indexes donut pairs while the second axis indexes the
             Noll coefficients.
         """
-        # Loop over donut stamp pairs and estimate Zernikes
-        zkList = []
-        histories = dict()
-        for i, (donutExtra, donutIntra) in enumerate(
-            zip(donutStampsExtra, donutStampsIntra)
-        ):
-            # Determine and set the defocal offset
-            defocalOffset = np.mean(
-                [
-                    donutExtra.defocal_distance,
-                    donutIntra.defocal_distance,
-                ]
-            )
-            wfEstimator.instrument.defocalOffset = defocalOffset / 1e3  # m -> mm
+        # Loop over pairs in a multiprocessing pool
+        args = [
+            (donutExtra, donutIntra, wfEstimator)
+            for donutExtra, donutIntra in zip(donutStampsExtra, donutStampsIntra)
+        ]
+        with mp.Pool(processes=numCores) as pool:
+            results = pool.map(estimate_zk_pair, args)
 
-            # Estimate Zernikes
-            zk = wfEstimator.estimateZk(donutExtra.wep_im, donutIntra.wep_im)
-            zkList.append(zk)
+        zkList, histories = zip(*results)
 
-            # Save the history (note if self.config.saveHistory is False,
-            # this is just an empty dictionary)
-            histories[f"pair{i}"] = convertHistoryToMetadata(wfEstimator.history)
+        zkArray = np.array(zkList)
 
-        self.metadata["history"] = histories
+        # Save the histories (note if self.config.saveHistory is False,
+        # this is just an empty dictionary)
+        histories_dict = {
+            f"pair{i}": convertHistoryToMetadata(hist)
+            for i, hist in enumerate(histories)
+        }
+        self.metadata["history"] = histories_dict
 
-        return np.array(zkList)
+        return zkArray
 
     def estimateFromIndivStamps(
         self,
         donutStampsExtra: DonutStamps,
         donutStampsIntra: DonutStamps,
         wfEstimator: WfEstimator,
+        numCores: int = 1,
     ) -> np.array:
         """Estimate Zernike coefficients from individual donut stamps.
 
@@ -166,6 +180,8 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             Intra-focal donut postage stamps.
         wfEstimator : WfEstimator
             The wavefront estimator object.
+        numCores : int
+            Number of cores to parallelize over.
 
         Returns
         -------
@@ -175,42 +191,34 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             followed by intrafocal stamps. The second axis indexes the
             Noll coefficients.
         """
-        # Loop over individual donut stamps and estimate Zernikes
-        zkList = []
-        histories = dict()
-        for i, donutExtra in enumerate(donutStampsExtra):
-            # Determine and set the defocal offset
-            defocalOffset = donutExtra.defocal_distance
-            wfEstimator.instrument.defocalOffset = defocalOffset / 1e3
+        # Loop over individual donut stamps with a process pool
+        args = [
+            (donut, wfEstimator)
+            for donut in itertools.chain(donutStampsExtra, donutStampsIntra)
+        ]
+        with mp.Pool(processes=numCores) as pool:
+            results = pool.map(estimate_zk_single, args)
 
-            # Estimate Zernikes
-            zk = wfEstimator.estimateZk(donutExtra.wep_im)
-            zkList.append(zk)
+        zkList, histories = zip(*results)
 
-            # Save the history (note if self.config.saveHistory is False,
-            # this is just an empty dictionary)
-            histories[f"extra{i}"] = convertHistoryToMetadata(wfEstimator.history)
-        for i, donutIntra in enumerate(donutStampsIntra):
-            # Determine and set the defocal offset
-            defocalOffset = donutIntra.defocal_distance
-            wfEstimator.instrument.defocalOffset = defocalOffset / 1e3
+        zkArray = np.array(zkList)
 
-            # Estimate Zernikes
-            zk = wfEstimator.estimateZk(donutIntra.wep_im)
-            zkList.append(zk)
+        histories_dict = {}
+        for i in range(len(donutStampsExtra)):
+            histories_dict[f"extra{i}"] = convertHistoryToMetadata(histories[i])
+        for i in range(len(donutStampsIntra)):
+            histories_dict[f"intra{i}"] = convertHistoryToMetadata(
+                histories[i + len(donutStampsExtra)]
+            )
+        self.metadata["history"] = histories_dict
 
-            # Save the history (note if self.config.saveHistory is False,
-            # this is just an empty dictionary)
-            histories[f"intra{i}"] = convertHistoryToMetadata(wfEstimator.history)
-
-        self.metadata["history"] = histories
-
-        return np.array(zkList)
+        return zkArray
 
     def run(
         self,
         donutStampsExtra: DonutStamps,
         donutStampsIntra: DonutStamps,
+        numCores: int = 1,
     ) -> np.ndarray:
         """Estimate Zernike coefficients (in microns) from the donut stamps.
 
@@ -220,6 +228,8 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             Extra-focal donut postage stamps.
         donutStampsIntra : DonutStamps
             Intra-focal donut postage stamps.
+        numCores : int
+            Number of cores to parallelize over.
 
         Returns
         -------
@@ -239,7 +249,6 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
         instrument = getTaskInstrument(
             camName,
             detectorName,
-            None,
             self.config.instConfigFile,
         )
 
@@ -255,11 +264,10 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
             saveHistory=self.config.saveHistory,
         )
 
+        self.log.info("Using %d cores", numCores)
         if len(donutStampsExtra) > 0 and len(donutStampsIntra) > 0:
             zernikes = self.estimateFromPairs(
-                donutStampsExtra,
-                donutStampsIntra,
-                wfEst,
+                donutStampsExtra, donutStampsIntra, wfEst, numCores=numCores
             )
         else:
             if wfEst.algo.requiresPairs:
@@ -268,9 +276,7 @@ class EstimateZernikesBaseTask(pipeBase.Task, metaclass=abc.ABCMeta):
                     "requires pairs of donuts."
                 )
             zernikes = self.estimateFromIndivStamps(
-                donutStampsExtra,
-                donutStampsIntra,
-                wfEst,
+                donutStampsExtra, donutStampsIntra, wfEst, numCores=numCores
             )
 
         return pipeBase.Struct(zernikes=zernikes)

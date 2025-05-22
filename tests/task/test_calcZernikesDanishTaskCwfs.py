@@ -56,33 +56,40 @@ class TestCalcZernikesDanishTaskCwfs(lsst.utils.tests.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
+        if "pretest_run_cwfs" in collectionsList:
+            cls.runName = "pretest_run_cwfs"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
 
-        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        pipelineYaml = os.path.join(
-            testPipelineConfigDir, "testCalcZernikesCwfsSetupPipeline.yaml"
-        )
+            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            pipelineYaml = os.path.join(
+                testPipelineConfigDir, "testCalcZernikesCwfsSetupPipeline.yaml"
+            )
 
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-        )
-        pipeCmd += ' -d "detector IN (191, 192, 195, 196, 199, 200, 203, 204)"'
-        runProgram(pipeCmd)
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir,
+                cls.runName,
+                instrument,
+                collections,
+                pipelineYaml=pipelineYaml,
+            )
+            pipeCmd += ' -d "detector IN (191, 192)"'
+            runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = CalcZernikesTaskConfig()
@@ -255,9 +262,14 @@ class TestCalcZernikesDanishTaskCwfs(lsst.utils.tests.TestCase):
         )
 
         # First estimate without pairs
-        zkAllExtra = self.task.estimateZernikes.run(donutStampsExtra, []).zernikes
+        emptyStamps = DonutStamps([])
+        zkAllExtra = self.task.estimateZernikes.run(
+            donutStampsExtra, emptyStamps
+        ).zernikes
         zkAvgExtra = self.task.combineZernikes.run(zkAllExtra).combinedZernikes
-        zkAllIntra = self.task.estimateZernikes.run([], donutStampsIntra).zernikes
+        zkAllIntra = self.task.estimateZernikes.run(
+            emptyStamps, donutStampsIntra
+        ).zernikes
         zkAvgIntra = self.task.combineZernikes.run(zkAllIntra).combinedZernikes
 
         # Now estimate with pairs

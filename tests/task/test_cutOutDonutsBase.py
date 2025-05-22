@@ -52,30 +52,39 @@ class TestCutOutDonutsBase(lsst.utils.tests.TestCase):
         cls.testDataDir = os.path.join(moduleDir, "tests", "testData")
         testPipelineConfigDir = os.path.join(cls.testDataDir, "pipelineConfigs")
         cls.repoDir = os.path.join(cls.testDataDir, "gen3TestRepo")
-        cls.runName = "run1"
+        cls.cameraName = "LSSTCam"
 
         # Check that run doesn't already exist due to previous improper cleanup
         butler = dafButler.Butler(cls.repoDir)
         registry = butler.registry
         collectionsList = list(registry.queryCollections())
-        if cls.runName in collectionsList:
-            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-            runProgram(cleanUpCmd)
+        if "pretest_run_science" in collectionsList:
+            cls.runName = "pretest_run_science"
+        else:
+            cls.runName = "run1"
+            if cls.runName in collectionsList:
+                cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+                runProgram(cleanUpCmd)
 
-        collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
-        instrument = "lsst.obs.lsst.LsstCam"
-        cls.cameraName = "LSSTCam"
-        pipelineYaml = os.path.join(testPipelineConfigDir, "testBasePipeline.yaml")
+            collections = "refcats/gen2,LSSTCam/calib,LSSTCam/raw/all"
+            instrument = "lsst.obs.lsst.LsstCam"
+            pipelineYaml = os.path.join(
+                testPipelineConfigDir, "testBasePipeline.yaml"
+            )
 
-        pipeCmd = writePipetaskCmd(
-            cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
-        )
-        runProgram(pipeCmd)
+            pipeCmd = writePipetaskCmd(
+                cls.repoDir, cls.runName, instrument, collections, pipelineYaml=pipelineYaml
+            )
+            # Make sure we are using the right exposure+detector combinations
+            pipeCmd += ' -d "exposure IN (4021123106001, 4021123106002) AND '
+            pipeCmd += 'detector NOT IN (191, 192, 195, 196, 199, 200, 203, 204)"'
+            runProgram(pipeCmd)
 
     @classmethod
     def tearDownClass(cls):
-        cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
-        runProgram(cleanUpCmd)
+        if cls.runName == "run1":
+            cleanUpCmd = writeCleanUpRepoCmd(cls.repoDir, cls.runName)
+            runProgram(cleanUpCmd)
 
     def setUp(self):
         self.config = CutOutDonutsBaseTaskConfig()
@@ -423,6 +432,7 @@ class TestCutOutDonutsBase(lsst.utils.tests.TestCase):
             "ENTROPY",
             "PEAK_HEIGHT",
             "FRAC_BAD_PIX",
+            "MAX_POWER_GRAD",
             "MJD",
             "BORESIGHT_ROT_ANGLE_RAD",
             "BORESIGHT_PAR_ANGLE_RAD",

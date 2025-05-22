@@ -41,8 +41,8 @@ from lsst.ts.wep.donutImageCheck import DonutImageCheck
 from lsst.ts.wep.task.donutStamp import DonutStamp
 from lsst.ts.wep.task.donutStamps import DonutStamps
 from lsst.ts.wep.utils import (
+    calcStampPowerSpectrum,
     createTemplateForDetector,
-    getOffsetFromExposure,
     getTaskInstrument,
 )
 from scipy.ndimage import binary_dilation
@@ -99,8 +99,7 @@ class CutOutDonutsBaseTaskConfig(
         doc="Path to a instrument configuration file to override the instrument "
         + "configuration. If begins with 'policy:' the path will be understood as "
         + "relative to the ts_wep policy directory. If not provided, the default "
-        + "instrument for the camera will be loaded, and the defocal offset will "
-        + "be determined from the focusZ value in the exposure header.",
+        + "instrument for the camera will be loaded.",
         dtype=str,
         optional=True,
     )
@@ -484,14 +483,10 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
         # Run background subtraction
         self.subtractBackground.run(exposure=exposure).background
 
-        # Get the offset
-        offset = getOffsetFromExposure(exposure, cameraName, defocalType)
-
         # Load the instrument
         instrument = getTaskInstrument(
             cameraName,
             detectorName,
-            offset,
             self.instConfigFile,
         )
 
@@ -558,6 +553,9 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
 
         # Fraction of bad pixels
         fracBadPixels = list()
+
+        # Max gradient in the stamp power spectrum for k < 10
+        maxPowerGradKLess10 = list()
 
         for idx, donutRow in enumerate(donutCatalog):
             # Make an initial cutout larger than the actual final stamp
@@ -668,6 +666,12 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
             badPixels = np.bitwise_and(finalStamp.mask.array, bits) > 0
             fracBadPixels.append(np.mean(badPixels))
 
+            # Calculate the max gradient in the stamp power spectrum for k < 10
+            _, spectrum = calcStampPowerSpectrum(donutStamp.wep_im.image)
+            spectrum /= spectrum[0]  # Normalize the spectrum
+            # Max gradient below k=10
+            maxPowerGradKLess10.append(np.max(np.diff(spectrum[:10])))
+
             finalStamps.append(donutStamp)
 
         # Add additional information into metadata
@@ -769,6 +773,10 @@ reducing the amount of donut mask dilation to {self.bkgDilationIter}"
 
         # Save the fraction of bad pixels
         stampsMetadata["FRAC_BAD_PIX"] = np.array(fracBadPixels).astype(float)
+
+        # Save max gradient in the stamp power spectrum for k < 10
+        maxPowerGradKLess10 = np.array(maxPowerGradKLess10).astype(float)
+        stampsMetadata["MAX_POWER_GRAD"] = maxPowerGradKLess10
 
         finalDonutStamps = DonutStamps(
             finalStamps, metadata=stampsMetadata, use_archive=True
